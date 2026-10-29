@@ -337,7 +337,7 @@ export default function Apply() {
           </button>
 
           <p className="apply__footer">
-            Already approved? <Link to="/admin">Sign in to your portal</Link>
+            Already a verified organiser? <Link to="/admin">Sign in to your portal</Link>
           </p>
         </form>
       </div>

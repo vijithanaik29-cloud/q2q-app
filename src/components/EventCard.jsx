@@ -32,12 +32,15 @@ export default function EventCard({ event, featured = false }) {
           {minPrice}
         </span>
       </div>
-      {event.organizerVerified && (
-        <div className="event-card__verified">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Verified Host · {event.organizerHostedCount} events
-        </div>
-      )}
+      <div className="event-card__organiser">
+        {event.organizerVerified && (
+          <span className="event-card__verified">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Verified
+          </span>
+        )}
+        <span className="event-card__organiser-name">{event.organizer}</span>
+      </div>
     </Link>
   );
 }
