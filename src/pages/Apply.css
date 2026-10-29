@@ -1,0 +1,140 @@
+.apply {
+  padding: 60px 0 80px;
+  min-height: 100vh;
+}
+
+.apply__header {
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto 40px;
+}
+
+.apply__header h1 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.apply__header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.apply__form {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apply__section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.apply__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .apply__row { grid-template-columns: 1fr; }
+  .apply__form { padding: 24px 16px; }
+}
+
+.apply__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.apply__tag {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.apply__tag:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.apply__tag--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.apply__error {
+  display: block;
+  color: var(--error);
+  font-size: 0.78rem;
+  margin-top: 4px;
+}
+
+.apply__footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.apply__footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* Success state */
+.apply-success {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 60px 0;
+}
+
+.apply-success__card {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.apply-success__icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.apply-success__card h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.apply-success__card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.apply-success__sub {
+  font-size: 0.9rem;
+  margin-bottom: 28px !important;
+}

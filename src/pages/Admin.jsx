@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
+import { supabase } from '../lib/supabase';
 import './Admin.css';
 
 const GRADIENTS = [
@@ -37,6 +38,56 @@ export default function Admin() {
   const [errors,     setErrors]     = useState({});
   const [submitted,  setSubmitted]  = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  const [applications,    setApplications]    = useState([]);
+  const [appsLoading,     setAppsLoading]     = useState(false);
+  const [appActionId,     setAppActionId]     = useState(null);
+
+  useEffect(() => {
+    if (user && activeTab === 'applications') loadApplications();
+  }, [user, activeTab]);
+
+  async function loadApplications() {
+    setAppsLoading(true);
+    const { data } = await supabase
+      .from('organizer_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setApplications(data || []);
+    setAppsLoading(false);
+  }
+
+  async function handleApprove(app) {
+    setAppActionId(app.id);
+    const { error } = await supabase.auth.admin
+      ? // use service role if available
+        null
+      : null;
+    // Invite the user — Supabase sends them a "set password" magic link
+    const { error: inviteErr } = await supabase.functions.invoke('invite-organizer', {
+      body: { email: app.email, name: app.name, app_id: app.id },
+    });
+    if (inviteErr) {
+      alert('Could not send invite: ' + inviteErr.message);
+      setAppActionId(null);
+      return;
+    }
+    await supabase.from('organizer_applications')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .eq('id', app.id);
+    setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'approved' } : a));
+    setAppActionId(null);
+  }
+
+  async function handleReject(app) {
+    if (!window.confirm(`Reject application from ${app.name}? This cannot be undone.`)) return;
+    setAppActionId(app.id);
+    await supabase.from('organizer_applications')
+      .update({ status: 'rejected', rejected_at: new Date().toISOString() })
+      .eq('id', app.id);
+    setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a));
+    setAppActionId(null);
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -219,6 +270,11 @@ export default function Admin() {
           <button className={`admin__tab ${activeTab === 'add' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('add')}>
             + Submit New Event
           </button>
+          <button className={`admin__tab ${activeTab === 'applications' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('applications')}>
+            Applications {applications.filter(a => a.status === 'pending').length > 0 && (
+              <span className="admin__tab-badge">{applications.filter(a => a.status === 'pending').length}</span>
+            )}
+          </button>
         </div>
 
         {/* Events list */}
@@ -246,6 +302,68 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Applications */}
+        {activeTab === 'applications' && (
+          <div className="admin__applications">
+            {appsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+                <div className="spinner" style={{ width: 28, height: 28 }} />
+              </div>
+            ) : applications.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state__icon">📬</div>
+                <h3>No applications yet</h3>
+                <p>Share <strong>/apply</strong> with organizers to get started.</p>
+              </div>
+            ) : (
+              <div className="admin__app-list">
+                {applications.map(app => (
+                  <div key={app.id} className={`admin__app-card card admin__app-card--${app.status}`}>
+                    <div className="admin__app-top">
+                      <div>
+                        <div className="admin__app-name">{app.name} · <span className="admin__app-org">{app.org_name}</span></div>
+                        <div className="admin__app-meta">{app.email} · {app.phone} · {app.city}</div>
+                        <div className="admin__app-types">{app.event_types.join(', ')}</div>
+                        {app.instagram && <div className="admin__app-meta">{app.instagram}</div>}
+                        {app.website   && <div className="admin__app-meta">{app.website}</div>}
+                        {app.message   && <p className="admin__app-msg">"{app.message}"</p>}
+                      </div>
+                      <span className={`admin__app-status admin__app-status--${app.status}`}>
+                        {app.status}
+                      </span>
+                    </div>
+                    {app.status === 'pending' && (
+                      <div className="admin__app-actions">
+                        <button
+                          className="btn btn-primary btn-sm"
+                          disabled={appActionId === app.id}
+                          onClick={() => handleApprove(app)}
+                        >
+                          {appActionId === app.id ? 'Sending invite…' : 'Approve & Send Invite'}
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          disabled={appActionId === app.id}
+                          onClick={() => handleReject(app)}
+                          style={{ color: 'var(--error)' }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                    {app.status === 'approved' && (
+                      <p className="admin__app-done">✓ Invite sent — organizer can set their password</p>
+                    )}
+                    {app.status === 'rejected' && (
+                      <p className="admin__app-done" style={{ color: 'var(--error)' }}>✕ Rejected</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

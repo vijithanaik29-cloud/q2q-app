@@ -7,6 +7,7 @@ import EventDetail from './pages/EventDetail';
 import Booking from './pages/Booking';
 import Confirmation from './pages/Confirmation';
 import Admin from './pages/Admin';
+import Apply from './pages/Apply';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/book/:id" element={<Booking />} />
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/apply" element={<Apply />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
