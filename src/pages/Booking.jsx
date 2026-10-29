@@ -265,7 +265,7 @@ export default function Booking() {
                   <span>
                     I understand that <strong>Q2Q is a ticketing platform only</strong>. This event is organised
                     and managed solely by <strong>{event.organizer}</strong>. Q2Q is not responsible for any
-                    changes, cancellations, or issues with the event.
+                    changes, cancellations, or issues with the event. <strong>Refunds are only issued if the event is cancelled by the organiser.</strong>
                   </span>
                 </label>
 
