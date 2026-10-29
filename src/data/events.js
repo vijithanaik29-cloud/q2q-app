@@ -162,7 +162,7 @@ export const events = [
     accentColor: '#ff6b6b',
     tickets: [
       { id: 't1', type: 'Standard', price: 199, description: 'Entry to all performances', available: 120 },
-      { id: 't2', type: 'Patron', price: 499, description: 'Entry + sponsors a student ticket', available: 50 },
+      { id: 't2', type: 'Patron', price: 499, description: 'Entry + supports the event community', available: 50 },
     ],
     organizer: 'Sappho for Equality',
     organizerContact: 'events@sappho.in',
@@ -209,7 +209,6 @@ export const events = [
     accentColor: '#5B21B6',
     tickets: [
       { id: 't1', type: 'Standard', price: 299, description: 'Entry + welcome drink + networking', available: 100 },
-      { id: 't2', type: 'Student', price: 99, description: 'Discounted entry for students', available: 30 },
     ],
     organizer: 'Q-Network India',
     organizerContact: 'pune@qnetwork.in',
