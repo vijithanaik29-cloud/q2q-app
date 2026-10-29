@@ -267,7 +267,7 @@ export default function Home() {
             <h2 className="cta-band__title">Running a queer event?</h2>
             <p className="cta-band__sub">List it on Q2Q and reach thousands across India. Free to submit.</p>
           </div>
-          <a href="/admin" className="btn btn-rainbow btn-lg">Submit your event</a>
+          <a href="/apply" className="btn btn-rainbow btn-lg">Submit your event</a>
         </div>
       </section>
     </div>

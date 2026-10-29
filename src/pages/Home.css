@@ -125,14 +125,14 @@
   position: sticky;
   top: calc(var(--nav-h) + 4px);
   z-index: 100;
-  padding: 16px 0 0;
+  padding: 10px 0 0;
 }
 
 .filters__row {
   display: flex;
-  gap: 7px;
+  gap: 6px;
   overflow-x: auto;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
   scrollbar-width: none;
   /* fade at right edge to hint scrollability */
   -webkit-mask-image: linear-gradient(to right, black calc(100% - 40px), transparent 100%);

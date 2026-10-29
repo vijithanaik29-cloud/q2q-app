@@ -6,9 +6,10 @@
   --surface:   #141414;
   --surface-2: #1C1C1C;
   --surface-3: #242424;
-  --text:      #F0F0F0;
-  --text-2:    #999999;
-  --text-muted:#4A4A4A;
+  --text:           #F0F0F0;
+  --text-2:         #999999;
+  --text-secondary: #BBBBBB;
+  --text-muted:     #666666;
   --border:    rgba(255,255,255,0.07);
   --border-2:  rgba(255,255,255,0.14);
   --border-3:  rgba(255,255,255,0.22);
