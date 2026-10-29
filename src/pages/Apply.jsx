@@ -125,31 +125,39 @@ export default function Apply() {
               with a gold badge that stands out. More visibility = more ticket sales.
             </p>
           </div>
+          <div className="apply__boost-how">
+            <span className="apply__boost-how-icon">🗓️</span>
+            <p>
+              You pay once per event. Your event appears at the top of listings
+              from the day you boost until your event date — then it's done.
+              No subscriptions, no recurring charges.
+            </p>
+          </div>
           <div className="apply__boost-plans">
             <div className="apply__boost-plan">
-              <div className="apply__boost-plan-name">Weekly Spotlight</div>
+              <div className="apply__boost-plan-name">Event Boost</div>
               <div className="apply__boost-plan-price">₹999 <span>/event</span></div>
               <ul className="apply__boost-plan-features">
-                <li>Top of city &amp; category listings for 7 days</li>
+                <li>Top of your city listings until event day</li>
                 <li>⚡ Sponsored badge on your event card</li>
-                <li>Increased click-through from browsing users</li>
+                <li>More visibility from people browsing Q2Q</li>
               </ul>
             </div>
             <div className="apply__boost-plan apply__boost-plan--highlight">
-              <div className="apply__boost-plan-tag">Most popular</div>
-              <div className="apply__boost-plan-name">Monthly Top Placement</div>
+              <div className="apply__boost-plan-tag">Best for large events</div>
+              <div className="apply__boost-plan-name">Event Spotlight</div>
               <div className="apply__boost-plan-price">₹2,499 <span>/event</span></div>
               <ul className="apply__boost-plan-features">
-                <li>Top of all India + city listings for 30 days</li>
+                <li>Top of all cities + category listings</li>
                 <li>⚡ Sponsored badge on your event card</li>
-                <li>Priority placement on the homepage</li>
-                <li>Best for ticketed events &amp; large gatherings</li>
+                <li>Featured placement on the Q2Q homepage</li>
+                <li>Ideal for ticketed events &amp; festivals</li>
               </ul>
             </div>
           </div>
           <p className="apply__boost-note">
-            You can add sponsored placement after your organizer account is approved.
-            We'll guide you through it — no tech needed.
+            You can add a boost after your organizer account is approved — we'll walk you through it.
+            No tech skills needed.
           </p>
         </div>
 
