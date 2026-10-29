@@ -35,8 +35,15 @@ export default function Navbar() {
             <NavLink to="/" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} end>
               Events
             </NavLink>
-            <NavLink to="/admin" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
-              For Organizers
+            <NavLink to="/admin" className={({ isActive }) => `navbar__link navbar__link--organiser ${isActive ? 'navbar__link--active' : ''}`}>
+              Verified Organiser
+              <span className="navbar__info-icon" aria-label="What is a Verified Organiser?">
+                ℹ
+                <span className="navbar__tooltip">
+                  Only for organizers approved by Q2Q.<br/>
+                  New? Use "Host an Event" to apply.
+                </span>
+              </span>
             </NavLink>
             <Link to="/apply" className="navbar__cta">Host an Event</Link>
           </div>
@@ -58,11 +65,17 @@ export default function Navbar() {
           <p className="navbar__drawer-label">Explore</p>
           <NavLink to="/" className="navbar__mobile-link" end>
             <span className="navbar__mobile-icon">🏳️‍🌈</span>
-            Events
+            <span className="navbar__mobile-link-content">
+              <span className="navbar__mobile-link-title">Events</span>
+              <span className="navbar__mobile-link-sub">Browse queer events near you</span>
+            </span>
           </NavLink>
           <NavLink to="/admin" className="navbar__mobile-link">
-            <span className="navbar__mobile-icon">👤</span>
-            For Organizers
+            <span className="navbar__mobile-icon">✓</span>
+            <span className="navbar__mobile-link-content">
+              <span className="navbar__mobile-link-title">Verified Organiser</span>
+              <span className="navbar__mobile-link-sub">For Q2Q-approved organizers only</span>
+            </span>
           </NavLink>
         </div>
 
