@@ -115,6 +115,44 @@ export default function Apply() {
           </p>
         </div>
 
+        {/* Sponsored boost info card */}
+        <div className="apply__boost-card">
+          <div className="apply__boost-header">
+            <span className="apply__boost-badge">⚡ New</span>
+            <h3 className="apply__boost-title">Get more eyes on your event</h3>
+            <p className="apply__boost-sub">
+              Q2Q Sponsored Placement puts your event at the top of city and category listings —
+              with a gold badge that stands out. More visibility = more ticket sales.
+            </p>
+          </div>
+          <div className="apply__boost-plans">
+            <div className="apply__boost-plan">
+              <div className="apply__boost-plan-name">Weekly Spotlight</div>
+              <div className="apply__boost-plan-price">₹999 <span>/event</span></div>
+              <ul className="apply__boost-plan-features">
+                <li>Top of city &amp; category listings for 7 days</li>
+                <li>⚡ Sponsored badge on your event card</li>
+                <li>Increased click-through from browsing users</li>
+              </ul>
+            </div>
+            <div className="apply__boost-plan apply__boost-plan--highlight">
+              <div className="apply__boost-plan-tag">Most popular</div>
+              <div className="apply__boost-plan-name">Monthly Top Placement</div>
+              <div className="apply__boost-plan-price">₹2,499 <span>/event</span></div>
+              <ul className="apply__boost-plan-features">
+                <li>Top of all India + city listings for 30 days</li>
+                <li>⚡ Sponsored badge on your event card</li>
+                <li>Priority placement on the homepage</li>
+                <li>Best for ticketed events &amp; large gatherings</li>
+              </ul>
+            </div>
+          </div>
+          <p className="apply__boost-note">
+            You can add sponsored placement after your organizer account is approved.
+            We'll guide you through it — no tech needed.
+          </p>
+        </div>
+
         <form className="apply__form card" onSubmit={handleSubmit} noValidate>
 
           <div className="apply__section-title">About you</div>
