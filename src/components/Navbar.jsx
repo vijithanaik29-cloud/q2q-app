@@ -23,37 +23,64 @@ export default function Navbar() {
   }, [open]);
 
   return (
-    <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
-      <div className="container navbar__inner">
-        <Link to="/" className="navbar__logo">
-          <span className="navbar__logo-q rainbow-text">Q2Q</span>
-          <span className="navbar__logo-tag">queer events india</span>
-        </Link>
+    <>
+      <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
+        <div className="container navbar__inner">
+          <Link to="/" className="navbar__logo">
+            <span className="navbar__logo-q rainbow-text">Q2Q</span>
+            <span className="navbar__logo-tag">queer events india</span>
+          </Link>
 
-        <div className="navbar__links">
-          <NavLink to="/" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} end>
+          <div className="navbar__links">
+            <NavLink to="/" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} end>
+              Events
+            </NavLink>
+            <NavLink to="/admin" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
+              For Organizers
+            </NavLink>
+            <Link to="/apply" className="navbar__cta">Host an Event</Link>
+          </div>
+
+          <button
+            className={`navbar__hamburger ${open ? 'navbar__hamburger--open' : ''}`}
+            onClick={() => setOpen(v => !v)}
+            aria-label="Toggle menu"
+          >
+            <span /><span /><span />
+          </button>
+        </div>
+      </nav>
+
+      {open && <div className="navbar__overlay" onClick={() => setOpen(false)} />}
+
+      <div className={`navbar__drawer ${open ? 'navbar__drawer--open' : ''}`}>
+        <div className="navbar__drawer-section">
+          <p className="navbar__drawer-label">Explore</p>
+          <NavLink to="/" className="navbar__mobile-link" end>
+            <span className="navbar__mobile-icon">🏳️‍🌈</span>
             Events
           </NavLink>
-          <NavLink to="/admin" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
+          <NavLink to="/admin" className="navbar__mobile-link">
+            <span className="navbar__mobile-icon">👤</span>
             For Organizers
           </NavLink>
         </div>
 
-        <button
-          className={`navbar__hamburger ${open ? 'navbar__hamburger--open' : ''}`}
-          onClick={() => setOpen(v => !v)}
-          aria-label="Toggle menu"
-        >
-          <span /><span /><span />
-        </button>
-      </div>
+        <div className="navbar__drawer-divider" />
 
-      {open && (
-        <div className="navbar__mobile-menu">
-          <NavLink to="/" className="navbar__mobile-link" end>Events</NavLink>
-          <NavLink to="/admin" className="navbar__mobile-link">For Organizers</NavLink>
+        <div className="navbar__drawer-section">
+          <p className="navbar__drawer-label">Are you an organizer?</p>
+          <Link to="/apply" className="navbar__drawer-cta">
+            Host an Event on Q2Q
+            <span className="navbar__drawer-cta-arrow">→</span>
+          </Link>
         </div>
-      )}
-    </nav>
+
+        <div className="navbar__drawer-footer">
+          <span className="rainbow-text" style={{ fontWeight: 800, fontSize: 18 }}>Q2Q</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Queer Events India</span>
+        </div>
+      </div>
+    </>
   );
 }
