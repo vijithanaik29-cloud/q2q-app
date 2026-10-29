@@ -115,49 +115,69 @@ export default function Apply() {
           </p>
         </div>
 
-        {/* Sponsored boost info card */}
+        {/* How Q2Q works */}
+        <div className="apply__model">
+          <div className="apply__model-step">
+            <span className="apply__model-icon">🏳️‍🌈</span>
+            <div>
+              <div className="apply__model-label">Free to list</div>
+              <div className="apply__model-desc">No upfront cost. Get approved and list your events on Q2Q for free.</div>
+            </div>
+          </div>
+          <div className="apply__model-divider">→</div>
+          <div className="apply__model-step">
+            <span className="apply__model-icon">🎟️</span>
+            <div>
+              <div className="apply__model-label">We take 10%</div>
+              <div className="apply__model-desc">On every paid ticket sold through Q2Q. Free events always ₹0.</div>
+            </div>
+          </div>
+          <div className="apply__model-divider">→</div>
+          <div className="apply__model-step">
+            <span className="apply__model-icon">⚡</span>
+            <div>
+              <div className="apply__model-label">Optional boost</div>
+              <div className="apply__model-desc">Pay once to put your event at the top of listings until event day.</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sponsored boost card */}
         <div className="apply__boost-card">
           <div className="apply__boost-header">
-            <span className="apply__boost-badge">⚡ New</span>
-            <h3 className="apply__boost-title">Get more eyes on your event</h3>
+            <span className="apply__boost-badge">⚡ Sponsored Placement</span>
+            <h3 className="apply__boost-title">Get to the top of listings</h3>
             <p className="apply__boost-sub">
-              Q2Q Sponsored Placement puts your event at the top of city and category listings —
-              with a gold badge that stands out. More visibility = more ticket sales.
-            </p>
-          </div>
-          <div className="apply__boost-how">
-            <span className="apply__boost-how-icon">🗓️</span>
-            <p>
-              You pay once per event. Your event appears at the top of listings
-              from the day you boost until your event date — then it's done.
-              No subscriptions, no recurring charges.
+              One payment per event. Your event jumps to the top of Q2Q listings the moment you boost —
+              and stays there until your event day. Then it's done. No subscription, no recurring charge.
             </p>
           </div>
           <div className="apply__boost-plans">
             <div className="apply__boost-plan">
               <div className="apply__boost-plan-name">Event Boost</div>
               <div className="apply__boost-plan-price">₹999 <span>/event</span></div>
+              <div className="apply__boost-plan-who">For cafés, restaurants &amp; small promoters</div>
               <ul className="apply__boost-plan-features">
                 <li>Top of your city listings until event day</li>
                 <li>⚡ Sponsored badge on your event card</li>
-                <li>More visibility from people browsing Q2Q</li>
+                <li>Break-even at ~2 extra ticket sales</li>
               </ul>
             </div>
             <div className="apply__boost-plan apply__boost-plan--highlight">
               <div className="apply__boost-plan-tag">Best for large events</div>
               <div className="apply__boost-plan-name">Event Spotlight</div>
               <div className="apply__boost-plan-price">₹2,499 <span>/event</span></div>
+              <div className="apply__boost-plan-who">For clubs, festivals &amp; big ticketed events</div>
               <ul className="apply__boost-plan-features">
                 <li>Top of all cities + category listings</li>
                 <li>⚡ Sponsored badge on your event card</li>
-                <li>Featured placement on the Q2Q homepage</li>
-                <li>Ideal for ticketed events &amp; festivals</li>
+                <li>Featured on the Q2Q homepage</li>
+                <li>Break-even at ~5 extra ticket sales</li>
               </ul>
             </div>
           </div>
           <p className="apply__boost-note">
-            You can add a boost after your organizer account is approved — we'll walk you through it.
-            No tech skills needed.
+            Add a boost from your organizer dashboard after approval — takes 2 minutes. No tech skills needed.
           </p>
         </div>
 

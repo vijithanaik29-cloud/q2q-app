@@ -99,6 +99,66 @@
   text-decoration: none;
 }
 
+/* ── How Q2Q Works ── */
+.apply__model {
+  max-width: 680px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.apply__model-step {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  padding: 20px 20px;
+  align-items: flex-start;
+}
+
+.apply__model-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.apply__model-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.apply__model-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.apply__model-divider {
+  color: var(--text-muted);
+  font-size: 16px;
+  padding-top: 22px;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+@media (max-width: 600px) {
+  .apply__model {
+    flex-direction: column;
+  }
+  .apply__model-step {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .apply__model-step:last-child { border-bottom: none; }
+  .apply__model-divider { display: none; }
+}
+
 /* ── Sponsored Boost Card ── */
 .apply__boost-card {
   max-width: 680px;
@@ -193,6 +253,13 @@
   text-transform: uppercase;
   color: #b87c00;
   margin-bottom: 8px;
+}
+
+.apply__boost-plan-who {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  font-style: italic;
 }
 
 .apply__boost-plan-name {
