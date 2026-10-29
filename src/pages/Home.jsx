@@ -22,7 +22,7 @@ export default function Home() {
     return saved && CATEGORIES.includes(saved) ? saved : 'All';
   });
   const [priceFilter, setPriceFilter] = useState('All');
-  const [upcomingOnly, setUpcomingOnly] = useState(false);
+  const [dateFilter, setDateFilter] = useState('upcoming');
 
   const selectedCity = searchParams.get('city') || 'All';
 
@@ -53,19 +53,34 @@ export default function Home() {
     setCity('All');
     setCategory('All');
     setPriceFilter('All');
-    setUpcomingOnly(false);
+    setDateFilter('upcoming');
     setSearch('');
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  function getDateRange(filter) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const todayStr = fmt(now);
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+    const tomorrowStr = fmt(tomorrow);
+    const day = now.getDay(); // 0=Sun,6=Sat
+    const daysToSat = (6 - day + 7) % 7 || 7;
+    const daysToSun = (0 - day + 7) % 7 || 7;
+    const sat = new Date(now); sat.setDate(now.getDate() + daysToSat);
+    const sun = new Date(now); sun.setDate(now.getDate() + daysToSun);
+    const satStr = fmt(sat); const sunStr = fmt(sun);
+    return { todayStr, tomorrowStr, satStr, sunStr };
+  }
 
   const hasActiveFilters = selectedCity !== 'All' || selectedCategory !== 'All' ||
-    priceFilter !== 'All' || upcomingOnly || !!search;
+    priceFilter !== 'All' || dateFilter !== 'upcoming' || !!search;
 
   const featuredEvents = useMemo(() =>
     allEvents.filter(e => e.featured), [allEvents]);
 
   const filteredEvents = useMemo(() => {
+    const { todayStr, tomorrowStr, satStr, sunStr } = getDateRange(dateFilter);
     const filtered = allEvents.filter(e => {
       const matchCity = selectedCity === 'All' || e.city === selectedCity;
       const matchCat = selectedCategory === 'All' || e.category === selectedCategory;
@@ -73,16 +88,20 @@ export default function Home() {
         e.title.toLowerCase().includes(search.toLowerCase()) ||
         e.venue.toLowerCase().includes(search.toLowerCase()) ||
         e.description.toLowerCase().includes(search.toLowerCase());
-      const matchUpcoming = !upcomingOnly || e.date >= today;
       const minPrice = Math.min(...(e.tickets || []).map(t => t.price ?? 0));
       const matchPrice = priceFilter === 'All' ||
         (priceFilter === 'Free' && minPrice === 0) ||
         (priceFilter === 'Paid' && minPrice > 0);
-      return matchCity && matchCat && matchSearch && matchUpcoming && matchPrice;
+      const matchDate = dateFilter === 'all' ? true :
+        dateFilter === 'upcoming' ? e.date >= todayStr :
+        dateFilter === 'today' ? e.date === todayStr :
+        dateFilter === 'tomorrow' ? e.date === tomorrowStr :
+        dateFilter === 'weekend' ? (e.date === satStr || e.date === sunStr) : true;
+      return matchCity && matchCat && matchSearch && matchPrice && matchDate;
     });
     // Promoted events float to top
     return filtered.sort((a, b) => (b.promoted ? 1 : 0) - (a.promoted ? 1 : 0));
-  }, [allEvents, selectedCity, selectedCategory, search, upcomingOnly, priceFilter, today]);
+  }, [allEvents, selectedCity, selectedCategory, search, priceFilter, dateFilter]);
 
   const noFilters = !hasActiveFilters;
 
@@ -124,64 +143,64 @@ export default function Home() {
       <div className="filters">
         <div className="container">
 
-          {/* Cities */}
-          <div className="filters__section">
-            <div className="filters__label-row">
-              <span className="filters__label">Where</span>
-            </div>
-            <div className="filters__row">
-              {CITIES.map(city => (
-                <button
-                  key={city}
-                  className={`city-pill ${selectedCity === city ? 'city-pill--active' : ''}`}
-                  onClick={() => setCity(city)}
-                >
-                  <span className="city-pill__emoji">{CITY_EMOJI[city]}</span>
-                  <span className="city-pill__name">{city === 'All' ? 'All Cities' : city}</span>
-                </button>
-              ))}
-            </div>
+          {/* Date quick filter */}
+          <div className="filters__row filters__row--date">
+            {[
+              { key: 'today',    label: 'Today' },
+              { key: 'tomorrow', label: 'Tomorrow' },
+              { key: 'weekend',  label: 'Weekend' },
+              { key: 'upcoming', label: 'Upcoming' },
+              { key: 'all',      label: 'All' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                className={`date-pill ${dateFilter === key ? 'date-pill--active' : ''}`}
+                onClick={() => setDateFilter(key)}
+              >
+                {label}
+              </button>
+            ))}
+            {hasActiveFilters && (
+              <button className="date-pill date-pill--clear" onClick={clearAllFilters}>✕ Clear</button>
+            )}
           </div>
 
-          {/* Categories + Quick filters */}
-          <div className="filters__section filters__section--bottom">
-            <div className="filters__label-row">
-              <span className="filters__label">What</span>
-              <div className="filters__quick">
-                <button
-                  className={`quick-pill ${upcomingOnly ? 'quick-pill--active' : ''}`}
-                  onClick={() => setUpcomingOnly(v => !v)}
-                >
-                  📅 Upcoming
-                </button>
-                {['All', 'Free', 'Paid'].map(p => (
-                  <button
-                    key={p}
-                    className={`quick-pill ${priceFilter === p ? 'quick-pill--active' : ''}`}
-                    onClick={() => setPriceFilter(p)}
-                  >
-                    {p === 'Free' ? '🎟️ Free' : p === 'Paid' ? '💳 Paid' : '💸 All'}
-                  </button>
-                ))}
-                {hasActiveFilters && (
-                  <button className="quick-pill quick-pill--clear" onClick={clearAllFilters}>
-                    ✕ Clear
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="filters__row">
-              {['All', ...CATEGORIES].map(cat => (
-                <button
-                  key={cat}
-                  className={`cat-pill ${selectedCategory === cat ? 'cat-pill--active' : ''}`}
-                  onClick={() => setCategory(cat)}
-                >
-                  {cat !== 'All' && <span className="cat-pill__emoji">{CATEGORY_EMOJI[cat]}</span>}
-                  {cat === 'All' ? '✦ All' : cat}
-                </button>
-              ))}
-            </div>
+          {/* Cities */}
+          <div className="filters__row">
+            {CITIES.map(city => (
+              <button
+                key={city}
+                className={`city-pill ${selectedCity === city ? 'city-pill--active' : ''}`}
+                onClick={() => setCity(city)}
+              >
+                <span className="city-pill__emoji">{CITY_EMOJI[city]}</span>
+                <span className="city-pill__name">{city === 'All' ? 'All Cities' : city}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Categories + price */}
+          <div className="filters__row filters__row--cats">
+            {['All', ...CATEGORIES].map(cat => (
+              <button
+                key={cat}
+                className={`cat-pill ${selectedCategory === cat ? 'cat-pill--active' : ''}`}
+                onClick={() => setCategory(cat)}
+              >
+                {cat !== 'All' && <span className="cat-pill__emoji">{CATEGORY_EMOJI[cat]}</span>}
+                {cat === 'All' ? '✦ All' : cat}
+              </button>
+            ))}
+            <span className="filters__sep" />
+            {['Free', 'Paid'].map(p => (
+              <button
+                key={p}
+                className={`cat-pill ${priceFilter === p ? 'cat-pill--active' : ''}`}
+                onClick={() => setPriceFilter(prev => prev === p ? 'All' : p)}
+              >
+                {p === 'Free' ? '🎟️ Free' : '💳 Paid'}
+              </button>
+            ))}
           </div>
 
         </div>

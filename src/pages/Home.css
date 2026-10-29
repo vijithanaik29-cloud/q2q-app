@@ -124,43 +124,49 @@
   padding: 16px 0 0;
 }
 
-.filters__section { margin-bottom: 0; }
-.filters__section--bottom { padding-bottom: 2px; }
-
-.filters__label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  gap: 8px;
-}
-
-.filters__label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.filters__quick {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.filters__quick::-webkit-scrollbar { display: none; }
-
 .filters__row {
   display: flex;
   gap: 7px;
   overflow-x: auto;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
   scrollbar-width: none;
 }
 .filters__row::-webkit-scrollbar { display: none; }
+
+.filters__sep {
+  width: 1px;
+  background: var(--border-2);
+  align-self: stretch;
+  flex-shrink: 0;
+  margin: 4px 4px;
+}
+
+/* Date pills */
+.date-pill {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.date-pill:hover { border-color: var(--border-3); color: var(--text-1); }
+.date-pill--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.date-pill--clear {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.date-pill--clear:hover { color: var(--error); border-color: var(--error); }
 
 /* City pills */
 .city-pill {
