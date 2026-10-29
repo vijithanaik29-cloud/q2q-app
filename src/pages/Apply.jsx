@@ -163,7 +163,7 @@ export default function Apply() {
             <span className="apply__boost-badge">⚡ Sponsored Placement</span>
             <h3 className="apply__boost-title">Get to the top of listings</h3>
             <p className="apply__boost-sub">
-              One payment per event. Your event jumps to the top of Q2Q listings the moment you boost —
+              One payment per event. Your event jumps to the top of Q2Q listings the moment you boost,
               and stays there until your event day. Then it's done. No subscription, no recurring charge.
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function Apply() {
             </div>
           </div>
           <p className="apply__boost-note">
-            Add a boost from your organizer dashboard after approval — takes 2 minutes. No tech skills needed.
+            Add a boost from your organizer dashboard after approval. Takes 2 minutes, no tech skills needed.
           </p>
         </div>
 

@@ -462,7 +462,7 @@ export default function Admin() {
                       </div>
                     )}
                     {app.status === 'approved' && (
-                      <p className="admin__app-done">✓ Invite sent — organizer can set their password</p>
+                      <p className="admin__app-done">✓ Invite sent. Organiser can now set their password</p>
                     )}
                     {app.status === 'rejected' && (
                       <p className="admin__app-done" style={{ color: 'var(--error)' }}>✕ Rejected</p>
@@ -760,7 +760,7 @@ export default function Admin() {
                       {errors[`ticket_type_${i}`] && <span className="admin__error">{errors[`ticket_type_${i}`]}</span>}
                     </div>
                     <div className="form-group">
-                      <label>Price (₹) * — 0 for free</label>
+                      <label>Price (₹) * (enter 0 for free)</label>
                       <input type="number" min="0" placeholder="499" value={ticket.price} onChange={e => setTicket(i, 'price', e.target.value)} />
                       {errors[`ticket_price_${i}`] && <span className="admin__error">{errors[`ticket_price_${i}`]}</span>}
                     </div>

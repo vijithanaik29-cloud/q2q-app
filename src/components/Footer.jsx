@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="container footer__inner">
         <div className="footer__brand">
           <span className="footer__logo rainbow-text">Q2Q</span>
-          <p className="footer__tagline">Connecting queer communities across India — one event at a time.</p>
+          <p className="footer__tagline">Connecting queer communities across India, one event at a time.</p>
         </div>
 
         <div className="footer__links">

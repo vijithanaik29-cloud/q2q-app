@@ -116,7 +116,7 @@ export default function Home() {
             <em className="rainbow-text">queer community</em>
           </h1>
           <p className="hero__subtitle">
-            Parties, pride marches, film festivals, workshops, and more —
+            Parties, pride marches, film festivals, workshops, and more,
             across Mumbai, Delhi, Bangalore, and beyond.
           </p>
           <div className="hero__search-wrap">
@@ -245,7 +245,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="empty-state">
-              <div className="empty-state__icon">—</div>
+              <div className="empty-state__icon">·</div>
               <h3>No events found</h3>
               <p>Try a different city, category, or search term.</p>
               <button
@@ -265,7 +265,7 @@ export default function Home() {
           <div className="cta-band__text">
             <p className="cta-band__eyebrow">For Organisers</p>
             <h2 className="cta-band__title">Running a queer event?</h2>
-            <p className="cta-band__sub">List it on Q2Q and reach thousands across India — free to submit.</p>
+            <p className="cta-band__sub">List it on Q2Q and reach thousands across India. Free to submit.</p>
           </div>
           <a href="/admin" className="btn btn-rainbow btn-lg">Submit your event</a>
         </div>

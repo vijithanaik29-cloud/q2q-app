@@ -42,7 +42,7 @@ export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
         }, 600);
         setCameraMsg('Scanning for QR codes…');
       } else {
-        setCameraMsg('Camera active — QR auto-detection unavailable in this browser. Enter code manually below.');
+        setCameraMsg('Camera active. QR auto-detection unavailable in this browser. Enter code manually below.');
       }
     } catch (err) {
       setCameraState('error');

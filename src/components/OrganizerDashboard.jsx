@@ -286,8 +286,8 @@ export default function OrganizerDashboard({ event, onBack }) {
             <div className="od__payout-status-row">
               <span className="od__payout-status-label">Status</span>
               <span className={`od__payout-badge od__payout-badge--${payoutStatus}`}>
-                {payoutStatus === 'pending' && 'Pending — paid 7 days after event'}
-                {payoutStatus === 'processing' && 'Processing — 1–2 business days'}
+                {payoutStatus === 'pending' && 'Pending: paid 7 days after event'}
+                {payoutStatus === 'processing' && 'Processing: 1-2 business days'}
                 {payoutStatus === 'none' && 'No paid tickets'}
               </span>
             </div>
