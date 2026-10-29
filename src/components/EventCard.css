@@ -1,0 +1,149 @@
+.event-card {
+  display: block;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color var(--transition-slow), transform var(--transition-slow);
+  position: relative;
+}
+
+.event-card:hover {
+  border-color: var(--border-3);
+  transform: translateY(-2px);
+}
+
+/* ── Banner — full-bleed gradient with dark vignette ── */
+.event-card__banner {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.event-card--featured .event-card__banner {
+  height: 220px;
+}
+
+/* Dark gradient overlay — bottom-weighted for text readability */
+.event-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.05) 0%,
+    rgba(0,0,0,0.25) 40%,
+    rgba(0,0,0,0.82) 100%
+  );
+}
+
+/* Title + category inside the banner */
+.event-card__banner-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 18px;
+  z-index: 1;
+}
+
+.event-card__category-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 6px;
+}
+
+.event-card__title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+
+.event-card--featured .event-card__title {
+  font-size: 21px;
+  letter-spacing: -0.5px;
+}
+
+/* Featured tag */
+.event-card__featured-tag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.14);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  z-index: 2;
+}
+
+/* ── Info strip below banner ── */
+.event-card__strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.event-card__strip-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.event-card__date {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.event-card__sep {
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.event-card__venue {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-card__price {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.event-card__price--free {
+  color: var(--success);
+}

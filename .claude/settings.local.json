@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(sudo npm cache clean --force)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(curl *)",
+      "Bash(npx playwright *)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(mkdir -p /Users/vijitha/q2q-app/supabase/functions/create-order /Users/vijitha/q2q-app/supabase/functions/confirm-booking /Users/vijitha/q2q-app/src/lib)",
+      "Bash(git -C /Users/vijitha/q2q-app status)",
+      "Bash(git -C /Users/vijitha/q2q-app remote -v)"
+    ]
+  }
+}
