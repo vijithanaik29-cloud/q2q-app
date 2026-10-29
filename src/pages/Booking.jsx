@@ -18,6 +18,7 @@ export default function Booking() {
   const [errors,        setErrors]        = useState({});
   const [submitting,    setSubmitting]    = useState(false);
   const [paymentError,  setPaymentError]  = useState('');
+  const [consent,       setConsent]       = useState(false);
 
   if (!event) {
     return (
@@ -255,8 +256,21 @@ export default function Booking() {
                   <strong>{total === 0 ? 'Free' : `₹${total.toLocaleString('en-IN')}`}</strong>
                 </div>
 
+                <label className="booking__consent">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={e => setConsent(e.target.checked)}
+                  />
+                  <span>
+                    I understand that <strong>Q2Q is a ticketing platform only</strong>. This event is organised
+                    and managed solely by <strong>{event.organizer}</strong>. Q2Q is not responsible for any
+                    changes, cancellations, or issues with the event.
+                  </span>
+                </label>
+
                 {paymentError && (
-                  <p style={{ color: 'var(--error)', fontSize: 13, marginTop: 12, marginBottom: 0 }}>
+                  <p style={{ color: 'var(--error)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
                     {paymentError}
                   </p>
                 )}
@@ -264,8 +278,8 @@ export default function Booking() {
                 <button
                   className="btn btn-primary btn-full btn-lg"
                   onClick={handleConfirm}
-                  disabled={submitting}
-                  style={{ marginTop: 20 }}
+                  disabled={submitting || !consent}
+                  style={{ marginTop: 16 }}
                 >
                   {submitting ? (
                     <><div className="spinner" style={{ width: 16, height: 16 }} /> Processing…</>

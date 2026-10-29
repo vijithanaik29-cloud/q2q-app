@@ -197,6 +197,37 @@
   margin-top: 3px;
 }
 
+.booking__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.booking__consent input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.booking__consent span {
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.booking__consent strong {
+  color: var(--text);
+}
+
 .booking__privacy {
   font-size: 12px;
   color: var(--text-muted);

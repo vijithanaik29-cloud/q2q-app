@@ -69,7 +69,15 @@ export default function EventDetail() {
               </div>
               <div className="event-detail__info-item">
                 <div className="event-detail__info-label">Organised by</div>
-                <div className="event-detail__info-value">{event.organizer}</div>
+                <div className="event-detail__info-value">
+                  {event.organizer}
+                  {event.organizerVerified && (
+                    <span className="event-detail__verified-badge">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Verified · {event.organizerHostedCount} events
+                    </span>
+                  )}
+                </div>
                 <div className="event-detail__info-sub">{event.organizerContact}</div>
               </div>
               <div className="event-detail__info-item">
