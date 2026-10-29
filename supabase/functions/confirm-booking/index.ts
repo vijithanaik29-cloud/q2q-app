@@ -39,16 +39,19 @@ serve(async (req) => {
 
   const { data, error } = await supabase.from('bookings').insert({
     id,
-    event_id:    booking.eventId,
-    event_title: booking.eventTitle,
-    event_date:  booking.eventDate,
-    event_venue: booking.eventVenue,
-    event_city:  booking.eventCity,
-    gradient:    booking.gradient,
-    total:       booking.total,
-    tickets:     booking.tickets,
-    attendee:    booking.attendee,
-    payment_id:  razorpay_payment_id,
+    event_id:           booking.eventId,
+    event_title:        booking.eventTitle,
+    event_date:         booking.eventDate,
+    event_venue:        booking.eventVenue,
+    event_city:         booking.eventCity,
+    gradient:           booking.gradient,
+    total:              booking.total,
+    tickets:            booking.tickets,
+    attendee:           booking.attendee,
+    payment_id:         razorpay_payment_id,
+    razorpay_order_id:  razorpay_order_id,
+    status:             'active',
+    payout_released:    false,
   }).select().single();
 
   if (error) {

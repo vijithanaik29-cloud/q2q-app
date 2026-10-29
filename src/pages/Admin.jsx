@@ -43,6 +43,13 @@ export default function Admin() {
   const [appsLoading,     setAppsLoading]     = useState(false);
   const [appActionId,     setAppActionId]     = useState(null);
 
+  const [bookings,        setBookings]        = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [refundingEvent,  setRefundingEvent]  = useState(null);
+  const [refundResults,   setRefundResults]   = useState({});
+
+  const SUPERADMIN = 'vijithanaik29@gmail.com';
+
   const BLANK_BANK = { account_holder_name: '', bank_name: '', account_number: '', ifsc_code: '' };
   const [bankForm,     setBankForm]     = useState(BLANK_BANK);
   const [bankLoading,  setBankLoading]  = useState(false);
@@ -53,7 +60,46 @@ export default function Admin() {
   useEffect(() => {
     if (user && activeTab === 'applications') loadApplications();
     if (user && activeTab === 'payout') loadBankDetails();
+    if (user && activeTab === 'bookings') loadBookings();
   }, [user, activeTab]);
+
+  async function loadBookings() {
+    setBookingsLoading(true);
+    const { data } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setBookings(data || []);
+    setBookingsLoading(false);
+  }
+
+  async function handleRefundEvent(eventId, eventTitle) {
+    if (!window.confirm(`Cancel "${eventTitle}" and refund ALL active bookings? This cannot be undone.`)) return;
+    setRefundingEvent(eventId);
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data, error } = await supabase.functions.invoke('refund-event', {
+      body: { event_id: eventId },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    setRefundingEvent(null);
+    if (error) {
+      alert('Refund failed: ' + error.message);
+      return;
+    }
+    setRefundResults(prev => ({ ...prev, [eventId]: data }));
+    await loadBookings();
+  }
+
+  function groupBookingsByEvent(bookings) {
+    const groups = {};
+    for (const b of bookings) {
+      if (!groups[b.event_id]) {
+        groups[b.event_id] = { event_id: b.event_id, event_title: b.event_title, bookings: [] };
+      }
+      groups[b.event_id].bookings.push(b);
+    }
+    return Object.values(groups);
+  }
 
   async function loadBankDetails() {
     setBankLoading(true);
@@ -331,6 +377,11 @@ export default function Admin() {
           <button className={`admin__tab ${activeTab === 'payout' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('payout')}>
             Payout Details
           </button>
+          {user?.email === SUPERADMIN && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'bookings' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('bookings')}>
+              🛡 Bookings & Refunds
+            </button>
+          )}
         </div>
 
         {/* Events list */}
@@ -496,6 +547,88 @@ export default function Admin() {
                 </form>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Bookings & Refunds — superadmin only */}
+        {activeTab === 'bookings' && user?.email === SUPERADMIN && (
+          <div className="admin__bookings">
+            <div className="admin__bookings-header">
+              <h2>All Bookings</h2>
+              <button className="btn btn-ghost btn-sm" onClick={loadBookings}>↻ Refresh</button>
+            </div>
+
+            {bookingsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+                <div className="spinner" style={{ width: 28, height: 28 }} />
+              </div>
+            ) : bookings.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state__icon">🎟️</div>
+                <h3>No bookings yet</h3>
+                <p>Bookings will appear here once attendees start purchasing tickets.</p>
+              </div>
+            ) : (
+              groupBookingsByEvent(bookings).map(group => {
+                const active    = group.bookings.filter(b => b.status === 'active');
+                const refunded  = group.bookings.filter(b => b.status === 'refunded');
+                const revenue   = group.bookings.filter(b => b.status === 'active').reduce((s, b) => s + (b.total || 0), 0);
+                const allPaid   = group.bookings.every(b => b.payout_released);
+                const result    = refundResults[group.event_id];
+
+                return (
+                  <div key={group.event_id} className="admin__booking-group card">
+                    <div className="admin__booking-group-header">
+                      <div>
+                        <div className="admin__booking-event-title">{group.event_title}</div>
+                        <div className="admin__booking-event-stats">
+                          <span className="admin__booking-stat admin__booking-stat--active">{active.length} active</span>
+                          {refunded.length > 0 && <span className="admin__booking-stat admin__booking-stat--refunded">{refunded.length} refunded</span>}
+                          <span className="admin__booking-stat">₹{revenue.toLocaleString('en-IN')} held</span>
+                          <span className={`admin__booking-payout ${allPaid ? 'admin__booking-payout--released' : ''}`}>
+                            {allPaid ? '✓ Payout released' : '⏳ Payout held'}
+                          </span>
+                        </div>
+                      </div>
+                      {active.length > 0 && (
+                        <button
+                          className="btn btn-sm admin__refund-btn"
+                          disabled={refundingEvent === group.event_id}
+                          onClick={() => handleRefundEvent(group.event_id, group.event_title)}
+                        >
+                          {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
+                        </button>
+                      )}
+                    </div>
+
+                    {result && (
+                      <div className="admin__refund-result">
+                        ✓ Refunded {result.refunded} bookings · ₹{(result.total_amount || 0).toLocaleString('en-IN')} returned to attendees
+                      </div>
+                    )}
+
+                    <div className="admin__booking-table">
+                      <div className="admin__booking-thead">
+                        <span>Ref</span><span>Attendee</span><span>Tickets</span><span>Amount</span><span>Status</span><span>Date</span>
+                      </div>
+                      {group.bookings.map(b => (
+                        <div key={b.id} className={`admin__booking-row admin__booking-row--${b.status}`}>
+                          <span className="admin__booking-id">{b.id}</span>
+                          <span>
+                            <div>{b.attendee?.name}</div>
+                            <div className="admin__booking-email">{b.attendee?.email}</div>
+                          </span>
+                          <span>{b.tickets?.map(t => `${t.type} ×${t.qty}`).join(', ')}</span>
+                          <span>₹{(b.total || 0).toLocaleString('en-IN')}</span>
+                          <span className={`admin__booking-status admin__booking-status--${b.status}`}>{b.status}</span>
+                          <span className="admin__booking-date">{new Date(b.created_at).toLocaleDateString('en-IN')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
 
