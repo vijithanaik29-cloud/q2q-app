@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import EventCard from '../components/EventCard';
@@ -10,25 +10,48 @@ const CITY_EMOJI = {
   Chennai: '🎭', Kolkata: '🌸', Hyderabad: '🕌', Pune: '🎓', Goa: '🏖️',
 };
 
+function lsGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+function lsSet(key, val) { try { if (val) localStorage.setItem(key, val); else localStorage.removeItem(key); } catch (_) {} }
+
 export default function Home() {
   const { allEvents } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    const saved = lsGet('q2q_cat_pref');
+    return saved && CATEGORIES.includes(saved) ? saved : 'All';
+  });
   const [priceFilter, setPriceFilter] = useState('All');
   const [upcomingOnly, setUpcomingOnly] = useState(false);
 
   const selectedCity = searchParams.get('city') || 'All';
 
+  // Restore saved city preference on first load if no URL param
+  useEffect(() => {
+    if (!searchParams.get('city')) {
+      const saved = lsGet('q2q_city_pref');
+      if (saved && CITIES.includes(saved) && saved !== 'All') {
+        const next = new URLSearchParams(searchParams);
+        next.set('city', saved);
+        setSearchParams(next, { replace: true });
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function setCity(city) {
-    if (city === 'All') searchParams.delete('city');
-    else searchParams.set('city', city);
+    if (city === 'All') { searchParams.delete('city'); lsSet('q2q_city_pref', null); }
+    else { searchParams.set('city', city); lsSet('q2q_city_pref', city); }
     setSearchParams(searchParams, { replace: true });
+  }
+
+  function setCategory(cat) {
+    setSelectedCategory(cat);
+    lsSet('q2q_cat_pref', cat === 'All' ? null : cat);
   }
 
   function clearAllFilters() {
     setCity('All');
-    setSelectedCategory('All');
+    setCategory('All');
     setPriceFilter('All');
     setUpcomingOnly(false);
     setSearch('');
@@ -43,7 +66,7 @@ export default function Home() {
     allEvents.filter(e => e.featured), [allEvents]);
 
   const filteredEvents = useMemo(() => {
-    return allEvents.filter(e => {
+    const filtered = allEvents.filter(e => {
       const matchCity = selectedCity === 'All' || e.city === selectedCity;
       const matchCat = selectedCategory === 'All' || e.category === selectedCategory;
       const matchSearch = !search ||
@@ -57,6 +80,8 @@ export default function Home() {
         (priceFilter === 'Paid' && minPrice > 0);
       return matchCity && matchCat && matchSearch && matchUpcoming && matchPrice;
     });
+    // Promoted events float to top
+    return filtered.sort((a, b) => (b.promoted ? 1 : 0) - (a.promoted ? 1 : 0));
   }, [allEvents, selectedCity, selectedCategory, search, upcomingOnly, priceFilter, today]);
 
   const noFilters = !hasActiveFilters;
@@ -150,7 +175,7 @@ export default function Home() {
                 <button
                   key={cat}
                   className={`cat-pill ${selectedCategory === cat ? 'cat-pill--active' : ''}`}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => setCategory(cat)}
                 >
                   {cat !== 'All' && <span className="cat-pill__emoji">{CATEGORY_EMOJI[cat]}</span>}
                   {cat === 'All' ? '✦ All' : cat}

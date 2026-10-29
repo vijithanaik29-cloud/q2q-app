@@ -96,6 +96,23 @@
   z-index: 2;
 }
 
+/* Sponsored tag */
+.event-card__sponsored-tag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #1a1200;
+  background: linear-gradient(90deg, #ffd96a, #ffb830);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(255,184,48,0.4);
+}
+
 /* ── Info strip below banner ── */
 .event-card__strip {
   display: flex;

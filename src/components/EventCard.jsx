@@ -18,6 +18,7 @@ export default function EventCard({ event, featured = false }) {
           <h3 className="event-card__title">{event.title}</h3>
         </div>
         {featured && <span className="event-card__featured-tag">Featured</span>}
+        {event.promoted && !featured && <span className="event-card__sponsored-tag">⚡ Sponsored</span>}
       </div>
 
       {/* Minimal info strip */}
