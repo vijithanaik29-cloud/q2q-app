@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import './Apply.css';
 
+const FOOD_DRINKS_OPTIONS = [
+  'Included in ticket', 'Available for purchase', 'Not available',
+];
+
+const SEATING_OPTIONS = ['Seated', 'Standing', 'Mixed'];
+
+const AGE_OPTIONS = ['All ages', '18+', '21+'];
+
 const EVENT_TYPES = [
   'Pride & Marches', 'Club Nights & Parties', 'Film & Cinema',
   'Workshops & Talks', 'Support Circles', 'Art & Exhibitions',
@@ -17,7 +25,8 @@ const CITIES = [
 export default function Apply() {
   const [form, setForm] = useState({
     name: '', org_name: '', email: '', phone: '',
-    city: '', event_types: [], instagram: '', website: '', message: '',
+    city: '', event_types: [], instagram: '', facebook: '', website: '', message: '',
+    food_drinks: '', seating_type: '', age_restriction: '', dress_code: '', accessibility: '',
   });
   const [errors, setErrors]   = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -63,9 +72,15 @@ export default function Apply() {
         phone:       form.phone.trim(),
         city:        form.city,
         event_types: form.event_types,
-        instagram:   form.instagram.trim(),
-        website:     form.website.trim(),
-        message:     form.message.trim(),
+        instagram:       form.instagram.trim() || null,
+        facebook:        form.facebook.trim() || null,
+        website:         form.website.trim() || null,
+        message:         form.message.trim(),
+        food_drinks:     form.food_drinks || null,
+        seating_type:    form.seating_type || null,
+        age_restriction: form.age_restriction || null,
+        dress_code:      form.dress_code.trim() || null,
+        accessibility:   form.accessibility.trim() || null,
       });
       if (error) {
         if (error.code === '23505') {
@@ -242,17 +257,68 @@ export default function Apply() {
             {errors.event_types && <span className="apply__error">{errors.event_types}</span>}
           </div>
 
+          <div className="apply__section-title" style={{ marginTop: 8 }}>Event format</div>
+          <p className="apply__section-sub">Help us understand how your events typically run. All optional.</p>
+
           <div className="apply__row">
             <div className="form-group">
-              <label htmlFor="instagram">Instagram handle</label>
-              <input id="instagram" type="text" placeholder="@rainbowcollective"
+              <label htmlFor="food_drinks">Food &amp; drinks</label>
+              <select id="food_drinks" value={form.food_drinks} onChange={e => set('food_drinks', e.target.value)}>
+                <option value="">Select…</option>
+                {FOOD_DRINKS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label htmlFor="seating_type">Seating</label>
+              <select id="seating_type" value={form.seating_type} onChange={e => set('seating_type', e.target.value)}>
+                <option value="">Select…</option>
+                {SEATING_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="apply__row">
+            <div className="form-group">
+              <label htmlFor="age_restriction">Age restriction</label>
+              <select id="age_restriction" value={form.age_restriction} onChange={e => set('age_restriction', e.target.value)}>
+                <option value="">Select…</option>
+                {AGE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label htmlFor="dress_code">Dress code</label>
+              <input id="dress_code" type="text" placeholder="e.g. Smart casual, No dress code"
+                value={form.dress_code} onChange={e => set('dress_code', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="accessibility">Accessibility</label>
+            <input id="accessibility" type="text"
+              placeholder="e.g. Wheelchair accessible, step-free entry, gender-neutral toilets"
+              value={form.accessibility} onChange={e => set('accessibility', e.target.value)} />
+          </div>
+
+          <div className="apply__section-title" style={{ marginTop: 8 }}>Verify your identity</div>
+          <p className="apply__section-sub">Share your business social links so we can verify you're a real event organiser.</p>
+
+          <div className="apply__row">
+            <div className="form-group">
+              <label htmlFor="instagram">Instagram business link</label>
+              <input id="instagram" type="url" placeholder="https://instagram.com/rainbowcollective"
                 value={form.instagram} onChange={e => set('instagram', e.target.value)} />
             </div>
             <div className="form-group">
-              <label htmlFor="website">Website</label>
-              <input id="website" type="url" placeholder="https://rainbowcollective.in"
-                value={form.website} onChange={e => set('website', e.target.value)} />
+              <label htmlFor="facebook">Facebook business link</label>
+              <input id="facebook" type="url" placeholder="https://facebook.com/rainbowcollective"
+                value={form.facebook} onChange={e => set('facebook', e.target.value)} />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="website">Website</label>
+            <input id="website" type="url" placeholder="https://rainbowcollective.in"
+              value={form.website} onChange={e => set('website', e.target.value)} />
           </div>
 
           <div className="form-group">

@@ -40,6 +40,12 @@
   border-bottom: 1px solid var(--border);
 }
 
+.apply__section-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: -12px;
+}
+
 .apply__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
