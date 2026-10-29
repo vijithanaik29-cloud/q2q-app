@@ -85,6 +85,10 @@ export default function Admin() {
     await supabase.from('organizer_applications')
       .update({ status: 'rejected', rejected_at: new Date().toISOString() })
       .eq('id', app.id);
+    // Send rejection email (silently skips if Resend not configured yet)
+    await supabase.functions.invoke('send-rejection', {
+      body: { email: app.email, name: app.name, org_name: app.org_name },
+    });
     setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a));
     setAppActionId(null);
   }
