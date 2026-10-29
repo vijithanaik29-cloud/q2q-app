@@ -7,6 +7,10 @@
   overflow: hidden;
 }
 
+@media (max-width: 640px) {
+  .hero { padding: 36px 0 32px; }
+}
+
 /* Subtle radial glow — pride accent, very dim */
 .hero::before {
   content: '';
@@ -130,6 +134,9 @@
   overflow-x: auto;
   padding-bottom: 12px;
   scrollbar-width: none;
+  /* fade at right edge to hint scrollability */
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 40px), transparent 100%);
+  mask-image: linear-gradient(to right, black calc(100% - 40px), transparent 100%);
 }
 .filters__row::-webkit-scrollbar { display: none; }
 
@@ -157,10 +164,10 @@
 }
 .date-pill:hover { border-color: var(--border-3); color: var(--text-1); }
 .date-pill--active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-  font-weight: 600;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
 }
 .date-pill--clear {
   color: var(--text-muted);
