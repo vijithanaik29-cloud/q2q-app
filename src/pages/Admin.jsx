@@ -382,6 +382,11 @@ export default function Admin() {
               🛡 Bookings & Refunds
             </button>
           )}
+          {user?.email === SUPERADMIN && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'sponsors' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('sponsors')}>
+              ✦ Sponsors
+            </button>
+          )}
         </div>
 
         {/* Events list */}
@@ -629,6 +634,46 @@ export default function Admin() {
                 );
               })
             )}
+          </div>
+        )}
+
+        {/* Sponsors — superadmin only */}
+        {activeTab === 'sponsors' && user?.email === SUPERADMIN && (
+          <div className="admin__form-section" style={{ maxWidth: 640 }}>
+            <h2>Sponsor Management</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
+              The homepage banner is controlled by <code>src/data/sponsors.js</code>. Set <code>activeSponsor</code> to an object to show a banner, or <code>null</code> to hide it. Push to main to go live.
+            </p>
+
+            <div className="admin__form-section" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                Code to activate a sponsor
+              </div>
+              <pre style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.7, margin: 0, overflowX: 'auto' }}>{`export const activeSponsor = {
+  name:    'Sponsor Name',
+  tagline: 'Short tagline here.',
+  link:    'https://their-website.com',
+  tier:    'community',  // 'community' or 'pride'
+  city:    'Mumbai',     // or null for all cities
+};`}</pre>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>Community Partner</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>₹999<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>/month</span></div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>Homepage banner strip, city-targeted, name + tagline + link.</div>
+              </div>
+              <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>Pride Sponsor</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>₹2,499<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>/month</span></div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>All-cities banner, logo on event pages, named in social posts.</div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              Enquiries come to <strong>sponsor@q2q.co.in</strong>. When you agree a deal, open <code>src/data/sponsors.js</code> in your code editor, fill in the object above, and push. The banner goes live on main deploy.
+            </p>
           </div>
         )}
 

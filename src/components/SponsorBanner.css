@@ -1,0 +1,56 @@
+.sponsor-banner {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 0;
+}
+
+.sponsor-banner__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sponsor-banner__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sponsor-banner__divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-2);
+  flex-shrink: 0;
+}
+
+.sponsor-banner__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.sponsor-banner__name:hover { color: var(--accent); }
+
+.sponsor-banner__tagline {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sponsor-banner__city {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

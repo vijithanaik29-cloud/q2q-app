@@ -2,7 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import EventCard from '../components/EventCard';
+import SponsorBanner from '../components/SponsorBanner';
 import { CITIES, CATEGORIES, CATEGORY_EMOJI } from '../data/events';
+import { activeSponsor } from '../data/sponsors';
 import './Home.css';
 
 const CITY_EMOJI = {
@@ -205,6 +207,9 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* Sponsor banner */}
+      <SponsorBanner sponsor={activeSponsor} />
 
       {/* Featured */}
       {noFilters && featuredEvents.length > 0 && (

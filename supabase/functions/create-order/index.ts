@@ -25,6 +25,7 @@ serve(async (req) => {
   const order = await res.json();
 
   if (!res.ok) {
+    console.error('Razorpay error:', JSON.stringify(order));
     return new Response(JSON.stringify({ error: order.error?.description ?? 'Order creation failed' }), {
       status: 400,
       headers: { ...cors, 'Content-Type': 'application/json' },

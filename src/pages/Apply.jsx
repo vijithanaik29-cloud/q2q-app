@@ -340,6 +340,48 @@ export default function Apply() {
             Already a verified organiser? <Link to="/admin">Sign in to your portal</Link>
           </p>
         </form>
+
+        {/* Sponsor section */}
+        <div className="apply__sponsor-section">
+          <div className="apply__sponsor-header">
+            <span className="apply__sponsor-badge">Advertise</span>
+            <h2 className="apply__sponsor-title">Reach India's queer community</h2>
+            <p className="apply__sponsor-sub">
+              Q2Q is visited by LGBTQ+ people across India looking for events, community, and spaces where they belong. If your business welcomes them, put it in front of them.
+            </p>
+          </div>
+
+          <div className="apply__sponsor-tiers">
+            <div className="apply__sponsor-tier">
+              <div className="apply__sponsor-tier-name">Community Partner</div>
+              <div className="apply__sponsor-tier-price">₹999<span>/month</span></div>
+              <ul className="apply__sponsor-tier-list">
+                <li>Banner strip on the Q2Q homepage</li>
+                <li>Your name + tagline + link</li>
+                <li>Shown to all visitors in your city</li>
+                <li>Cancel anytime</li>
+              </ul>
+              <a href="mailto:sponsor@q2q.co.in?subject=Community Partner enquiry" className="apply__sponsor-cta">Get in touch</a>
+            </div>
+
+            <div className="apply__sponsor-tier apply__sponsor-tier--featured">
+              <div className="apply__sponsor-tier-badge">Most popular</div>
+              <div className="apply__sponsor-tier-name">Pride Sponsor</div>
+              <div className="apply__sponsor-tier-price">₹2,499<span>/month</span></div>
+              <ul className="apply__sponsor-tier-list">
+                <li>Homepage banner across all cities</li>
+                <li>Logo on every event page</li>
+                <li>Named sponsor in our social posts</li>
+                <li>Cancel anytime</li>
+              </ul>
+              <a href="mailto:sponsor@q2q.co.in?subject=Pride Sponsor enquiry" className="apply__sponsor-cta apply__sponsor-cta--primary">Get in touch</a>
+            </div>
+          </div>
+
+          <p className="apply__sponsor-note">
+            Write to <strong>sponsor@q2q.co.in</strong> or use the buttons above. We'll confirm your spot within 24 hours.
+          </p>
+        </div>
       </div>
     </div>
   );
