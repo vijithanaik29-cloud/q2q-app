@@ -83,8 +83,8 @@
 .hero__search {
   width: 100%;
   padding: 13px 42px 13px 42px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-2);
+  background: var(--surface);
+  border: 1.5px solid var(--border-3);
   border-radius: var(--radius-lg);
   font-size: 14px;
   color: var(--text);
