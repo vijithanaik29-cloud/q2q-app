@@ -2,14 +2,21 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import EventCard from '../components/EventCard';
-import { CITIES, CATEGORIES } from '../data/events';
+import { CITIES, CATEGORIES, CATEGORY_EMOJI } from '../data/events';
 import './Home.css';
+
+const CITY_EMOJI = {
+  All: '🗺️', Mumbai: '🌊', Delhi: '🏛️', Bangalore: '💻',
+  Chennai: '🎭', Kolkata: '🌸', Hyderabad: '🕌', Pune: '🎓', Goa: '🏖️',
+};
 
 export default function Home() {
   const { allEvents } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [priceFilter, setPriceFilter] = useState('All');
+  const [upcomingOnly, setUpcomingOnly] = useState(false);
 
   const selectedCity = searchParams.get('city') || 'All';
 
@@ -18,6 +25,19 @@ export default function Home() {
     else searchParams.set('city', city);
     setSearchParams(searchParams, { replace: true });
   }
+
+  function clearAllFilters() {
+    setCity('All');
+    setSelectedCategory('All');
+    setPriceFilter('All');
+    setUpcomingOnly(false);
+    setSearch('');
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const hasActiveFilters = selectedCity !== 'All' || selectedCategory !== 'All' ||
+    priceFilter !== 'All' || upcomingOnly || !!search;
 
   const featuredEvents = useMemo(() =>
     allEvents.filter(e => e.featured), [allEvents]);
@@ -30,11 +50,16 @@ export default function Home() {
         e.title.toLowerCase().includes(search.toLowerCase()) ||
         e.venue.toLowerCase().includes(search.toLowerCase()) ||
         e.description.toLowerCase().includes(search.toLowerCase());
-      return matchCity && matchCat && matchSearch;
+      const matchUpcoming = !upcomingOnly || e.date >= today;
+      const minPrice = Math.min(...(e.tickets || []).map(t => t.price ?? 0));
+      const matchPrice = priceFilter === 'All' ||
+        (priceFilter === 'Free' && minPrice === 0) ||
+        (priceFilter === 'Paid' && minPrice > 0);
+      return matchCity && matchCat && matchSearch && matchUpcoming && matchPrice;
     });
-  }, [allEvents, selectedCity, selectedCategory, search]);
+  }, [allEvents, selectedCity, selectedCategory, search, upcomingOnly, priceFilter, today]);
 
-  const noFilters = selectedCity === 'All' && selectedCategory === 'All' && !search;
+  const noFilters = !hasActiveFilters;
 
   return (
     <div className="home fade-up">
@@ -73,28 +98,67 @@ export default function Home() {
       {/* Filters */}
       <div className="filters">
         <div className="container">
-          <div className="filters__row">
-            {CITIES.map(city => (
-              <button
-                key={city}
-                className={`filter-pill ${selectedCity === city ? 'filter-pill--active' : ''}`}
-                onClick={() => setCity(city)}
-              >
-                {city}
-              </button>
-            ))}
+
+          {/* Cities */}
+          <div className="filters__section">
+            <div className="filters__label-row">
+              <span className="filters__label">Where</span>
+            </div>
+            <div className="filters__row">
+              {CITIES.map(city => (
+                <button
+                  key={city}
+                  className={`city-pill ${selectedCity === city ? 'city-pill--active' : ''}`}
+                  onClick={() => setCity(city)}
+                >
+                  <span className="city-pill__emoji">{CITY_EMOJI[city]}</span>
+                  <span className="city-pill__name">{city === 'All' ? 'All Cities' : city}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="filters__row filters__row--cats">
-            {['All', ...CATEGORIES].map(cat => (
-              <button
-                key={cat}
-                className={`filter-pill filter-pill--sm ${selectedCategory === cat ? 'filter-pill--active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
+
+          {/* Categories + Quick filters */}
+          <div className="filters__section filters__section--bottom">
+            <div className="filters__label-row">
+              <span className="filters__label">What</span>
+              <div className="filters__quick">
+                <button
+                  className={`quick-pill ${upcomingOnly ? 'quick-pill--active' : ''}`}
+                  onClick={() => setUpcomingOnly(v => !v)}
+                >
+                  📅 Upcoming
+                </button>
+                {['All', 'Free', 'Paid'].map(p => (
+                  <button
+                    key={p}
+                    className={`quick-pill ${priceFilter === p ? 'quick-pill--active' : ''}`}
+                    onClick={() => setPriceFilter(p)}
+                  >
+                    {p === 'Free' ? '🎟️ Free' : p === 'Paid' ? '💳 Paid' : '💸 All'}
+                  </button>
+                ))}
+                {hasActiveFilters && (
+                  <button className="quick-pill quick-pill--clear" onClick={clearAllFilters}>
+                    ✕ Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="filters__row">
+              {['All', ...CATEGORIES].map(cat => (
+                <button
+                  key={cat}
+                  className={`cat-pill ${selectedCategory === cat ? 'cat-pill--active' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat !== 'All' && <span className="cat-pill__emoji">{CATEGORY_EMOJI[cat]}</span>}
+                  {cat === 'All' ? '✦ All' : cat}
+                </button>
+              ))}
+            </div>
           </div>
+
         </div>
       </div>
 
