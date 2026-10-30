@@ -335,3 +335,71 @@
   font-size: 14px;
   color: var(--text-2);
 }
+
+/* ── Featured Carousel ── */
+.featured-carousel .section-header {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.carousel-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.carousel-arrow {
+  background: none;
+  border: 1px solid var(--border-2, #e0e0e0);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.carousel-arrow:hover {
+  border-color: var(--accent, #e53e7a);
+  color: var(--accent, #e53e7a);
+}
+
+.carousel-dot {
+  background: none;
+  border: 1px solid var(--border-2, #e0e0e0);
+  border-radius: var(--radius-full, 999px);
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted, #999);
+  transition: all 0.15s;
+}
+.carousel-dot--active {
+  background: var(--accent, #e53e7a);
+  border-color: var(--accent, #e53e7a);
+  color: #fff;
+}
+
+.carousel-track {
+  position: relative;
+  min-height: 320px;
+}
+
+.carousel-slide {
+  display: none;
+}
+.carousel-slide--active {
+  display: block;
+  animation: carousel-fade 0.35s ease;
+}
+
+@keyframes carousel-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

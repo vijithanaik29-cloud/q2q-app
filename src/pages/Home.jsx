@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import EventCard from '../components/EventCard';
@@ -78,8 +78,32 @@ export default function Home() {
   const hasActiveFilters = selectedCity !== 'All' || selectedCategory !== 'All' ||
     priceFilter !== 'All' || dateFilter !== 'upcoming' || !!search;
 
-  const featuredEvents = useMemo(() =>
-    allEvents.filter(e => e.featured), [allEvents]);
+  // Carousel: boosted first, then featured-only; filter by city if one is selected
+  const carouselEvents = useMemo(() => {
+    const pool = allEvents.filter(e => e.featured || e.boosted);
+    const cityPool = selectedCity === 'All' ? pool : pool.filter(e => e.city === selectedCity);
+    const src = cityPool.length >= 2 ? cityPool : pool;
+    const boosted  = src.filter(e => e.boosted);
+    const featOnly = src.filter(e => e.featured && !e.boosted);
+    return [...boosted, ...featOnly].slice(0, 8);
+  }, [allEvents, selectedCity]);
+
+  const [slide, setSlide] = useState(0);
+  const timerRef = useRef(null);
+
+  const goTo = useCallback((idx) => {
+    setSlide((idx + carouselEvents.length) % carouselEvents.length);
+  }, [carouselEvents.length]);
+
+  useEffect(() => {
+    setSlide(0);
+  }, [carouselEvents.length]);
+
+  useEffect(() => {
+    if (carouselEvents.length < 2) return;
+    timerRef.current = setInterval(() => setSlide(s => (s + 1) % carouselEvents.length), 4500);
+    return () => clearInterval(timerRef.current);
+  }, [carouselEvents.length]);
 
   const filteredEvents = useMemo(() => {
     const { todayStr, tomorrowStr, satStr, sunStr } = getDateRange(dateFilter);
@@ -199,17 +223,42 @@ export default function Home() {
       {/* Sponsor banner */}
       <SponsorBanner sponsor={activeSponsor} />
 
-      {/* Featured */}
-      {noFilters && featuredEvents.length > 0 && (
-        <section className="section">
+      {/* Featured carousel */}
+      {carouselEvents.length > 0 && (
+        <section className="section featured-carousel"
+          onMouseEnter={() => clearInterval(timerRef.current)}
+          onMouseLeave={() => {
+            if (carouselEvents.length < 2) return;
+            timerRef.current = setInterval(() => setSlide(s => (s + 1) % carouselEvents.length), 4500);
+          }}
+        >
           <div className="container">
             <div className="section-header">
-              <h2 className="section-header__title">Featured</h2>
-              <span className="section-header__count">{featuredEvents.length} events</span>
+              <h2 className="section-header__title">
+                {carouselEvents[slide]?.boosted ? '⭐ Sponsored' : 'Featured'}
+              </h2>
+              <div className="carousel-nav">
+                <button className="carousel-arrow" onClick={() => goTo(slide - 1)} aria-label="Previous">‹</button>
+                {carouselEvents.map((_, i) => (
+                  <button
+                    key={i}
+                    className={`carousel-dot${i === slide ? ' carousel-dot--active' : ''}`}
+                    onClick={() => goTo(i)}
+                    aria-label={`Slide ${i + 1}`}
+                  >{i + 1}</button>
+                ))}
+                <button className="carousel-arrow" onClick={() => goTo(slide + 1)} aria-label="Next">›</button>
+              </div>
             </div>
-            <div className="events-grid events-grid--featured">
-              {featuredEvents.map(event => (
-                <EventCard key={event.id} event={event} featured />
+            <div className="carousel-track">
+              {carouselEvents.map((event, i) => (
+                <div
+                  key={event.id}
+                  className={`carousel-slide${i === slide ? ' carousel-slide--active' : ''}`}
+                  aria-hidden={i !== slide}
+                >
+                  <EventCard event={event} featured />
+                </div>
               ))}
             </div>
           </div>

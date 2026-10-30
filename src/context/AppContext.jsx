@@ -92,6 +92,35 @@ export function AppProvider({ children }) {
     return { error };
   }
 
+  async function signInWithPassword(email, password) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error };
+  }
+
+  async function signUpWithPassword(email, password) {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/admin` },
+    });
+    return { error };
+  }
+
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/admin` },
+    });
+    return { error };
+  }
+
+  async function resetPassword(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/admin`,
+    });
+    return { error };
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
   }
@@ -160,7 +189,7 @@ export function AppProvider({ children }) {
       allEvents, addEvent,
       bookings,  addBooking,
       checkedIn, checkIn,
-      user, signIn, signOut, authLoading,
+      user, signIn, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut, authLoading,
     }}>
       {children}
     </AppContext.Provider>
