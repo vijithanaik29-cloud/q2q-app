@@ -38,7 +38,8 @@ export default function Navbar() {
             <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
               Coming Out
             </NavLink>
-            <NavLink to="/admin" className={({ isActive }) => `navbar__link navbar__link--organiser ${isActive ? 'navbar__link--active' : ''}`}>
+            <NavLink to="/admin" className={({ isActive }) => `navbar__link navbar__link--organiser ${isActive ? 'navbar__link--organiser-active' : ''}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Verified Organiser
               <span className="navbar__info-icon" aria-label="What is a Verified Organiser?">
                 ℹ
