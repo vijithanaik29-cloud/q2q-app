@@ -92,7 +92,7 @@ export default function Stories() {
                 </span>
               </div>
               {error && <div className="stories__error">{error}</div>}
-              <button className="btn btn-primary" type="submit" disabled={saving || !content.trim()}>
+              <button className="btn btn-rainbow btn-full" type="submit" disabled={saving || !content.trim()}>
                 {saving ? 'Submitting…' : 'Submit anonymously'}
               </button>
               <p className="stories__disclaimer">

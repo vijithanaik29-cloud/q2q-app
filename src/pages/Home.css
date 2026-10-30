@@ -186,6 +186,8 @@
 
 .filter-select {
   height: 34px;
+  width: auto;
+  max-width: 160px;
   padding: 0 30px 0 12px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-2);
