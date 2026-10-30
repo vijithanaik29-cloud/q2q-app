@@ -51,17 +51,17 @@ export default function Stories() {
 
         {/* Hero */}
         <div className="stories__hero">
-          <div className="stories__hero-eyebrow">Community</div>
-          <h1 className="stories__hero-title">Q2Q Stories</h1>
+          <div className="stories__hero-eyebrow">Coming Out</div>
+          <h1 className="stories__hero-title">Your Coming Out Story</h1>
           <p className="stories__hero-sub">
-            Real moments from India's queer community — shared anonymously, celebrated together.
-            No names, no judgement. Just your truth.
+            Every queer person in India has a coming out story. Some are joyful, some are painful,
+            most are both. Share yours anonymously — and remind someone else they're not alone.
           </p>
         </div>
 
         {/* Submit form */}
         <div className="stories__submit">
-          <h2 className="stories__submit-title">Share your story</h2>
+          <h2 className="stories__submit-title">Share your coming out story</h2>
           {submitted ? (
             <div className="stories__thanks">
               <div className="stories__thanks-icon">🏳️‍🌈</div>
@@ -73,7 +73,7 @@ export default function Stories() {
             <form onSubmit={handleSubmit} noValidate>
               <textarea
                 className="stories__textarea"
-                placeholder="Something happened at an event, or in your life as a queer person in India, that you want the community to know about…"
+                placeholder="How did you come out? What happened? How did it feel? It can be one sentence or many — there's no right way to tell it…"
                 value={content}
                 onChange={e => setContent(e.target.value.slice(0, MAX))}
                 rows={5}
@@ -104,7 +104,7 @@ export default function Stories() {
 
         {/* Story feed */}
         <div className="stories__feed-header">
-          <h2>From the community</h2>
+          <h2>Coming out stories</h2>
           {!loading && <span className="stories__count">{stories.length} {stories.length === 1 ? 'story' : 'stories'}</span>}
         </div>
 
@@ -112,9 +112,9 @@ export default function Stories() {
           <div className="stories__loading">Loading stories…</div>
         ) : stories.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state__icon">✍️</div>
+            <div className="empty-state__icon">🏳️‍🌈</div>
             <h3>No stories yet</h3>
-            <p>Be the first to share yours.</p>
+            <p>Be the first to share your coming out story.</p>
           </div>
         ) : (
           <div className="stories__grid">

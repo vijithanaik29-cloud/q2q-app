@@ -36,7 +36,7 @@ export default function Navbar() {
               Events
             </NavLink>
             <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
-              Stories
+              Coming Out
             </NavLink>
             <NavLink to="/admin" className={({ isActive }) => `navbar__link navbar__link--organiser ${isActive ? 'navbar__link--active' : ''}`}>
               Verified Organiser
@@ -76,8 +76,8 @@ export default function Navbar() {
           <NavLink to="/stories" className="navbar__mobile-link">
             <span className="navbar__mobile-icon">✍️</span>
             <span className="navbar__mobile-link-content">
-              <span className="navbar__mobile-link-title">Stories</span>
-              <span className="navbar__mobile-link-sub">Community voices from across India</span>
+              <span className="navbar__mobile-link-title">Coming Out Stories</span>
+              <span className="navbar__mobile-link-sub">Coming out stories from across India</span>
             </span>
           </NavLink>
           <NavLink to="/admin" className="navbar__mobile-link">
