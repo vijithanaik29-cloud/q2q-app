@@ -84,10 +84,10 @@ export function AppProvider({ children }) {
     });
   }, [user]);
 
-  async function signIn(email) {
+  async function signIn(email, redirectTo) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/admin` },
+      options: { emailRedirectTo: redirectTo || `${window.location.origin}/admin` },
     });
     return { error };
   }

@@ -7,6 +7,7 @@ import EventDetail from './pages/EventDetail';
 import Booking from './pages/Booking';
 import Confirmation from './pages/Confirmation';
 import Admin from './pages/Admin';
+import SuperAdmin from './pages/SuperAdmin';
 import Apply from './pages/Apply';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/book/:id" element={<Booking />} />
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/superadmin" element={<SuperAdmin />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/stories" element={<Stories />} />
             <Route path="/privacy" element={<Privacy />} />
