@@ -648,15 +648,34 @@ export default function SuperAdmin() {
                 {applications.map(app => (
                   <div key={app.id} className={`admin__app-card card admin__app-card--${app.status}`}>
                     <div className="admin__app-top">
-                      <div>
-                        <div className="admin__app-name">{app.name} · <span className="admin__app-org">{app.org_name}</span></div>
-                        <div className="admin__app-meta">{app.email} · {app.phone} · {app.city}</div>
-                        <div className="admin__app-types">{app.event_types?.join(', ')}</div>
-                        {app.instagram && <div className="admin__app-meta">{app.instagram}</div>}
-                        {app.website   && <div className="admin__app-meta">{app.website}</div>}
-                        {app.message   && <p className="admin__app-msg">"{app.message}"</p>}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                          <div>
+                            <div className="admin__app-name">{app.name} · <span className="admin__app-org">{app.org_name}</span></div>
+                            <div className="admin__app-meta" style={{ marginTop: 2 }}>{app.email} · {app.phone} · {app.city}</div>
+                          </div>
+                          <span className={`admin__app-status admin__app-status--${app.status}`}>{app.status}</span>
+                        </div>
+                        {app.event_types?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                            {app.event_types.map(t => <span key={t} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(139,92,246,0.1)', color: 'var(--accent)', border: '1px solid rgba(139,92,246,0.2)' }}>{t}</span>)}
+                          </div>
+                        )}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                          {app.food_drinks     && <span>🍹 {app.food_drinks}</span>}
+                          {app.seating_type    && <span>🪑 {app.seating_type}</span>}
+                          {app.age_restriction && <span>🔞 {app.age_restriction}</span>}
+                          {app.dress_code      && <span>👗 {app.dress_code}</span>}
+                          {app.accessibility   && <span>♿ {app.accessibility}</span>}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                          {app.instagram && <a href={app.instagram} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>📸 {app.instagram}</a>}
+                          {app.facebook  && <a href={app.facebook}  target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>👥 {app.facebook}</a>}
+                          {app.website   && <a href={app.website}   target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>🌐 {app.website}</a>}
+                        </div>
+                        {app.message && <p className="admin__app-msg" style={{ marginTop: 10 }}>"{app.message}"</p>}
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Applied {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                       </div>
-                      <span className={`admin__app-status admin__app-status--${app.status}`}>{app.status}</span>
                     </div>
                     {app.status === 'pending' && (
                       <div className="admin__app-actions">
