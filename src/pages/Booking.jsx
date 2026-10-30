@@ -153,6 +153,18 @@ export default function Booking() {
           description: event.title,
           prefill:     { name: form.name, email: form.email, contact: form.phone },
           theme:       { color: '#9333EA' },
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: 'Pay via UPI',
+                  instruments: [{ method: 'upi' }],
+                },
+              },
+              sequence: ['block.upi'],
+              preferences: { show_default_blocks: false },
+            },
+          },
           handler: async (response) => {
             const { data, error } = await supabase.functions.invoke('confirm-booking', {
               body: { payment: response, booking: bookingData },
