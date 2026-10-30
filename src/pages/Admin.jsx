@@ -101,16 +101,44 @@ function CheckInTab() {
           {results.map(b => {
             const done = checkedIn.has(b.id);
             return (
-              <div key={b.id} style={{ background: 'var(--surface)', border: `1px solid ${done ? 'rgba(52,211,153,0.3)' : 'var(--border-2)'}`, borderRadius: 12, padding: '16px 18px' }}>
+              <div key={b.id} style={{ background: 'var(--surface)', border: `1px solid ${done ? 'rgba(52,211,153,0.35)' : 'var(--border-2)'}`, borderRadius: 12, padding: '16px 18px' }}>
                 {done && (
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--success, #34d399)', marginBottom: 8 }}>✅ Already checked in</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--success, #34d399)', marginBottom: 10, padding: '6px 12px', background: 'rgba(52,211,153,0.1)', borderRadius: 6, display: 'inline-block' }}>✅ Already checked in</div>
                 )}
+
+                {/* Attendee */}
                 <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 2 }}>{b.attendee?.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{b.attendee?.email} · {b.attendee?.phone}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 2 }}>{b.event_title}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-                  {(b.tickets || []).map(t => `${t.type} ×${t.qty}`).join(', ')} · <span style={{ fontFamily: 'monospace' }}>{b.id}</span>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 1 }}>{b.attendee?.email}</div>
+                {b.attendee?.phone && (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+                    ••••••{String(b.attendee.phone).slice(-4)}
+                  </div>
+                )}
+
+                {/* Event */}
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginBottom: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{b.event_title}</div>
+                  {b.event_date && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 1 }}>
+                      📅 {new Date(b.event_date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                  )}
+                  {b.event_venue && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 1 }}>📍 {b.event_venue}, {b.event_city}</div>
+                  )}
                 </div>
+
+                {/* Tickets + payment */}
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 2 }}>
+                    🎟 {(b.tickets || []).map(t => `${t.type} ×${t.qty}`).join(', ')}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>
+                    💳 {b.total > 0 ? `₹${b.total.toLocaleString('en-IN')} paid` : 'Free ticket'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{b.id}</div>
+                </div>
+
                 {!done && (
                   <button className="btn btn-primary btn-sm" disabled={checking === b.id} onClick={() => doCheckIn(b.id)}>
                     {checking === b.id ? 'Checking in…' : '✅ Check In'}
