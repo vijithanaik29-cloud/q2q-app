@@ -21,6 +21,7 @@ function dbToEvent(row) {
     accentColor:      row.accent_color,
     organizer:        row.organizer,
     organizerContact: row.organizer_contact,
+    organizerId:      row.organizer_id,
     featured:         row.featured,
     tags:             row.tags,
     attendees:        row.attendees,

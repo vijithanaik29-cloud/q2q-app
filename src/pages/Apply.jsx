@@ -192,7 +192,7 @@ export default function Apply() {
             </div>
           </div>
           <p className="apply__boost-note">
-            Add a boost from your organizer dashboard after approval. Takes 2 minutes, no tech skills needed.
+            Available in your organiser portal once approved. One click, no tech skills needed.
           </p>
         </div>
 

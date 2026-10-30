@@ -390,32 +390,45 @@ export default function Admin() {
         </div>
 
         {/* Events list */}
-        {activeTab === 'list' && (
-          <div className="admin__list">
-            <div className="admin__events-grid">
-              {allEvents.map(event => (
-                <div key={event.id} className="admin__event-card card">
-                  <div className="admin__event-banner" style={{ background: event.gradient }} />
-                  <div className="admin__event-body">
-                    <div className="admin__event-badges">
-                      <span className="badge badge-green">Live</span>
-                      <span className="badge badge-gray">{event.city}</span>
-                    </div>
-                    <h3 className="admin__event-title">{event.title}</h3>
-                    <p className="admin__event-meta">{formatDate(event.date)}</p>
-                    <p className="admin__event-meta">{event.venue}</p>
-                    <button
-                      className="admin__dashboard-btn"
-                      onClick={() => setSelectedEvent(event)}
-                    >
-                      View Dashboard →
-                    </button>
-                  </div>
+        {activeTab === 'list' && (() => {
+          const isSuperAdmin = user?.email === SUPERADMIN;
+          const visibleEvents = isSuperAdmin
+            ? allEvents
+            : allEvents.filter(e => e.organizerId === user?.id);
+          return (
+            <div className="admin__list">
+              {!isSuperAdmin && visibleEvents.length === 0 && (
+                <div className="empty-state">
+                  <div className="empty-state__icon">🎟️</div>
+                  <h3>No events yet</h3>
+                  <p>Submit your first event using the <strong>+ Submit New Event</strong> tab above.</p>
                 </div>
-              ))}
+              )}
+              <div className="admin__events-grid">
+                {visibleEvents.map(event => (
+                  <div key={event.id} className="admin__event-card card">
+                    <div className="admin__event-banner" style={{ background: event.gradient }} />
+                    <div className="admin__event-body">
+                      <div className="admin__event-badges">
+                        <span className="badge badge-green">Live</span>
+                        <span className="badge badge-gray">{event.city}</span>
+                      </div>
+                      <h3 className="admin__event-title">{event.title}</h3>
+                      <p className="admin__event-meta">{formatDate(event.date)}</p>
+                      <p className="admin__event-meta">{event.venue}</p>
+                      <button
+                        className="admin__dashboard-btn"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        View Dashboard →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Applications */}
         {activeTab === 'applications' && (
