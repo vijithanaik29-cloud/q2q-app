@@ -1048,7 +1048,7 @@ export default function SuperAdmin() {
                   </div>
                   <div>
                     <label className="admin__label">Name (optional)</label>
-                    <input className="admin__input" placeholder="Priya Sharma" value={influencerForm.name}
+                    <input className="admin__input" placeholder="Influencer name" value={influencerForm.name}
                       onChange={e => setInfluencerForm(f => ({ ...f, name: e.target.value }))} />
                   </div>
                 </div>

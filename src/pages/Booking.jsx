@@ -284,14 +284,14 @@ export default function Booking() {
 
                 <div className="form-group">
                   <label htmlFor="name">Full Name</label>
-                  <input id="name" type="text" placeholder="Priya Sharma" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+                  <input id="name" type="text" placeholder="Your full name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
                   {errors.name && <span className="booking__error">{errors.name}</span>}
                 </div>
 
                 <div className="form-group">
                   <label htmlFor="email">Email Address</label>
                   <input
-                    id="email" type="email" placeholder="priya@example.com"
+                    id="email" type="email" placeholder="you@example.com"
                     value={form.email}
                     onChange={e => {
                       setForm(p => ({ ...p, email: e.target.value }));
@@ -310,7 +310,7 @@ export default function Booking() {
 
                 <div className="form-group">
                   <label htmlFor="phone">Mobile Number</label>
-                  <input id="phone" type="tel" placeholder="9876543210" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+                  <input id="phone" type="tel" placeholder="10-digit mobile number" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
                   {errors.phone && <span className="booking__error">{errors.phone}</span>}
                 </div>
 
