@@ -7,9 +7,9 @@
   --surface-2: #1E1718;
   --surface-3: #261E1E;
   --text:           #F4EFEE;
-  --text-2:         #C8C0C0;
-  --text-secondary: #DDD8D8;
-  --text-muted:     #8A7E7E;
+  --text-2:         #D0C8C8;
+  --text-secondary: #E0DADA;
+  --text-muted:     #A09494;
   --border:    rgba(255,200,210,0.06);
   --border-2:  rgba(255,200,210,0.13);
   --border-3:  rgba(255,200,210,0.22);
@@ -179,7 +179,7 @@ input, select, textarea { font-family: var(--font-sans); }
 .btn-sm   { padding: 8px 16px; font-size: 13px; }
 .btn-lg   { padding: 14px 28px; font-size: 15px; }
 .btn-full { width: 100%; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ─── Forms ─── */
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
