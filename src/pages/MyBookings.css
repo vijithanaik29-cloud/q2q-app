@@ -142,8 +142,8 @@
 .mb-tab--active .mb-tab__count { background: rgba(0,0,0,.2); }
 
 .mb-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
 }
 
@@ -161,8 +161,9 @@
 
 /* Gradient header */
 .mb-card__header {
-  padding: 14px 16px 12px;
+  padding: 12px 14px 10px;
   position: relative;
+  min-height: 0;
 }
 .mb-card__past-badge {
   display: inline-block;
@@ -277,8 +278,23 @@
 }
 .mb-card__directions:hover { text-decoration: underline; }
 
+/* Empty tab state */
+.mb-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: var(--text-muted);
+  font-size: .9rem;
+}
+.mb-empty__icon { font-size: 2rem; }
+.mb-empty p { margin: 0; }
+
 /* Responsive */
 @media (max-width: 480px) {
   .mb-login__card { padding: 28px 20px; }
   .mb-card__footer { flex-wrap: wrap; }
+  .mb-list { grid-template-columns: 1fr; }
 }

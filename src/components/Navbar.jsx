@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import './Navbar.css';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { user, allEvents } = useApp();
+
+  const isVerifiedOrganizer = user && allEvents.some(e => e.organizerId === user.id);
+  const hostLink = isVerifiedOrganizer ? '/admin' : '/apply';
+  const hostLabel = isVerifiedOrganizer ? 'My Dashboard' : 'Host an Event';
 
   useEffect(() => {
     setOpen(false);
@@ -52,7 +58,7 @@ export default function Navbar() {
                 </span>
               </span>
             </NavLink>
-            <Link to="/apply" className="navbar__cta">Host an Event</Link>
+            <Link to={hostLink} className="navbar__cta">{hostLabel}</Link>
           </div>
 
           <button
@@ -103,9 +109,9 @@ export default function Navbar() {
         <div className="navbar__drawer-divider" />
 
         <div className="navbar__drawer-section">
-          <p className="navbar__drawer-label">Are you an organizer?</p>
-          <Link to="/apply" className="navbar__drawer-cta">
-            Host an Event on Q2Q
+          <p className="navbar__drawer-label">{isVerifiedOrganizer ? 'Organizer' : 'Are you an organizer?'}</p>
+          <Link to={hostLink} className="navbar__drawer-cta">
+            {isVerifiedOrganizer ? 'Go to My Dashboard' : 'Host an Event on Q2Q'}
             <span className="navbar__drawer-cta-arrow">→</span>
           </Link>
         </div>

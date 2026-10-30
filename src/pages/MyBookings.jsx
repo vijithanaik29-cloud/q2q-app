@@ -214,10 +214,9 @@ export default function MyBookings() {
             { key: 'today',    label: 'Today',    count: todayList.length    },
             { key: 'upcoming', label: 'Upcoming', count: upcomingList.length },
             { key: 'past',     label: 'Past',     count: pastList.length     },
-          ].filter(t => t.count > 0);
+          ];
 
-          // fall back to first available tab if activeSection is empty
-          const current  = tabs.find(t => t.key === activeSection) ? activeSection : tabs[0]?.key;
+          const current = activeSection;
           const shownList = current === 'today' ? todayList
                           : current === 'past'  ? pastList
                           : upcomingList;
@@ -239,9 +238,16 @@ export default function MyBookings() {
               </div>
 
               {/* Cards for active section */}
-              <div className="mb-list">
-                {shownList.map(b => <BookingCard key={b.id} booking={b} />)}
-              </div>
+              {shownList.length === 0 ? (
+                <div className="mb-empty">
+                  <span className="mb-empty__icon">🎟️</span>
+                  <p>No {current} tickets</p>
+                </div>
+              ) : (
+                <div className="mb-list">
+                  {shownList.map(b => <BookingCard key={b.id} booking={b} />)}
+                </div>
+              )}
             </>
           );
         })()}
