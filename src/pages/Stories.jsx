@@ -7,6 +7,19 @@ const MAX       = 1200;
 const PAGE_SIZE = 10;
 const PREVIEW   = 280; // chars before "Read more"
 
+const TAGS = [
+  { id: 'family',          label: 'Family' },
+  { id: 'relationships',   label: 'Relationships' },
+  { id: 'school',          label: 'School / College' },
+  { id: 'workplace',       label: 'Workplace' },
+  { id: 'first-pride',     label: 'First Pride' },
+  { id: 'acceptance',      label: 'Acceptance' },
+  { id: 'mental-health',   label: 'Mental Health' },
+  { id: 'religion',        label: 'Religion' },
+  { id: 'self-discovery',  label: 'Self-Discovery' },
+  { id: 'found-community', label: 'Found Community' },
+];
+
 const ADJECTIVES = [
   'Fabulous', 'Glittery', 'Sparkling', 'Dramatic', 'Extra', 'Iconic',
   'Sassy', 'Dazzling', 'Flamboyant', 'Radiant', 'Majestic', 'Fierce',
@@ -33,21 +46,27 @@ export default function Stories() {
   const [loadingMore,setLoadingMore] = useState(false);
   const [content,    setContent]    = useState('');
   const [city,       setCity]       = useState('');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [activeTag,  setActiveTag]  = useState('');  // '' = all
   const [saving,     setSaving]     = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
   const [error,      setError]      = useState('');
   const [showForm,   setShowForm]   = useState(false);
   const [expanded,   setExpanded]   = useState({});  // id → true when expanded
 
-  const loadStories = useCallback(async (offset = 0) => {
+  const loadStories = useCallback(async (offset = 0, tag = '') => {
     if (offset === 0) setLoading(true); else setLoadingMore(true);
 
-    const { data, count } = await supabase
+    let q = supabase
       .from('stories')
-      .select('id, content, city, author_name, views, created_at', { count: 'exact' })
+      .select('id, content, city, author_name, views, tags, created_at', { count: 'exact' })
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
+
+    if (tag) q = q.contains('tags', [tag]);
+
+    const { data, count } = await q;
 
     const newStories = data || [];
 
@@ -71,7 +90,12 @@ export default function Stories() {
     } catch (_) {}
   }, []);
 
-  useEffect(() => { loadStories(0); }, [loadStories]);
+  useEffect(() => { loadStories(0, activeTag); }, [loadStories, activeTag]);
+
+  function handleTagFilter(tag) {
+    setActiveTag(prev => prev === tag ? '' : tag);
+    setExpanded({});
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -82,11 +106,13 @@ export default function Stories() {
       content:     content.trim(),
       city:        city || null,
       author_name: randomName(),
+      tags:        selectedTags,
     });
     setSaving(false);
     if (err) { setError('Could not submit your story. Please try again.'); return; }
     setContent('');
     setCity('');
+    setSelectedTags([]);
     setSubmitted(true);
   }
 
@@ -137,6 +163,27 @@ export default function Stories() {
                     onChange={e => setContent(e.target.value.slice(0, MAX))}
                     rows={7}
                   />
+                  <div className="stories__tag-picker">
+                    <span className="stories__tag-picker-label">Tags (optional, pick up to 3)</span>
+                    <div className="stories__tag-chips">
+                      {TAGS.map(t => {
+                        const active = selectedTags.includes(t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            className={`stories__tag-chip${active ? ' stories__tag-chip--active' : ''}`}
+                            onClick={() => setSelectedTags(prev =>
+                              active ? prev.filter(x => x !== t.id)
+                                     : prev.length < 3 ? [...prev, t.id] : prev
+                            )}
+                          >
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="stories__textarea-meta">
                     <select className="stories__city-select" value={city} onChange={e => setCity(e.target.value)}>
                       <option value="">City (optional)</option>
@@ -157,6 +204,29 @@ export default function Stories() {
           </div>
         </div>
       )}
+
+      {/* ── Tag filter bar ── */}
+      <div className="stories__filter-bar">
+        <div className="container">
+          <div className="stories__filter-inner">
+            <button
+              className={`stories__filter-chip${activeTag === '' ? ' stories__filter-chip--active' : ''}`}
+              onClick={() => handleTagFilter('')}
+            >
+              All stories
+            </button>
+            {TAGS.map(t => (
+              <button
+                key={t.id}
+                className={`stories__filter-chip${activeTag === t.id ? ' stories__filter-chip--active' : ''}`}
+                onClick={() => handleTagFilter(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* ── Blog feed ── */}
       <div className="container">
@@ -193,6 +263,22 @@ export default function Stories() {
                             {s.views}
                           </span>
                         )}
+                      {s.tags?.length > 0 && (
+                          <span className="stories__post-tags">
+                            {s.tags.map(tid => {
+                              const t = TAGS.find(x => x.id === tid);
+                              return t ? (
+                                <button
+                                  key={tid}
+                                  className={`stories__post-tag${activeTag === tid ? ' stories__post-tag--active' : ''}`}
+                                  onClick={() => handleTagFilter(tid)}
+                                >
+                                  {t.label}
+                                </button>
+                              ) : null;
+                            })}
+                          </span>
+                        )}
                       </div>
                       <blockquote className="stories__post-body">{text}</blockquote>
                       {isLong && (
@@ -213,7 +299,7 @@ export default function Stories() {
                 <div className="stories__load-more">
                   <button
                     className="btn btn-outline"
-                    onClick={() => loadStories(stories.length)}
+                    onClick={() => loadStories(stories.length, activeTag)}
                     disabled={loadingMore}
                   >
                     {loadingMore ? 'Loading…' : `Load more stories (${total - stories.length} left)`}

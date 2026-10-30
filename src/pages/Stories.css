@@ -180,6 +180,113 @@
 }
 .stories__again-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ─── Tag picker (submit form) ─── */
+.stories__tag-picker {
+  margin: 16px 0 4px;
+}
+.stories__tag-picker-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.stories__tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stories__tag-chip {
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.stories__tag-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stories__tag-chip--active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── Filter bar ─── */
+.stories__filter-bar {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0;
+}
+.stories__filter-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 14px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.stories__filter-inner::-webkit-scrollbar { display: none; }
+.stories__filter-chip {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-full);
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.stories__filter-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stories__filter-chip--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ─── Post tags ─── */
+.stories__post-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+  width: 100%;
+}
+.stories__post-tag {
+  background: none;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.stories__post-tag:hover,
+.stories__post-tag--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
 /* ─── Blog feed ─── */
 .stories__blog {
   max-width: 660px;
