@@ -263,9 +263,7 @@ export default function Booking() {
                     onChange={e => setConsent(e.target.checked)}
                   />
                   <span>
-                    I understand that <strong>Q2Q is a ticketing platform only</strong>. This event is organised
-                    and managed solely by <strong>{event.organizer}</strong>. Q2Q is not responsible for any
-                    changes, cancellations, or issues with the event. <strong>Refunds are only issued if the event is cancelled by the organiser.</strong>
+                    I have read and agree to Q2Q's <Link to="/terms" target="_blank">Terms of Service</Link>. I understand that <strong>Q2Q is a ticketing platform only</strong>. This event is organised and managed solely by <strong>{event.organizer}</strong>, who is solely responsible for attendee safety. Q2Q is not responsible for any changes, cancellations, or issues with the event. <strong>Refunds are only issued if the event is cancelled by the organiser.</strong>
                   </span>
                 </label>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+
 import { supabase } from '../lib/supabase';
 import './Apply.css';
 
@@ -31,6 +32,7 @@ export default function Apply() {
   const [errors, setErrors]   = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted]   = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   function set(field, value) {
     setForm(p => ({ ...p, [field]: value }));
@@ -332,7 +334,18 @@ export default function Apply() {
             <p style={{ color: 'var(--error)', fontSize: 13 }}>{errors.submit}</p>
           )}
 
-          <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
+          <label className="apply__consent">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => setTermsAccepted(e.target.checked)}
+            />
+            <span>
+              I have read and agree to Q2Q's <Link to="/terms" target="_blank">Terms of Service</Link> and <Link to="/privacy" target="_blank">Privacy Policy</Link>. I confirm that I am solely responsible for the safety, security, and welfare of attendees at any events I list on Q2Q.
+            </span>
+          </label>
+
+          <button type="submit" className="btn btn-primary btn-lg" disabled={submitting || !termsAccepted}>
             {submitting ? 'Submitting…' : 'Submit application'}
           </button>
 
