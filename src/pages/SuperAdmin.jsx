@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import jsQR from 'jsqr';
+import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
@@ -42,11 +43,14 @@ export default function SuperAdmin() {
   const [linkSent,      setLinkSent]      = useState(false);
   const [resendCooldown,setResendCooldown]= useState(0);
 
-  // ── PIN gate ─────────────────────────────────────────────────────────────────
-  const [adminPin,    setAdminPin]    = useState('');
-  const [pinVerified, setPinVerified] = useState(false);
-  const [pinError,    setPinError]    = useState('');
-  const [pinChecking, setPinChecking] = useState(false);
+  // ── TOTP 2FA gate ────────────────────────────────────────────────────────────
+  const [totpVerified,   setTotpVerified]   = useState(false);
+  const [totpConfigured, setTotpConfigured] = useState(null); // null=checking, false=needs setup, true=ready
+  const [totpSetupData,  setTotpSetupData]  = useState(null); // { uri, secret } during first-time setup
+  const [totpQr,         setTotpQr]         = useState('');
+  const [totpToken,      setTotpToken]      = useState('');
+  const [totpError,      setTotpError]      = useState('');
+  const [totpChecking,   setTotpChecking]   = useState(false);
 
   // ── Tabs & add-event form ────────────────────────────────────────────────────
   const [activeTab,     setActiveTab]     = useState('overview');
@@ -112,8 +116,24 @@ export default function SuperAdmin() {
     if (user && user.email !== SUPERADMIN) navigate('/admin', { replace: true });
   }, [user]);
 
+  // Check TOTP configured status once user is verified superadmin
   useEffect(() => {
-    if (!user || user.email !== SUPERADMIN || !pinVerified) return;
+    if (!user || user.email !== SUPERADMIN || totpVerified) return;
+    supabase.functions.invoke('setup-totp', { body: { action: 'status' } }).then(({ data }) => {
+      setTotpConfigured(data?.configured ?? false);
+    });
+  }, [user]);
+
+  // Generate QR data URL when setup data arrives
+  useEffect(() => {
+    if (totpSetupData?.uri) {
+      QRCode.toDataURL(totpSetupData.uri, { width: 220, margin: 2, color: { dark: '#000', light: '#fff' } })
+        .then(setTotpQr);
+    }
+  }, [totpSetupData?.uri]);
+
+  useEffect(() => {
+    if (!totpVerified) return;
     if (activeTab === 'overview' || activeTab === 'applications') loadApplications();
     if (activeTab === 'bookings')    loadBookings();
     if (activeTab === 'coupons')     loadCoupons();
@@ -385,16 +405,28 @@ export default function SuperAdmin() {
     else startResendCooldown();
   }
 
-  async function verifyPin(e) {
+  async function startTotpSetup() {
+    setTotpChecking(true); setTotpError('');
+    const { data, error } = await supabase.functions.invoke('setup-totp', { body: {} });
+    setTotpChecking(false);
+    if (error || !data?.uri) { setTotpError('Could not generate QR code. Try again.'); return; }
+    setTotpSetupData(data);
+    setTotpConfigured(false);
+  }
+
+  async function verifyTotp(e) {
     e.preventDefault();
-    setPinChecking(true); setPinError('');
-    try {
-      const { data, error } = await supabase.functions.invoke('check-admin-pin', { body: { pin: adminPin } });
-      setPinChecking(false);
-      if (error || data?.error === 'PIN not configured') { setPinVerified(true); return; }
-      if (!data?.ok) { setPinError('Incorrect PIN. Try again.'); setAdminPin(''); }
-      else setPinVerified(true);
-    } catch { setPinChecking(false); setPinVerified(true); }
+    if (totpToken.length !== 6) { setTotpError('Enter the 6-digit code from your app'); return; }
+    setTotpChecking(true); setTotpError('');
+    const { data, error } = await supabase.functions.invoke('verify-totp', { body: { token: totpToken } });
+    setTotpChecking(false);
+    if (error || !data?.ok) {
+      setTotpError('Incorrect code. Check your app and try again.');
+      setTotpToken('');
+    } else {
+      setTotpVerified(true);
+      setTotpSetupData(null);
+    }
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────────
@@ -458,8 +490,112 @@ export default function SuperAdmin() {
     );
   }
 
-  // ── PIN gate ──────────────────────────────────────────────────────────────────
-  if (!pinVerified) {
+  // ── TOTP gate ─────────────────────────────────────────────────────────────────
+  if (!totpVerified) {
+    // Still checking configuration status
+    if (totpConfigured === null) {
+      return (
+        <div className="admin-login fade-up">
+          <div className="container admin-login__inner">
+            <div className="admin-login__card card" style={{ textAlign: 'center', padding: 48 }}>
+              <div className="spinner" style={{ width: 28, height: 28, margin: '0 auto' }} />
+              <p style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: 14 }}>Checking security…</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // First-time setup: show QR code
+    if (totpConfigured === false && !totpSetupData) {
+      return (
+        <div className="admin-login fade-up">
+          <div className="container admin-login__inner">
+            <div className="admin-login__card card">
+              <div className="admin-login__header">
+                <div className="admin-login__icon" style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <h1>Set up 2FA</h1>
+                <p>Secure your superadmin portal with Google Authenticator</p>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 20 }}>
+                <strong style={{ color: 'var(--text)' }}>One-time setup.</strong> Install Google Authenticator or Authy on your phone, then click below to get your QR code.
+              </div>
+              {totpError && <div style={{ fontSize: 13, color: 'var(--error)', marginBottom: 12 }}>{totpError}</div>}
+              <button className="btn btn-rainbow btn-full btn-lg" onClick={startTotpSetup} disabled={totpChecking}>
+                {totpChecking ? 'Generating…' : 'Generate QR Code'}
+              </button>
+              <p className="admin-login__note" style={{ marginTop: 16 }}>
+                Signed in as {user.email} · <button className="btn-link" onClick={signOut}>Sign out</button>
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // First-time setup: QR code displayed, waiting for first code
+    if (totpSetupData) {
+      return (
+        <div className="admin-login fade-up">
+          <div className="container admin-login__inner">
+            <div className="admin-login__card card">
+              <div className="admin-login__header">
+                <div className="admin-login__icon" style={{ background: 'rgba(52,211,153,0.12)', color: 'var(--success)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    <path d="M14 14h.01M14 17h.01M17 14h.01M17 17h.01M20 14h.01M20 17h.01M20 20h.01M17 20h.01M14 20h.01"/>
+                  </svg>
+                </div>
+                <h1>Scan QR Code</h1>
+                <p>Open Google Authenticator → tap + → Scan QR code</p>
+              </div>
+
+              {totpQr ? (
+                <div style={{ textAlign: 'center', margin: '0 auto 20px', background: '#fff', padding: 12, borderRadius: 12, width: 'fit-content' }}>
+                  <img src={totpQr} alt="TOTP QR Code" style={{ width: 200, height: 200, display: 'block' }} />
+                </div>
+              ) : (
+                <div style={{ height: 224, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                  <div className="spinner" style={{ width: 24, height: 24 }} />
+                </div>
+              )}
+
+              <details style={{ marginBottom: 20 }}>
+                <summary style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>Can't scan? Enter key manually</summary>
+                <div style={{ marginTop: 10, background: 'var(--surface)', borderRadius: 8, padding: '10px 14px', fontFamily: 'monospace', fontSize: 13, letterSpacing: '0.08em', wordBreak: 'break-all', color: 'var(--text)' }}>
+                  {totpSetupData.secret}
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>In Google Authenticator: + → Enter a setup key → paste the key above. Account: Q2Q Superadmin, Type: Time based.</p>
+              </details>
+
+              <form onSubmit={verifyTotp}>
+                <div className="form-group">
+                  <label>Enter the 6-digit code from your app to confirm setup</label>
+                  <input type="text" inputMode="numeric" pattern="\d{6}" maxLength={6} placeholder="000000" value={totpToken} autoFocus autoComplete="one-time-code"
+                    style={{ fontSize: 24, letterSpacing: '0.3em', textAlign: 'center', fontFamily: 'monospace' }}
+                    onChange={e => { setTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpError(''); }} />
+                  {totpError && <span className="admin__error">{totpError}</span>}
+                </div>
+                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={totpChecking || totpToken.length !== 6}>
+                  {totpChecking ? 'Verifying…' : 'Confirm & Enter Portal'}
+                </button>
+              </form>
+              <p className="admin-login__note" style={{ marginTop: 16 }}>
+                <button className="btn-link" onClick={() => { setTotpSetupData(null); setTotpQr(''); setTotpError(''); }}>← Back</button>
+                {' · '}
+                <button className="btn-link" onClick={signOut}>Sign out</button>
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // TOTP configured — enter 6-digit code
     return (
       <div className="admin-login fade-up">
         <div className="container admin-login__inner">
@@ -470,18 +606,20 @@ export default function SuperAdmin() {
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
               </div>
-              <h1>Admin Access</h1>
-              <p>Enter your superadmin PIN to continue</p>
+              <h1>Two-Factor Auth</h1>
+              <p>Open Google Authenticator and enter the 6-digit code</p>
             </div>
-            <form onSubmit={verifyPin}>
+            <form onSubmit={verifyTotp}>
               <div className="form-group">
-                <label htmlFor="admin-pin">Security PIN</label>
-                <input id="admin-pin" type="password" placeholder="Enter PIN" value={adminPin} autoComplete="off" autoFocus
-                  onChange={e => { setAdminPin(e.target.value); setPinError(''); }} />
-                {pinError && <span className="admin__error">{pinError}</span>}
+                <label htmlFor="totp-token">Authenticator code</label>
+                <input id="totp-token" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6}
+                  placeholder="000000" value={totpToken} autoFocus autoComplete="one-time-code"
+                  style={{ fontSize: 28, letterSpacing: '0.35em', textAlign: 'center', fontFamily: 'monospace' }}
+                  onChange={e => { setTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpError(''); }} />
+                {totpError && <span className="admin__error">{totpError}</span>}
               </div>
-              <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={pinChecking || !adminPin}>
-                {pinChecking ? 'Checking…' : 'Enter Admin Portal'}
+              <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={totpChecking || totpToken.length !== 6}>
+                {totpChecking ? 'Verifying…' : 'Enter Admin Portal'}
               </button>
             </form>
             <p className="admin-login__note" style={{ marginTop: 16 }}>
