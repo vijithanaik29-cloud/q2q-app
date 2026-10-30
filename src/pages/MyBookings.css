@@ -1,0 +1,227 @@
+/* ── My Bookings page ── */
+
+/* Login / email-entry view */
+.mb-login {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+}
+.mb-login__inner {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-block: 48px;
+}
+.mb-login__card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px 36px;
+  text-align: center;
+}
+.mb-login__icon {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.mb-login__card h1 {
+  font-size: 1.75rem;
+  margin-bottom: 8px;
+}
+.mb-login__card > p {
+  color: var(--text-secondary, #666);
+  margin-bottom: 28px;
+  font-size: 0.95rem;
+}
+.mb-login__input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  font-size: 1rem;
+  background: var(--card-bg, #fff);
+  color: var(--text-primary, #111);
+  outline: none;
+  transition: border-color .15s;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+}
+.mb-login__input:focus {
+  border-color: var(--accent, #667eea);
+}
+.mb-login__error {
+  color: #e53e3e;
+  font-size: .85rem;
+  margin-bottom: 10px;
+}
+.mb-login__sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 16px;
+}
+.mb-login__sent-icon { font-size: 2.5rem; }
+.mb-login__sent p { color: var(--text-secondary, #666); font-size: .9rem; margin: 0; }
+.mb-login__note {
+  margin-top: 20px;
+  font-size: .85rem;
+  color: var(--text-secondary, #888);
+}
+.mb-login__note a { color: var(--accent, #667eea); }
+
+/* Authenticated / results view */
+.mb-page { min-height: 80vh; }
+
+.mb-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 32px 0;
+}
+.mb-hero__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.mb-hero h1 {
+  font-size: 1.6rem;
+  margin: 0 0 4px;
+  color: #fff;
+}
+.mb-hero p {
+  margin: 0;
+  opacity: .8;
+  font-size: .9rem;
+}
+
+.mb-body {
+  padding-block: 32px 64px;
+}
+.mb-count {
+  color: var(--text-secondary, #777);
+  font-size: .9rem;
+  margin-bottom: 20px;
+}
+
+.mb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Booking card */
+.mb-card {
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e8e8f0);
+  transition: box-shadow .2s;
+}
+.mb-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+.mb-card--past { opacity: .7; }
+
+.mb-card__banner {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: relative;
+}
+.mb-card__ref {
+  font-size: .72rem;
+  font-family: 'Courier New', monospace;
+  color: rgba(255,255,255,.9);
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+.mb-card__past-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: rgba(0,0,0,.25);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.mb-card__body {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  align-items: flex-start;
+}
+.mb-card__info { flex: 1; min-width: 0; }
+
+.mb-card__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text-primary, #111);
+}
+.mb-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .83rem;
+  color: var(--text-secondary, #666);
+  margin-bottom: 12px;
+}
+.mb-card__tickets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.mb-ticket-chip {
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  background: var(--chip-bg, #f0f0f8);
+  color: var(--text-primary, #333);
+  border-radius: 100px;
+}
+.mb-card__total {
+  font-size: .85rem;
+  color: var(--text-secondary, #555);
+  font-weight: 600;
+}
+
+.mb-card__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.mb-card__qr canvas {
+  border-radius: 8px;
+  display: block;
+}
+.mb-card__qr-hint {
+  font-size: .7rem;
+  color: var(--text-secondary, #999);
+  text-align: center;
+  margin: 0;
+}
+
+/* Dark-mode tokens */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --chip-bg: #2a2a3e;
+  }
+}
+:root[data-theme="dark"] {
+  --chip-bg: #2a2a3e;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .mb-login__card { padding: 28px 20px; }
+  .mb-card__body { flex-direction: column; align-items: stretch; }
+  .mb-card__qr { flex-direction: row; align-items: center; }
+  .mb-card__qr-hint { margin-left: 8px; }
+}

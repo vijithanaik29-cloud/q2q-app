@@ -12,6 +12,7 @@ import Apply from './pages/Apply';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Stories from './pages/Stories';
+import MyBookings from './pages/MyBookings';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/event/:id" element={<EventDetail />} />
             <Route path="/book/:id" element={<Booking />} />
             <Route path="/confirmation" element={<Confirmation />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/superadmin" element={<SuperAdmin />} />
             <Route path="/apply" element={<Apply />} />
