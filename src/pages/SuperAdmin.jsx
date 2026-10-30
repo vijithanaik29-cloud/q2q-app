@@ -1117,7 +1117,7 @@ export default function SuperAdmin() {
                         color:      s.status === 'approved' ? 'var(--success)'          : s.status === 'rejected' ? 'var(--error)'           : 'var(--accent)',
                       }}>{s.status}</span>
                       {s.city && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.city}</span>}
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{new Date(s.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 14, fontStyle: 'italic' }}>"{s.content}"</p>
                     <div style={{ display: 'flex', gap: 8 }}>

@@ -254,9 +254,6 @@ export default function Stories() {
                       <div className="stories__post-meta">
                         <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
                         {s.city && <span className="stories__post-city">{s.city}</span>}
-                        <span className="stories__post-date">
-                          {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </span>
                         {s.views > 0 && (
                           <span className="stories__post-views">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
