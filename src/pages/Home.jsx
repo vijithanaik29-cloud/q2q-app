@@ -151,7 +151,7 @@ export default function Home() {
       <div className="filters">
         <div className="container">
 
-          {/* Date quick filter */}
+          {/* Row 1: Date */}
           <div className="filters__row filters__row--date">
             {[
               { key: 'today',    label: 'Today' },
@@ -168,49 +168,29 @@ export default function Home() {
                 {label}
               </button>
             ))}
-            {hasActiveFilters && (
-              <button className="date-pill date-pill--clear" onClick={clearAllFilters}>✕ Clear</button>
-            )}
           </div>
 
-          {/* City dropdown */}
-          <div className="filters__row filters__row--city">
-            <select
-              className="city-select"
-              value={selectedCity}
-              onChange={e => setCity(e.target.value)}
-              aria-label="Filter by city"
-            >
+          {/* Row 2: City + Category + Price dropdowns */}
+          <div className="filters__dropdowns">
+            <select className="filter-select" value={selectedCity} onChange={e => setCity(e.target.value)} aria-label="City">
               {CITIES.map(city => (
-                <option key={city} value={city}>
-                  {city === 'All' ? '🏳️‍🌈 All Cities' : `${CITY_EMOJI[city]} ${city}`}
-                </option>
+                <option key={city} value={city}>{city === 'All' ? '📍 All Cities' : city}</option>
               ))}
             </select>
-          </div>
-
-          {/* Categories + price */}
-          <div className="filters__row filters__row--cats">
-            {['All', ...CATEGORIES].map(cat => (
-              <button
-                key={cat}
-                className={`cat-pill ${selectedCategory === cat ? 'cat-pill--active' : ''}`}
-                onClick={() => setCategory(cat)}
-              >
-                {cat !== 'All' && <span className="cat-pill__emoji">{CATEGORY_EMOJI[cat]}</span>}
-                {cat === 'All' ? '✦ All' : cat}
-              </button>
-            ))}
-            <span className="filters__sep" />
-            {['Free', 'Paid'].map(p => (
-              <button
-                key={p}
-                className={`cat-pill ${priceFilter === p ? 'cat-pill--active' : ''}`}
-                onClick={() => setPriceFilter(prev => prev === p ? 'All' : p)}
-              >
-                {p === 'Free' ? '🎟️ Free' : '💳 Paid'}
-              </button>
-            ))}
+            <select className="filter-select" value={selectedCategory} onChange={e => setCategory(e.target.value)} aria-label="Category">
+              <option value="All">🏷️ All Types</option>
+              {CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <select className="filter-select" value={priceFilter} onChange={e => setPriceFilter(e.target.value)} aria-label="Price">
+              <option value="All">💰 Any Price</option>
+              <option value="Free">Free</option>
+              <option value="Paid">Paid</option>
+            </select>
+            {hasActiveFilters && (
+              <button className="filters__clear-btn" onClick={clearAllFilters}>✕ Clear</button>
+            )}
           </div>
 
         </div>
