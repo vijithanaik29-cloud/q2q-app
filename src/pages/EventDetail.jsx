@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../data/events';
@@ -7,6 +8,7 @@ export default function EventDetail() {
   const { id } = useParams();
   const { allEvents } = useApp();
   const navigate = useNavigate();
+  const [tcOpen, setTcOpen] = useState(false);
 
   const event = allEvents.find(e => e.id === id);
 
@@ -102,6 +104,41 @@ export default function EventDetail() {
                 para ? <p key={i}>{para}</p> : <br key={i} />
               )}
             </div>
+
+            <div className="divider" />
+
+            {/* Terms & Conditions */}
+            <button
+              className="event-detail__tc-toggle"
+              onClick={() => setTcOpen(o => !o)}
+              aria-expanded={tcOpen}
+            >
+              <span>Terms &amp; Conditions</span>
+              <svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: tcOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {tcOpen && (
+              <div className="event-detail__tc-body">
+                <ol className="event-detail__tc-list">
+                  <li>Tickets once booked cannot be exchanged or refunded, except in the event of cancellation by the organiser.</li>
+                  <li>The booking fee is included in the price shown. No additional charges will be applied at checkout.</li>
+                  <li>Tickets are personal and non-transferable. Resale or transfer of tickets is not permitted without the organiser's written consent.</li>
+                  <li>We recommend arriving at least 15 minutes before the event starts to allow for check-in.</li>
+                  <li>Rights of admission are reserved. The organiser may refuse entry to any attendee who does not comply with the event's rules or safe space guidelines.</li>
+                  <li>This event is independently organised and managed by <strong>{event.organizer}</strong>. Q2Q is a ticketing platform only and is not responsible for any changes, cancellations, or issues with the event.</li>
+                  <li>Q2Q is committed to being a safe, inclusive platform. Any attendee engaging in harassment or discrimination may have their booking cancelled without a refund.</li>
+                </ol>
+                <p className="event-detail__tc-privacy">
+                  Privacy notice · By booking, you agree to Q2Q's <Link to="/privacy">Privacy Policy</Link> and <Link to="/terms">Terms of Service</Link>.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Tickets sidebar */}
