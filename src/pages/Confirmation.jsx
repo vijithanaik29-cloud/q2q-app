@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
 import { formatDate } from '../data/events';
+import RainbowCelebration from '../components/RainbowCelebration';
 import './Confirmation.css';
 
 export default function Confirmation() {
   const { state } = useLocation();
+  const [celebrated, setCelebrated] = useState(false);
 
   if (!state?.booking) return <Navigate to="/" replace />;
 
   const { booking } = state;
 
   return (
+    <>
+      {!celebrated && <RainbowCelebration onDone={() => setCelebrated(true)} />}
     <div className="confirmation fade-up">
       <div className="container confirmation__inner">
         {/* Success header */}
@@ -106,5 +111,6 @@ export default function Confirmation() {
         </p>
       </div>
     </div>
+    </>
   );
 }

@@ -1,0 +1,102 @@
+/* ── Rainbow Celebration overlay ── */
+.rcl {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* Drum-roll phase — dark fullscreen overlay */
+.rcl--drumroll {
+  background: rgba(8, 4, 18, 0.92);
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: rcl-fade-out 0.35s 1.55s ease forwards;
+}
+
+@keyframes rcl-fade-out {
+  to { opacity: 0; pointer-events: none; }
+}
+
+/* Canvas sits on top during burst, transparent background */
+.rcl--burst { background: transparent; }
+
+.rcl__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Drum-roll visual ── */
+.rcl__roll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  z-index: 1;
+}
+
+.rcl__beats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rcl__beat {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 18px var(--c);
+  transform: scale(0);
+  animation:
+    rcl-beat-in   0.22s var(--d) cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+    rcl-beat-glow 0.4s  calc(var(--d) + 0.1s) ease-out both;
+}
+
+@keyframes rcl-beat-in {
+  to { transform: scale(1); }
+}
+@keyframes rcl-beat-glow {
+  0%   { transform: scale(1); filter: brightness(1); }
+  50%  { transform: scale(1.6); filter: brightness(1.8); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.rcl__label {
+  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: rcl-label-in 0.3s 0.6s ease forwards;
+}
+@keyframes rcl-label-in {
+  to { opacity: 1; }
+}
+
+/* Progress bar that fills across 1.5 s */
+.rcl__bar {
+  width: 160px;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  animation: rcl-label-in 0.3s 0.7s ease forwards;
+}
+.rcl__bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #E40303, #FF8C00, #FFED00, #008026, #004DFF, #750787);
+  animation: rcl-fill 1.1s 0.7s ease-in forwards;
+}
+@keyframes rcl-fill {
+  to { width: 100%; }
+}
