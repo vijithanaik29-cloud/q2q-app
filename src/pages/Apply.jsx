@@ -97,6 +97,17 @@ export default function Apply() {
         setSubmitting(false);
         return;
       }
+      // Fire-and-forget: notify admin + send auto-reply to applicant
+      supabase.functions.invoke('notify-application', {
+        body: {
+          name:        form.name.trim(),
+          org_name:    form.org_name.trim(),
+          email:       form.email.trim().toLowerCase(),
+          city:        form.city,
+          event_types: form.event_types,
+          instagram:   form.instagram.trim(),
+        },
+      }).catch(() => {});
       setSubmitted(true);
     } catch {
       setErrors({ submit: 'Something went wrong. Please try again.' });
