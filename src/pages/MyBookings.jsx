@@ -31,7 +31,19 @@ function BookingCard({ booking }) {
           <h3 className="mb-card__title">{booking.eventTitle}</h3>
           <div className="mb-card__meta">
             <span>📅 {formatDate(booking.eventDate)}</span>
-            <span>📍 {booking.eventVenue}, {booking.eventCity}</span>
+            <span>
+              📍 {booking.eventVenue}, {booking.eventCity}
+              {booking.eventVenue && (
+                <a
+                  className="mb-card__directions"
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${booking.eventVenue}, ${booking.eventCity}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Get directions →
+                </a>
+              )}
+            </span>
           </div>
           <div className="mb-card__tickets">
             {(booking.tickets || []).map((t, i) => (
