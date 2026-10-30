@@ -87,13 +87,12 @@
   font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.9);
-  background: rgba(255,255,255,0.14);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  background: var(--pride);
   padding: 4px 10px;
   border-radius: var(--radius-full);
   z-index: 2;
+  box-shadow: 0 2px 12px rgba(229,62,122,0.4);
 }
 
 /* Sponsored tag */

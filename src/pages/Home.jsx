@@ -173,18 +173,20 @@ export default function Home() {
             )}
           </div>
 
-          {/* Cities */}
-          <div className="filters__row">
-            {CITIES.map(city => (
-              <button
-                key={city}
-                className={`city-pill ${selectedCity === city ? 'city-pill--active' : ''}`}
-                onClick={() => setCity(city)}
-              >
-                <span className="city-pill__emoji">{CITY_EMOJI[city]}</span>
-                <span className="city-pill__name">{city === 'All' ? 'All Cities' : city}</span>
-              </button>
-            ))}
+          {/* City dropdown */}
+          <div className="filters__row filters__row--city">
+            <select
+              className="city-select"
+              value={selectedCity}
+              onChange={e => setCity(e.target.value)}
+              aria-label="Filter by city"
+            >
+              {CITIES.map(city => (
+                <option key={city} value={city}>
+                  {city === 'All' ? '🏳️‍🌈 All Cities' : `${CITY_EMOJI[city]} ${city}`}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Categories + price */}

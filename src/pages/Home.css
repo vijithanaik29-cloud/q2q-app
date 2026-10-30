@@ -175,44 +175,37 @@
 }
 .date-pill--clear:hover { color: var(--error); border-color: var(--error); }
 
-/* City pills */
-.city-pill {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+/* City dropdown */
+.filters__row--city {
+  padding-bottom: 4px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.city-select {
+  height: 36px;
+  padding: 0 36px 0 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-2);
   background: var(--surface);
   color: var(--text-2);
-  cursor: pointer;
-  transition: all var(--transition);
-  white-space: nowrap;
   font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239C9191' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color var(--transition), color var(--transition);
+  width: auto;
 }
 
-.city-pill:hover {
-  border-color: var(--border-3);
+.city-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
   color: var(--text);
-  background: var(--surface-2);
 }
-
-.city-pill--active {
-  background: var(--pride);
-  border-color: transparent;
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 2px 12px rgba(147,51,234,0.3);
-}
-
-.city-pill__emoji {
-  font-size: 15px;
-  line-height: 1;
-}
-
-.city-pill__name { letter-spacing: 0.1px; }
 
 /* Category pills */
 .cat-pill {

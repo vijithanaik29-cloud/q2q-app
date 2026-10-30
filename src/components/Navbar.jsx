@@ -35,6 +35,9 @@ export default function Navbar() {
             <NavLink to="/" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} end>
               Events
             </NavLink>
+            <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
+              Stories
+            </NavLink>
             <NavLink to="/admin" className={({ isActive }) => `navbar__link navbar__link--organiser ${isActive ? 'navbar__link--active' : ''}`}>
               Verified Organiser
               <span className="navbar__info-icon" aria-label="What is a Verified Organiser?">
@@ -68,6 +71,13 @@ export default function Navbar() {
             <span className="navbar__mobile-link-content">
               <span className="navbar__mobile-link-title">Events</span>
               <span className="navbar__mobile-link-sub">Browse queer events near you</span>
+            </span>
+          </NavLink>
+          <NavLink to="/stories" className="navbar__mobile-link">
+            <span className="navbar__mobile-icon">✍️</span>
+            <span className="navbar__mobile-link-content">
+              <span className="navbar__mobile-link-title">Stories</span>
+              <span className="navbar__mobile-link-sub">Community voices from across India</span>
             </span>
           </NavLink>
           <NavLink to="/admin" className="navbar__mobile-link">
