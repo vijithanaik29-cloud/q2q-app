@@ -56,6 +56,14 @@ export default function Admin() {
   const [couponError,    setCouponError]    = useState('');
   const [couponSaved,    setCouponSaved]    = useState(false);
 
+  const BLANK_INFLUENCER = { email: '', name: '' };
+  const [influencers,       setInfluencers]       = useState([]);
+  const [influencersLoading,setInfluencersLoading] = useState(false);
+  const [influencerForm,    setInfluencerForm]    = useState(BLANK_INFLUENCER);
+  const [influencerSaving,  setInfluencerSaving]  = useState(false);
+  const [influencerError,   setInfluencerError]   = useState('');
+  const [influencerSaved,   setInfluencerSaved]   = useState(false);
+
   const SUPERADMIN = 'vijithanaik29@gmail.com';
   const isSuperAdmin = user?.email === SUPERADMIN;
 
@@ -80,6 +88,7 @@ export default function Admin() {
     if (user && activeTab === 'payout') loadBankDetails();
     if (user && activeTab === 'bookings') loadBookings();
     if (user && activeTab === 'coupons') loadCoupons();
+    if (user && activeTab === 'influencers') loadInfluencers();
   }, [user, activeTab]);
 
   async function verifyPin(e) {
@@ -187,6 +196,36 @@ export default function Admin() {
   async function toggleCoupon(id, active) {
     await supabase.from('coupons').update({ active: !active }).eq('id', id);
     await loadCoupons();
+  }
+
+  async function loadInfluencers() {
+    setInfluencersLoading(true);
+    const { data } = await supabase.from('influencers').select('*').order('created_at', { ascending: false });
+    setInfluencers(data || []);
+    setInfluencersLoading(false);
+  }
+
+  async function saveInfluencer(e) {
+    e.preventDefault();
+    setInfluencerError('');
+    if (!influencerForm.email.trim()) { setInfluencerError('Email is required'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(influencerForm.email.trim())) { setInfluencerError('Invalid email'); return; }
+    setInfluencerSaving(true);
+    const { error } = await supabase.from('influencers').insert({
+      email: influencerForm.email.trim().toLowerCase(),
+      name:  influencerForm.name.trim() || null,
+    });
+    setInfluencerSaving(false);
+    if (error) { setInfluencerError(error.message); return; }
+    setInfluencerForm(BLANK_INFLUENCER);
+    setInfluencerSaved(true);
+    setTimeout(() => setInfluencerSaved(false), 3000);
+    await loadInfluencers();
+  }
+
+  async function toggleInfluencer(id, active) {
+    await supabase.from('influencers').update({ active: !active }).eq('id', id);
+    await loadInfluencers();
   }
 
   async function loadBankDetails() {
@@ -535,6 +574,11 @@ export default function Admin() {
           {isSuperAdmin && (
             <button className={`admin__tab admin__tab--super ${activeTab === 'coupons' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('coupons')}>
               🏷 Coupons
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'influencers' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('influencers')}>
+              🎟 Influencers
             </button>
           )}
         </div>
@@ -1035,6 +1079,89 @@ export default function Admin() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Influencers — superadmin only */}
+        {activeTab === 'influencers' && user?.email === SUPERADMIN && (
+          <div className="admin__form-section" style={{ maxWidth: 640 }}>
+            <h2>Influencer Free Passes</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
+              Add an influencer's email here and they'll automatically get complimentary tickets at checkout — no payment required. Passes expire after 1 year.
+            </p>
+
+            {/* Create form */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: 24, marginBottom: 28 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>Add influencer</div>
+              <form onSubmit={saveInfluencer} noValidate>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label className="admin__label">Email *</label>
+                    <input
+                      className="admin__input"
+                      type="email"
+                      placeholder="influencer@example.com"
+                      value={influencerForm.email}
+                      onChange={e => setInfluencerForm(f => ({ ...f, email: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin__label">Name (optional)</label>
+                    <input
+                      className="admin__input"
+                      placeholder="Priya Sharma"
+                      value={influencerForm.name}
+                      onChange={e => setInfluencerForm(f => ({ ...f, name: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                {influencerError && <div style={{ fontSize: 12, color: 'var(--error)', marginBottom: 10 }}>{influencerError}</div>}
+                {influencerSaved && <div style={{ fontSize: 12, color: 'var(--success)', marginBottom: 10 }}>Pass added! Expires in 1 year.</div>}
+                <button className="admin__btn" type="submit" disabled={influencerSaving}>
+                  {influencerSaving ? 'Saving…' : 'Add pass'}
+                </button>
+              </form>
+            </div>
+
+            {/* Influencer list */}
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Active passes</div>
+            {influencersLoading ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
+            ) : influencers.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No influencer passes yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {influencers.map(inf => {
+                  const expired = new Date(inf.expires_at) < new Date();
+                  return (
+                    <div key={inf.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      background: 'var(--surface)', border: `1px solid ${inf.active && !expired ? 'var(--border)' : 'var(--border-2)'}`,
+                      borderRadius: 8, padding: '12px 16px',
+                      opacity: inf.active && !expired ? 1 : 0.55,
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{inf.name || inf.email}</div>
+                        {inf.name && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{inf.email}</div>}
+                        <div style={{ fontSize: 11, color: expired ? 'var(--error)' : 'var(--text-muted)', marginTop: 3 }}>
+                          {expired ? 'Expired' : `Expires ${new Date(inf.expires_at).toLocaleDateString('en-IN')}`}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => toggleInfluencer(inf.id, inf.active)}
+                        style={{
+                          flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px',
+                          borderRadius: 20, border: '1px solid var(--border-2)',
+                          background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer',
+                        }}
+                      >
+                        {inf.active ? 'Revoke' : 'Restore'}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

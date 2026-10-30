@@ -331,6 +331,19 @@
 }
 .booking__coupon-remove:hover { color: var(--error); }
 
+/* ─── Influencer pass badge ─── */
+.booking__influencer-badge {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success, #34d399);
+  line-height: 1.4;
+}
+
 .booking__confirm-discount {
   color: var(--success, #34d399) !important;
 }

@@ -20,10 +20,13 @@ export default function Booking() {
   const [paymentError,  setPaymentError]  = useState('');
   const [consent,       setConsent]       = useState(false);
 
-  const [couponCode,    setCouponCode]    = useState('');
-  const [couponResult,  setCouponResult]  = useState(null);
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [couponError,   setCouponError]   = useState('');
+  const [couponCode,      setCouponCode]      = useState('');
+  const [couponResult,    setCouponResult]    = useState(null);
+  const [couponLoading,   setCouponLoading]   = useState(false);
+  const [couponError,     setCouponError]     = useState('');
+
+  const [isInfluencer,    setIsInfluencer]    = useState(false);
+  const [influencerChecked, setInfluencerChecked] = useState(false);
 
   if (!event) {
     return (
@@ -54,7 +57,7 @@ export default function Booking() {
   const totalQty   = selectedTickets.reduce((sum, t) => sum + t.qty, 0);
   const hasSelection = totalQty > 0;
   const discount   = couponResult?.valid ? (couponResult.discount || 0) : 0;
-  const finalTotal = Math.max(0, total - discount);
+  const finalTotal = isInfluencer ? 0 : Math.max(0, total - discount);
 
   async function applyCode() {
     if (!couponCode.trim()) return;
@@ -78,6 +81,15 @@ export default function Booking() {
     setCouponCode('');
     setCouponResult(null);
     setCouponError('');
+  }
+
+  async function checkInfluencer(email) {
+    if (!email?.trim() || influencerChecked) return;
+    setInfluencerChecked(true);
+    const { data } = await supabase.functions.invoke('check-influencer', {
+      body: { email: email.trim().toLowerCase() },
+    });
+    if (data?.isInfluencer) setIsInfluencer(true);
   }
 
   function validateForm() {
@@ -266,8 +278,22 @@ export default function Booking() {
 
                 <div className="form-group">
                   <label htmlFor="email">Email Address</label>
-                  <input id="email" type="email" placeholder="priya@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                  <input
+                    id="email" type="email" placeholder="priya@example.com"
+                    value={form.email}
+                    onChange={e => {
+                      setForm(p => ({ ...p, email: e.target.value }));
+                      setIsInfluencer(false);
+                      setInfluencerChecked(false);
+                    }}
+                    onBlur={e => checkInfluencer(e.target.value)}
+                  />
                   {errors.email && <span className="booking__error">{errors.email}</span>}
+                  {isInfluencer && (
+                    <div className="booking__influencer-badge">
+                      🎟 Complimentary press pass — your tickets are on us!
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
