@@ -38,6 +38,9 @@ export default function Navbar() {
             <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
               Coming Out
             </NavLink>
+            <NavLink to="/my-bookings" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
+              My Tickets
+            </NavLink>
             <NavLink to="/admin" className={({ isActive }) => `navbar__link navbar__link--organiser ${isActive ? 'navbar__link--organiser-active' : ''}`}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Verified Organiser
@@ -79,6 +82,13 @@ export default function Navbar() {
             <span className="navbar__mobile-link-content">
               <span className="navbar__mobile-link-title">Coming Out Stories</span>
               <span className="navbar__mobile-link-sub">Coming out stories from across India</span>
+            </span>
+          </NavLink>
+          <NavLink to="/my-bookings" className="navbar__mobile-link">
+            <span className="navbar__mobile-icon">🎟️</span>
+            <span className="navbar__mobile-link-content">
+              <span className="navbar__mobile-link-title">My Tickets</span>
+              <span className="navbar__mobile-link-sub">View your bookings and QR codes</span>
             </span>
           </NavLink>
           <NavLink to="/admin" className="navbar__mobile-link">

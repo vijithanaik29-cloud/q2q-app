@@ -21,6 +21,10 @@ export default function Footer() {
             <Link to="/?city=Bangalore">Bangalore</Link>
           </div>
           <div className="footer__col">
+            <h4>My Account</h4>
+            <Link to="/my-bookings">My Tickets</Link>
+          </div>
+          <div className="footer__col">
             <h4>Organizers</h4>
             <Link to="/admin">Submit Event</Link>
             <Link to="/admin">My Events</Link>

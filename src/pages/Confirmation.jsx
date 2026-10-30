@@ -109,7 +109,8 @@ export default function Confirmation() {
             </svg>
             Save / Print Ticket
           </button>
-          <Link to="/" className="btn btn-primary">Explore More Events</Link>
+          <Link to="/my-bookings" className="btn btn-primary">View My Tickets</Link>
+          <Link to="/" className="btn btn-outline">Explore More Events</Link>
         </div>
 
         <p className="confirmation__note">
