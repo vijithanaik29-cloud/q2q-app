@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import jsQR from 'jsqr';
 import { useApp } from '../context/AppContext';
 import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
@@ -30,6 +29,101 @@ const BLANK_EVENT = {
   gradient: GRADIENTS[0].value, organizer: '', organizerContact: '',
   tickets: [{ type: 'General Admission', price: '', description: '', available: '' }],
 };
+
+function CheckInTab() {
+  const [query,      setQuery]      = useState('');
+  const [searching,  setSearching]  = useState(false);
+  const [results,    setResults]    = useState(null); // null = not searched yet
+  const [checkedIn,  setCheckedIn]  = useState(new Set());
+  const [checking,   setChecking]   = useState(null);
+  const [error,      setError]      = useState('');
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true); setError(''); setResults(null);
+
+    const isId = /^Q2Q-/i.test(q);
+    let data, err;
+
+    if (isId) {
+      ({ data, error: err } = await supabase
+        .from('bookings').select('*').ilike('id', q).limit(1));
+    } else {
+      ({ data, error: err } = await supabase
+        .from('bookings').select('*').ilike('attendee->>name', `%${q}%`).limit(20));
+    }
+
+    if (err || !data) { setError('Something went wrong. Try again.'); setSearching(false); return; }
+    if (data.length === 0) { setError(`No bookings found for "${q}".`); setResults([]); setSearching(false); return; }
+
+    // fetch checkins for these booking ids
+    const ids = data.map(b => b.id);
+    const { data: ci } = await supabase.from('checkins').select('booking_id').in('booking_id', ids);
+    const ciSet = new Set((ci || []).map(c => c.booking_id));
+    setCheckedIn(ciSet);
+    setResults(data);
+    setSearching(false);
+  }
+
+  async function doCheckIn(id) {
+    setChecking(id);
+    await supabase.from('checkins').upsert({ booking_id: id });
+    setCheckedIn(prev => new Set([...prev, id]));
+    setChecking(null);
+  }
+
+  return (
+    <div className="admin__form-section" style={{ maxWidth: 520 }}>
+      <h2>Door Check-in</h2>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+        Search by booking ID (e.g. Q2Q-MVVEOXZV) or attendee name to find and check in a guest.
+      </p>
+
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <input
+          style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1.5px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 15, outline: 'none' }}
+          placeholder="Booking ID or name…"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setError(''); }}
+          autoFocus
+        />
+        <button className="btn btn-primary" type="submit" disabled={searching || !query.trim()}>
+          {searching ? '…' : 'Search'}
+        </button>
+      </form>
+
+      {error && <p style={{ color: 'var(--error, #f87171)', fontSize: 13, marginBottom: 16 }}>{error}</p>}
+
+      {results && results.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {results.map(b => {
+            const done = checkedIn.has(b.id);
+            return (
+              <div key={b.id} style={{ background: 'var(--surface)', border: `1px solid ${done ? 'rgba(52,211,153,0.3)' : 'var(--border-2)'}`, borderRadius: 12, padding: '16px 18px' }}>
+                {done && (
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--success, #34d399)', marginBottom: 8 }}>✅ Already checked in</div>
+                )}
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 2 }}>{b.attendee?.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{b.attendee?.email} · {b.attendee?.phone}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 2 }}>{b.event_title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+                  {(b.tickets || []).map(t => `${t.type} ×${t.qty}`).join(', ')} · <span style={{ fontFamily: 'monospace' }}>{b.id}</span>
+                </div>
+                {!done && (
+                  <button className="btn btn-primary btn-sm" disabled={checking === b.id} onClick={() => doCheckIn(b.id)}>
+                    {checking === b.id ? 'Checking in…' : '✅ Check In'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -65,15 +159,6 @@ export default function Admin() {
   const [bankSaved,  setBankSaved]  = useState(false);
   const [bankError,  setBankError]  = useState('');
 
-  const [scannerActive,  setScannerActive]  = useState(false);
-  const [scannedBooking, setScannedBooking] = useState(null);
-  const [scanError,      setScanError]      = useState('');
-  const [scanCheckedIn,  setScanCheckedIn]  = useState(false);
-  const [scanChecking,   setScanChecking]   = useState(false);
-  const videoRef  = useRef(null);
-  const canvasRef = useRef(null);
-  const rafRef    = useRef(null);
-  const streamRef = useRef(null);
 
   const isSuperAdmin = user?.email === SUPERADMIN;
 
@@ -164,56 +249,6 @@ export default function Admin() {
     setTimeout(() => setBankSaved(false), 3000);
   }
 
-  function stopScanner() {
-    cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    setScannerActive(false);
-  }
-
-  async function startScanner() {
-    setScannedBooking(null); setScanError(''); setScanCheckedIn(false);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      setScannerActive(true);
-      scanLoop();
-    } catch {
-      setScanError('Camera access denied. Please allow camera permission and try again.');
-    }
-  }
-
-  function scanLoop() {
-    const video = videoRef.current, canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code?.data) { stopScanner(); lookupBookingById(code.data); return; }
-    }
-    rafRef.current = requestAnimationFrame(scanLoop);
-  }
-
-  async function lookupBookingById(bookingId) {
-    setScanError(''); setScannedBooking(null); setScanCheckedIn(false);
-    const { data, error } = await supabase.from('bookings').select('*').eq('id', bookingId).single();
-    if (error || !data) { setScanError(`Booking not found: ${bookingId}`); return; }
-    const { data: ci } = await supabase.from('checkins').select('booking_id').eq('booking_id', bookingId).maybeSingle();
-    setScannedBooking(data); setScanCheckedIn(!!ci);
-  }
-
-  async function doCheckIn(bookingId) {
-    setScanChecking(true);
-    await supabase.from('checkins').upsert({ booking_id: bookingId });
-    setScanCheckedIn(true); setScanChecking(false);
-  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -467,8 +502,8 @@ export default function Admin() {
             ✦ Advertise
           </button>
           <button className={`admin__tab ${activeTab === 'scanner'  ? 'admin__tab--active' : ''}`}
-            onClick={() => { stopScanner(); setScannedBooking(null); setScanError(''); setScanCheckedIn(false); setActiveTab('scanner'); }}>
-            📷 Scanner
+            onClick={() => setActiveTab('scanner')}>
+            ✅ Check-in
           </button>
         </div>
 
@@ -648,57 +683,9 @@ export default function Admin() {
           </div>
         )}
 
-        {/* QR Scanner */}
+        {/* Check-in */}
         {activeTab === 'scanner' && (
-          <div className="admin__form-section" style={{ maxWidth: 480 }}>
-            <h2>Venue Door Scanner</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-              Point the camera at an attendee's QR code to look up their booking and check them in.
-            </p>
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-            {!scannerActive && !scannedBooking && (
-              <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                {scanError && <p style={{ color: 'var(--error)', fontSize: 13, marginBottom: 16 }}>{scanError}</p>}
-                <button className="btn btn-primary" onClick={startScanner}>📷 Start Camera</button>
-              </div>
-            )}
-            {scannerActive && (
-              <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', marginBottom: 16 }}>
-                <video ref={videoRef} style={{ width: '100%', display: 'block' }} playsInline muted />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 30%, rgba(0,0,0,0.4) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: 160, height: 160, border: '2px solid rgba(255,255,255,0.8)', borderRadius: 12, boxShadow: '0 0 0 4000px rgba(0,0,0,0.4)' }} />
-                </div>
-                <button onClick={stopScanner} style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 20, color: '#fff', fontSize: 12, padding: '5px 12px', cursor: 'pointer' }}>Stop</button>
-              </div>
-            )}
-            {scannedBooking && (
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 20px 16px', marginBottom: 16 }}>
-                {scanCheckedIn && (
-                  <div style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, color: 'var(--success)', fontWeight: 700, fontSize: 14 }}>
-                    ✅ Checked in
-                  </div>
-                )}
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{scannedBooking.event_title}</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-                  {new Date(scannedBooking.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · {scannedBooking.event_venue}
-                </div>
-                <div style={{ fontSize: 13, marginBottom: 2 }}><strong>Name:</strong> {scannedBooking.attendee?.name}</div>
-                <div style={{ fontSize: 13, marginBottom: 2 }}><strong>Email:</strong> {scannedBooking.attendee?.email}</div>
-                <div style={{ fontSize: 13, marginBottom: 2 }}><strong>Ref:</strong> {scannedBooking.id}</div>
-                <div style={{ fontSize: 13, marginBottom: 16 }}><strong>Tickets:</strong> {(scannedBooking.tickets || []).map(t => `${t.type} ×${t.qty}`).join(', ')}</div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {!scanCheckedIn && (
-                    <button className="btn btn-primary" disabled={scanChecking} onClick={() => doCheckIn(scannedBooking.id)}>
-                      {scanChecking ? 'Checking in…' : '✅ Check In'}
-                    </button>
-                  )}
-                  <button className="btn btn-outline" onClick={() => { setScannedBooking(null); setScanError(''); setScanCheckedIn(false); startScanner(); }}>
-                    Scan Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <CheckInTab />
         )}
 
         {/* Submit Event */}
