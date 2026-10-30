@@ -26,30 +26,30 @@
 .mb-login__card h1 {
   font-size: 1.75rem;
   margin-bottom: 8px;
+  color: var(--text);
 }
 .mb-login__card > p {
-  color: var(--text-secondary, #666);
+  color: var(--text-muted);
   margin-bottom: 28px;
   font-size: 0.95rem;
 }
 .mb-login__input {
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid var(--border, #e2e8f0);
+  border: 1.5px solid var(--border-2);
   border-radius: 10px;
   font-size: 1rem;
-  background: var(--card-bg, #fff);
-  color: var(--text-primary, #111);
+  background: var(--surface-2);
+  color: var(--text);
   outline: none;
   transition: border-color .15s;
   box-sizing: border-box;
   margin-bottom: 14px;
 }
-.mb-login__input:focus {
-  border-color: var(--accent, #667eea);
-}
+.mb-login__input::placeholder { color: var(--text-muted); }
+.mb-login__input:focus { border-color: var(--accent); }
 .mb-login__error {
-  color: #e53e3e;
+  color: #f87171;
   font-size: .85rem;
   margin-bottom: 10px;
 }
@@ -61,13 +61,14 @@
   padding: 8px 0 16px;
 }
 .mb-login__sent-icon { font-size: 2.5rem; }
-.mb-login__sent p { color: var(--text-secondary, #666); font-size: .9rem; margin: 0; }
+.mb-login__sent strong { color: var(--text); }
+.mb-login__sent p { color: var(--text-muted); font-size: .9rem; margin: 0; }
 .mb-login__note {
   margin-top: 20px;
   font-size: .85rem;
-  color: var(--text-secondary, #888);
+  color: var(--text-muted);
 }
-.mb-login__note a { color: var(--accent, #667eea); }
+.mb-login__note a { color: var(--accent); }
 
 /* Authenticated / results view */
 .mb-page { min-height: 80vh; }
@@ -99,7 +100,7 @@
   padding-block: 32px 64px;
 }
 .mb-count {
-  color: var(--text-secondary, #777);
+  color: var(--text-muted);
   font-size: .9rem;
   margin-bottom: 20px;
 }
@@ -114,13 +115,13 @@
 .mb-card {
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,.08);
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border, #e8e8f0);
+  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  background: var(--surface);
+  border: 1px solid var(--border-2);
   transition: box-shadow .2s;
 }
-.mb-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.12); }
-.mb-card--past { opacity: .7; }
+.mb-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+.mb-card--past { opacity: .6; }
 
 .mb-card__banner {
   height: 48px;
@@ -128,13 +129,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  position: relative;
 }
 .mb-card__ref {
   font-size: .72rem;
   font-family: 'Courier New', monospace;
-  color: rgba(255,255,255,.9);
-  letter-spacing: .04em;
+  color: rgba(255,255,255,.85);
+  letter-spacing: .05em;
   font-weight: 600;
 }
 .mb-card__past-badge {
@@ -160,14 +160,14 @@
   font-size: 1.05rem;
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--text-primary, #111);
+  color: var(--text);
 }
 .mb-card__meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   font-size: .83rem;
-  color: var(--text-secondary, #666);
+  color: var(--text-2);
   margin-bottom: 12px;
 }
 .mb-card__tickets {
@@ -180,20 +180,21 @@
   font-size: .78rem;
   font-weight: 600;
   padding: 3px 10px;
-  background: var(--chip-bg, #f0f0f8);
-  color: var(--text-primary, #333);
+  background: var(--surface-3);
+  color: var(--text-2);
   border-radius: 100px;
+  border: 1px solid var(--border-2);
 }
 .mb-card__total {
   font-size: .85rem;
-  color: var(--text-secondary, #555);
+  color: var(--text-muted);
   font-weight: 600;
 }
 .mb-card__directions {
   display: inline-block;
   margin-left: 8px;
   font-size: .78rem;
-  color: var(--accent, #667eea);
+  color: var(--accent);
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -210,28 +211,19 @@
 .mb-card__qr canvas {
   border-radius: 8px;
   display: block;
+  border: 4px solid #fff;
 }
 .mb-card__qr-hint {
   font-size: .7rem;
-  color: var(--text-secondary, #999);
+  color: var(--text-muted);
   text-align: center;
   margin: 0;
-}
-
-/* Dark-mode tokens */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --chip-bg: #2a2a3e;
-  }
-}
-:root[data-theme="dark"] {
-  --chip-bg: #2a2a3e;
 }
 
 /* Responsive */
 @media (max-width: 480px) {
   .mb-login__card { padding: 28px 20px; }
-  .mb-card__body { flex-direction: column; align-items: stretch; }
+  .mb-card__body { flex-direction: column-reverse; align-items: stretch; }
   .mb-card__qr { flex-direction: row; align-items: center; }
   .mb-card__qr-hint { margin-left: 8px; }
 }
