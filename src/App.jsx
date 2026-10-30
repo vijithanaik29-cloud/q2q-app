@@ -10,6 +10,7 @@ import Admin from './pages/Admin';
 import Apply from './pages/Apply';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import Stories from './pages/Stories';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/apply" element={<Apply />} />
+            <Route path="/stories" element={<Stories />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />

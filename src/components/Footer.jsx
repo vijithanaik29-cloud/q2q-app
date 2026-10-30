@@ -15,6 +15,7 @@ export default function Footer() {
           <div className="footer__col">
             <h4>Discover</h4>
             <Link to="/">All Events</Link>
+            <Link to="/stories">Stories</Link>
             <Link to="/?city=Mumbai">Mumbai</Link>
             <Link to="/?city=Delhi">Delhi</Link>
             <Link to="/?city=Bangalore">Bangalore</Link>

@@ -56,6 +56,9 @@ export default function Admin() {
   const [couponError,    setCouponError]    = useState('');
   const [couponSaved,    setCouponSaved]    = useState(false);
 
+  const [pendingStories,  setPendingStories]  = useState([]);
+  const [storiesLoading,  setStoriesLoading]  = useState(false);
+
   const BLANK_INFLUENCER = { email: '', name: '' };
   const [influencers,       setInfluencers]       = useState([]);
   const [influencersLoading,setInfluencersLoading] = useState(false);
@@ -89,6 +92,7 @@ export default function Admin() {
     if (user && activeTab === 'bookings') loadBookings();
     if (user && activeTab === 'coupons') loadCoupons();
     if (user && activeTab === 'influencers') loadInfluencers();
+    if (user && activeTab === 'stories') loadPendingStories();
   }, [user, activeTab]);
 
   async function verifyPin(e) {
@@ -226,6 +230,21 @@ export default function Admin() {
   async function toggleInfluencer(id, active) {
     await supabase.from('influencers').update({ active: !active }).eq('id', id);
     await loadInfluencers();
+  }
+
+  async function loadPendingStories() {
+    setStoriesLoading(true);
+    const { data } = await supabase
+      .from('stories')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setPendingStories(data || []);
+    setStoriesLoading(false);
+  }
+
+  async function moderateStory(id, status) {
+    await supabase.from('stories').update({ status }).eq('id', id);
+    await loadPendingStories();
   }
 
   async function loadBankDetails() {
@@ -579,6 +598,11 @@ export default function Admin() {
           {isSuperAdmin && (
             <button className={`admin__tab admin__tab--super ${activeTab === 'influencers' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('influencers')}>
               🎟 Influencers
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'stories' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('stories')}>
+              ✍️ Stories
             </button>
           )}
         </div>
@@ -1162,6 +1186,79 @@ export default function Admin() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Stories moderation — superadmin only */}
+        {activeTab === 'stories' && user?.email === SUPERADMIN && (
+          <div className="admin__form-section" style={{ maxWidth: 720 }}>
+            <h2>Stories Moderation</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
+              Review community stories before they go live. Approved stories appear on the public Stories page.
+            </p>
+
+            {/* Status counts */}
+            {!storiesLoading && (
+              <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+                {['pending', 'approved', 'rejected'].map(s => {
+                  const count = pendingStories.filter(x => x.status === s).length;
+                  const colors = { pending: 'var(--accent)', approved: 'var(--success)', rejected: 'var(--error)' };
+                  return (
+                    <div key={s} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 18px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: colors[s] }}>{count}</div>
+                      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginTop: 2 }}>{s}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {storiesLoading ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
+            ) : pendingStories.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No stories yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pendingStories.map(s => (
+                  <div key={s.id} style={{
+                    background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px',
+                    opacity: s.status === 'rejected' ? 0.5 : 1,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                        padding: '2px 8px', borderRadius: 20,
+                        background: s.status === 'approved' ? 'rgba(52,211,153,0.12)' : s.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'rgba(139,92,246,0.1)',
+                        color: s.status === 'approved' ? 'var(--success)' : s.status === 'rejected' ? 'var(--error)' : 'var(--accent)',
+                      }}>{s.status}</span>
+                      {s.city && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.city}</span>}
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                        {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 14, fontStyle: 'italic' }}>
+                      "{s.content}"
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {s.status !== 'approved' && (
+                        <button onClick={() => moderateStory(s.id, 'approved')} style={{
+                          fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20,
+                          border: '1px solid var(--success)', background: 'rgba(52,211,153,0.08)',
+                          color: 'var(--success)', cursor: 'pointer',
+                        }}>Approve</button>
+                      )}
+                      {s.status !== 'rejected' && (
+                        <button onClick={() => moderateStory(s.id, 'rejected')} style={{
+                          fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20,
+                          border: '1px solid var(--border-2)', background: 'var(--bg)',
+                          color: 'var(--text-muted)', cursor: 'pointer',
+                        }}>Reject</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
