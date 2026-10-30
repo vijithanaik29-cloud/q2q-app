@@ -209,13 +209,13 @@ export default function Apply() {
           <div className="apply__row">
             <div className="form-group">
               <label htmlFor="name">Your name *</label>
-              <input id="name" type="text" placeholder="Priya Sharma"
+              <input id="name" type="text" placeholder="Your full name"
                 value={form.name} onChange={e => set('name', e.target.value)} />
               {errors.name && <span className="apply__error">{errors.name}</span>}
             </div>
             <div className="form-group">
               <label htmlFor="org_name">Organisation / Promoter name *</label>
-              <input id="org_name" type="text" placeholder="Rainbow Collective"
+              <input id="org_name" type="text" placeholder="Your organisation or promoter name"
                 value={form.org_name} onChange={e => set('org_name', e.target.value)} />
               {errors.org_name && <span className="apply__error">{errors.org_name}</span>}
             </div>
@@ -224,13 +224,13 @@ export default function Apply() {
           <div className="apply__row">
             <div className="form-group">
               <label htmlFor="email">Email *</label>
-              <input id="email" type="email" placeholder="priya@rainbow.org"
+              <input id="email" type="email" placeholder="you@example.com"
                 value={form.email} onChange={e => set('email', e.target.value)} />
               {errors.email && <span className="apply__error">{errors.email}</span>}
             </div>
             <div className="form-group">
               <label htmlFor="phone">Mobile number *</label>
-              <input id="phone" type="tel" placeholder="9876543210"
+              <input id="phone" type="tel" placeholder="10-digit mobile number"
                 value={form.phone} onChange={e => set('phone', e.target.value)} />
               {errors.phone && <span className="apply__error">{errors.phone}</span>}
             </div>
@@ -311,20 +311,20 @@ export default function Apply() {
           <div className="apply__row">
             <div className="form-group">
               <label htmlFor="instagram">Instagram profile *</label>
-              <input id="instagram" type="url" placeholder="https://instagram.com/rainbowcollective"
+              <input id="instagram" type="url" placeholder="https://instagram.com/yourhandle"
                 value={form.instagram} onChange={e => set('instagram', e.target.value)} />
               {errors.instagram && <span className="apply__error">{errors.instagram}</span>}
             </div>
             <div className="form-group">
               <label htmlFor="facebook">Facebook page <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-              <input id="facebook" type="url" placeholder="https://facebook.com/rainbowcollective"
+              <input id="facebook" type="url" placeholder="https://facebook.com/yourpage"
                 value={form.facebook} onChange={e => set('facebook', e.target.value)} />
             </div>
           </div>
 
           <div className="form-group">
             <label htmlFor="website">Website or Google Maps link *</label>
-            <input id="website" type="url" placeholder="https://rainbowcollective.in or maps.google.com/..."
+            <input id="website" type="url" placeholder="https://yourwebsite.com or maps.google.com/..."
               value={form.website} onChange={e => set('website', e.target.value)} />
             {errors.website && <span className="apply__error">{errors.website}</span>}
           </div>
