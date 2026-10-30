@@ -380,7 +380,7 @@ export default function Apply() {
                 <li>Shown to all visitors in your city</li>
                 <li>Cancel anytime</li>
               </ul>
-              <a href="mailto:sponsor@q2q.co.in?subject=Community Partner enquiry" className="apply__sponsor-cta">Get in touch</a>
+              <a href="/admin" className="apply__sponsor-cta">Advertise as organiser →</a>
             </div>
 
             <div className="apply__sponsor-tier apply__sponsor-tier--featured">
@@ -393,12 +393,12 @@ export default function Apply() {
                 <li>Named sponsor in our social posts</li>
                 <li>Cancel anytime</li>
               </ul>
-              <a href="mailto:sponsor@q2q.co.in?subject=Pride Sponsor enquiry" className="apply__sponsor-cta apply__sponsor-cta--primary">Get in touch</a>
+              <a href="/admin" className="apply__sponsor-cta apply__sponsor-cta--primary">Advertise as organiser →</a>
             </div>
           </div>
 
           <p className="apply__sponsor-note">
-            Write to <strong>sponsor@q2q.co.in</strong> or use the buttons above. We'll confirm your spot within 24 hours.
+            Already a verified organiser? Log into your portal and go to the <strong>Advertise</strong> tab to submit your banner for review.
           </p>
         </div>
       </div>

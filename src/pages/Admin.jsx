@@ -60,6 +60,20 @@ export default function Admin() {
   const [pendingStories,  setPendingStories]  = useState([]);
   const [storiesLoading,  setStoriesLoading]  = useState(false);
 
+  // Sponsor submissions — organiser side
+  const BLANK_SPONSOR = { plan: '', business_name: '', tagline: '', link: '', city: '' };
+  const [mySponsorSub,    setMySponsorSub]    = useState(null);   // existing sub for this organiser
+  const [sponsorSubLoad,  setSponsorSubLoad]  = useState(false);
+  const [sponsorForm,     setSponsorForm]     = useState(BLANK_SPONSOR);
+  const [sponsorSaving,   setSponsorSaving]   = useState(false);
+  const [sponsorError,    setSponsorError]    = useState('');
+  const [sponsorDone,     setSponsorDone]     = useState(false);
+  // Sponsor submissions — superadmin review
+  const [allSponsorSubs,  setAllSponsorSubs]  = useState([]);
+  const [sponsorSubsLoad, setSponsorSubsLoad] = useState(false);
+  const [sponsorNotes,    setSponsorNotes]    = useState({});     // id → note text
+  const [sponsorActing,   setSponsorActing]   = useState(null);   // id being actioned
+
   const BLANK_INFLUENCER = { email: '', name: '' };
   const [influencers,       setInfluencers]       = useState([]);
   const [influencersLoading,setInfluencersLoading] = useState(false);
@@ -104,7 +118,75 @@ export default function Admin() {
     if (user && activeTab === 'coupons') loadCoupons();
     if (user && activeTab === 'influencers') loadInfluencers();
     if (user && activeTab === 'stories') loadPendingStories();
+    if (user && activeTab === 'advertise') loadMySponsorSub();
+    if (user && activeTab === 'sponsors') loadAllSponsorSubs();
   }, [user, activeTab]);
+
+  async function loadMySponsorSub() {
+    if (!user) return;
+    setSponsorSubLoad(true);
+    const { data } = await supabase
+      .from('sponsor_submissions')
+      .select('*')
+      .eq('organiser_email', user.email)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setMySponsorSub(data || null);
+    if (data) setSponsorForm({ plan: data.plan, business_name: data.business_name, tagline: data.tagline, link: data.link, city: data.city || '' });
+    setSponsorSubLoad(false);
+  }
+
+  async function loadAllSponsorSubs() {
+    if (!isSuperAdmin) return;
+    setSponsorSubsLoad(true);
+    const { data } = await supabase
+      .from('sponsor_submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setAllSponsorSubs(data || []);
+    setSponsorSubsLoad(false);
+  }
+
+  async function submitSponsor(e) {
+    e.preventDefault();
+    setSponsorError('');
+    if (!sponsorForm.plan) { setSponsorError('Please choose a plan.'); return; }
+    if (!sponsorForm.business_name.trim()) { setSponsorError('Business name is required.'); return; }
+    if (!sponsorForm.tagline.trim()) { setSponsorError('Tagline is required.'); return; }
+    if (!sponsorForm.link.trim()) { setSponsorError('Website link is required.'); return; }
+    if (sponsorForm.plan === 'community' && !sponsorForm.city) { setSponsorError('Please select a city for Community Partner.'); return; }
+    setSponsorSaving(true);
+    const payload = {
+      organiser_email: user.email,
+      plan:            sponsorForm.plan,
+      business_name:   sponsorForm.business_name.trim(),
+      tagline:         sponsorForm.tagline.trim(),
+      link:            sponsorForm.link.trim(),
+      city:            sponsorForm.plan === 'community' ? sponsorForm.city : null,
+      content_hash:    btoa(`${sponsorForm.plan}|${sponsorForm.business_name.trim()}|${sponsorForm.tagline.trim()}|${sponsorForm.link.trim()}|${sponsorForm.city}`),
+      status:          'pending',
+    };
+    const { error } = await supabase.from('sponsor_submissions').insert(payload);
+    setSponsorSaving(false);
+    if (error) { setSponsorError('Could not submit. Please try again.'); return; }
+    setSponsorDone(true);
+    loadMySponsorSub();
+  }
+
+  async function sponsorAction(id, action, note) {
+    setSponsorActing(id);
+    const updates = action === 'approve'
+      ? { status: 'approved', review_note: note || null, approved_at: new Date().toISOString() }
+      : action === 'reject'
+      ? { status: 'rejected', review_note: note || null }
+      : action === 'live'
+      ? { status: 'active', active_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }
+      : { status: 'pending', review_note: null };
+    await supabase.from('sponsor_submissions').update(updates).eq('id', id);
+    setSponsorActing(null);
+    loadAllSponsorSubs();
+  }
 
   async function verifyPin(e) {
     e.preventDefault();
@@ -667,9 +749,14 @@ export default function Admin() {
               🛡 Bookings & Refunds
             </button>
           )}
+          <button className={`admin__tab ${activeTab === 'advertise' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('advertise')}>
+            ✦ Advertise
+          </button>
           {isSuperAdmin && (
             <button className={`admin__tab admin__tab--super ${activeTab === 'sponsors' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('sponsors')}>
-              ✦ Sponsors
+              Sponsor Review {allSponsorSubs.filter(s => s.status === 'pending').length > 0 && (
+                <span className="admin__tab-badge">{allSponsorSubs.filter(s => s.status === 'pending').length}</span>
+              )}
             </button>
           )}
           {isSuperAdmin && (
@@ -1046,42 +1133,157 @@ export default function Admin() {
         )}
 
         {/* Sponsors — superadmin only */}
-        {activeTab === 'sponsors' && user?.email === SUPERADMIN && (
+        {/* ── Advertise tab — all verified organisers ── */}
+        {activeTab === 'advertise' && (
           <div className="admin__form-section" style={{ maxWidth: 640 }}>
-            <h2>Sponsor Management</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
-              The homepage banner is controlled by <code>src/data/sponsors.js</code>. Set <code>activeSponsor</code> to an object to show a banner, or <code>null</code> to hide it. Push to main to go live.
+            <h2>Advertise on Q2Q</h2>
+            <p style={{ fontSize: 14, color: 'var(--text-2)', marginBottom: 28, lineHeight: 1.7 }}>
+              Put your business in front of India's queer community. Choose a plan, fill in your banner details, and we'll review it — usually within 24 hours. Once approved, you'll receive payment instructions and your banner goes live immediately after payment.
             </p>
 
-            <div className="admin__form-section" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, marginBottom: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: 12 }}>
-                Code to activate a sponsor
+            {sponsorSubLoad ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</p>
+            ) : mySponsorSub && !sponsorDone ? (
+              /* Status card for existing submission */
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, padding: 24, marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    padding: '3px 10px', borderRadius: 99,
+                    background: mySponsorSub.status === 'active' ? 'var(--success-dim)' : mySponsorSub.status === 'approved' ? 'rgba(139,92,246,0.1)' : mySponsorSub.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'var(--accent-dim)',
+                    color: mySponsorSub.status === 'active' ? 'var(--success)' : mySponsorSub.status === 'approved' ? '#8B5CF6' : mySponsorSub.status === 'rejected' ? 'var(--error)' : 'var(--accent)',
+                  }}>
+                    {mySponsorSub.status === 'active' ? '● Live' : mySponsorSub.status === 'approved' ? '✓ Approved — awaiting payment' : mySponsorSub.status === 'rejected' ? '✕ Needs edits' : '○ Under review'}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {mySponsorSub.plan === 'community' ? 'Community Partner · ₹999/mo' : 'Pride Sponsor · ₹2,499/mo'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{mySponsorSub.business_name}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 4 }}>{mySponsorSub.tagline}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{mySponsorSub.link}{mySponsorSub.city ? ` · ${mySponsorSub.city}` : ''}</div>
+                {mySponsorSub.review_note && (
+                  <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+                    <strong>Note from Q2Q:</strong> {mySponsorSub.review_note}
+                  </div>
+                )}
+                {mySponsorSub.status === 'approved' && (
+                  <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, fontSize: 13, lineHeight: 1.7 }}>
+                    Your banner is approved! To go live, send your payment to <strong>sponsor@q2q.co.in</strong> and we'll activate it within a few hours.
+                  </div>
+                )}
+                {(mySponsorSub.status === 'rejected') && (
+                  <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setMySponsorSub(null); setSponsorDone(false); }}>
+                    Edit and resubmit
+                  </button>
+                )}
               </div>
-              <pre style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.7, margin: 0, overflowX: 'auto' }}>{`export const activeSponsor = {
-  name:    'Sponsor Name',
-  tagline: 'Short tagline here.',
-  link:    'https://their-website.com',
-  tier:    'community',  // 'community' or 'pride'
-  city:    'Mumbai',     // or null for all cities
-};`}</pre>
-            </div>
+            ) : (
+              /* Submission form */
+              <form onSubmit={submitSponsor} noValidate>
+                {/* Plan picker */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                  {[
+                    { key: 'community', label: 'Community Partner', price: '₹999/mo', desc: 'City-targeted banner · name + tagline + link' },
+                    { key: 'pride', label: 'Pride Sponsor', price: '₹2,499/mo', desc: 'All-cities banner · every event page' },
+                  ].map(p => (
+                    <button key={p.key} type="button" onClick={() => setSponsorForm(f => ({ ...f, plan: p.key }))}
+                      style={{ textAlign: 'left', padding: 18, borderRadius: 10, cursor: 'pointer',
+                        border: sponsorForm.plan === p.key ? '2px solid var(--accent)' : '1px solid var(--border-2)',
+                        background: sponsorForm.plan === p.key ? 'var(--accent-dim)' : 'var(--surface)',
+                      }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', marginBottom: 6 }}>{p.label}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>{p.price}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>{p.desc}</div>
+                    </button>
+                  ))}
+                </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>Community Partner</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>₹999<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>/month</span></div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>Homepage banner strip, city-targeted, name + tagline + link.</div>
-              </div>
-              <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, padding: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>Pride Sponsor</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>₹2,499<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>/month</span></div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>All-cities banner, logo on event pages, named in social posts.</div>
-              </div>
-            </div>
+                <div className="form-group">
+                  <label className="admin__label">Business name</label>
+                  <input className="admin__input" placeholder="e.g. Rainbow Café" value={sponsorForm.business_name} onChange={e => setSponsorForm(f => ({ ...f, business_name: e.target.value }))} maxLength={60} />
+                </div>
+                <div className="form-group">
+                  <label className="admin__label">Tagline <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(1 line, shown on the banner)</span></label>
+                  <input className="admin__input" placeholder="e.g. Welcoming LGBTQ+ since 2019" value={sponsorForm.tagline} onChange={e => setSponsorForm(f => ({ ...f, tagline: e.target.value }))} maxLength={100} />
+                </div>
+                <div className="form-group">
+                  <label className="admin__label">Website link</label>
+                  <input className="admin__input" type="url" placeholder="https://yourbusiness.com" value={sponsorForm.link} onChange={e => setSponsorForm(f => ({ ...f, link: e.target.value }))} />
+                </div>
+                {sponsorForm.plan === 'community' && (
+                  <div className="form-group">
+                    <label className="admin__label">Target city</label>
+                    <select className="admin__select" value={sponsorForm.city} onChange={e => setSponsorForm(f => ({ ...f, city: e.target.value }))}>
+                      <option value="">Select city</option>
+                      {['Mumbai','Delhi','Bangalore','Chennai','Hyderabad','Pune','Kolkata','Ahmedabad','Jaipur','Other'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                )}
+                {sponsorError && <div className="stories__error">{sponsorError}</div>}
+                <button className="btn btn-rainbow btn-full" type="submit" disabled={sponsorSaving || !sponsorForm.plan}>
+                  {sponsorSaving ? 'Submitting…' : 'Submit for review'}
+                </button>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 10 }}>
+                  We review all banners before they go live. No payment until approved.
+                </p>
+              </form>
+            )}
+          </div>
+        )}
 
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              Enquiries come to <strong>sponsor@q2q.co.in</strong>. When you agree a deal, open <code>src/data/sponsors.js</code> in your code editor, fill in the object above, and push. The banner goes live on main deploy.
-            </p>
+        {/* ── Sponsor Review — superadmin only ── */}
+        {activeTab === 'sponsors' && isSuperAdmin && (
+          <div className="admin__form-section" style={{ maxWidth: 720 }}>
+            <h2>Sponsor Review</h2>
+            {sponsorSubsLoad ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</p>
+            ) : allSponsorSubs.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>No submissions yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {allSponsorSubs.map(s => (
+                  <div key={s.id} style={{ background: 'var(--surface)', border: `1px solid ${s.status === 'active' ? 'var(--success)' : s.status === 'approved' ? 'rgba(139,92,246,0.3)' : s.status === 'rejected' ? 'var(--error)' : 'var(--border-2)'}`, borderRadius: 10, padding: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+                        padding: '2px 8px', borderRadius: 99,
+                        background: s.status === 'active' ? 'var(--success-dim)' : s.status === 'approved' ? 'rgba(139,92,246,0.1)' : s.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'var(--accent-dim)',
+                        color: s.status === 'active' ? 'var(--success)' : s.status === 'approved' ? '#8B5CF6' : s.status === 'rejected' ? 'var(--error)' : 'var(--accent)',
+                      }}>{s.status}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>{s.plan === 'community' ? 'Community · ₹999' : 'Pride · ₹2,499'}</span>
+                      {s.city && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.city}</span>}
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{s.organiser_email}</span>
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{s.business_name}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 3 }}>{s.tagline}</div>
+                    <a href={s.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>{s.link}</a>
+                    <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                      <textarea
+                        placeholder="Note to organiser (optional)"
+                        value={sponsorNotes[s.id] || ''}
+                        onChange={e => setSponsorNotes(n => ({ ...n, [s.id]: e.target.value }))}
+                        rows={2}
+                        style={{ flex: 1, minWidth: 200, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical', fontFamily: 'inherit' }}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {s.status === 'pending' && <>
+                          <button className="btn btn-rainbow btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'approve', sponsorNotes[s.id])}>Approve</button>
+                          <button className="btn btn-outline btn-sm" style={{ color: 'var(--error)', borderColor: 'var(--error)' }} disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'reject', sponsorNotes[s.id])}>Request edits</button>
+                        </>}
+                        {s.status === 'approved' && (
+                          <button className="btn btn-primary btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'live', '')}>Set Live ✓</button>
+                        )}
+                        {s.status === 'active' && (
+                          <button className="btn btn-outline btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'reject', 'Deactivated.')}>Deactivate</button>
+                        )}
+                        {s.status === 'rejected' && (
+                          <button className="btn btn-outline btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'pending', '')}>Reopen</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
