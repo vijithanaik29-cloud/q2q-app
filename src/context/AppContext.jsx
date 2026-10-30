@@ -23,6 +23,7 @@ function dbToEvent(row) {
     organizerContact: row.organizer_contact,
     organizerId:      row.organizer_id,
     featured:         row.featured,
+    boosted:          row.boosted || false,
     tags:             row.tags,
     attendees:        row.attendees,
     tickets:          row.tickets,

@@ -247,6 +247,11 @@ export default function Admin() {
     await loadPendingStories();
   }
 
+  async function toggleBoost(eventId, boosted) {
+    await supabase.from('events').update({ boosted: !boosted }).eq('id', eventId);
+    window.location.reload();
+  }
+
   async function loadBankDetails() {
     setBankLoading(true);
     const { data } = await supabase
@@ -706,16 +711,32 @@ export default function Admin() {
                       <div className="admin__event-badges">
                         <span className="badge badge-green">Live</span>
                         <span className="badge badge-gray">{event.city}</span>
+                        {event.boosted && <span className="badge" style={{ background: 'rgba(234,179,8,0.15)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.3)' }}>⚡ Boosted</span>}
                       </div>
                       <h3 className="admin__event-title">{event.title}</h3>
                       <p className="admin__event-meta">{formatDate(event.date)}</p>
                       <p className="admin__event-meta">{event.venue}</p>
-                      <button
-                        className="admin__dashboard-btn"
-                        onClick={() => setSelectedEvent(event)}
-                      >
-                        View Dashboard →
-                      </button>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <button
+                          className="admin__dashboard-btn"
+                          style={{ flex: 1 }}
+                          onClick={() => setSelectedEvent(event)}
+                        >
+                          View Dashboard →
+                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => toggleBoost(event.id, event.boosted)}
+                            title={event.boosted ? 'Remove boost' : 'Boost this event'}
+                            style={{
+                              padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-2)',
+                              background: event.boosted ? 'rgba(234,179,8,0.12)' : 'var(--bg)',
+                              color: event.boosted ? '#ca8a04' : 'var(--text-muted)',
+                              cursor: 'pointer', fontSize: 16, flexShrink: 0,
+                            }}
+                          >⚡</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

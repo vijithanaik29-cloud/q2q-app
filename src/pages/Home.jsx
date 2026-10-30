@@ -101,8 +101,14 @@ export default function Home() {
         dateFilter === 'weekend' ? (e.date === satStr || e.date === sunStr) : true;
       return matchCity && matchCat && matchSearch && matchPrice && matchDate;
     });
-    // Promoted events float to top
-    return filtered.sort((a, b) => (b.promoted ? 1 : 0) - (a.promoted ? 1 : 0));
+    // Boosted events rotate to top (round-robin per 5-minute bucket)
+    const boosted    = filtered.filter(e => e.boosted);
+    const unboosted  = filtered.filter(e => !e.boosted);
+    if (boosted.length > 1) {
+      const offset = Math.floor(Date.now() / 300000) % boosted.length;
+      boosted.push(...boosted.splice(0, offset));
+    }
+    return [...boosted, ...unboosted];
   }, [allEvents, selectedCity, selectedCategory, search, priceFilter, dateFilter]);
 
   const noFilters = !hasActiveFilters;
