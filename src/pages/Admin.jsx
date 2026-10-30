@@ -48,6 +48,14 @@ export default function Admin() {
   const [refundingEvent,  setRefundingEvent]  = useState(null);
   const [refundResults,   setRefundResults]   = useState({});
 
+  const BLANK_COUPON = { code: '', discount_type: 'percent', discount_value: '', max_uses: '100', expires_at: '', event_id: '' };
+  const [coupons,        setCoupons]        = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponForm,     setCouponForm]     = useState(BLANK_COUPON);
+  const [couponSaving,   setCouponSaving]   = useState(false);
+  const [couponError,    setCouponError]    = useState('');
+  const [couponSaved,    setCouponSaved]    = useState(false);
+
   const SUPERADMIN = 'vijithanaik29@gmail.com';
   const isSuperAdmin = user?.email === SUPERADMIN;
 
@@ -71,6 +79,7 @@ export default function Admin() {
     if (user && (activeTab === 'applications' || activeTab === 'overview')) loadApplications();
     if (user && activeTab === 'payout') loadBankDetails();
     if (user && activeTab === 'bookings') loadBookings();
+    if (user && activeTab === 'coupons') loadCoupons();
   }, [user, activeTab]);
 
   async function verifyPin(e) {
@@ -140,6 +149,44 @@ export default function Admin() {
       groups[b.event_id].bookings.push(b);
     }
     return Object.values(groups);
+  }
+
+  async function loadCoupons() {
+    setCouponsLoading(true);
+    const { data } = await supabase
+      .from('coupons')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setCoupons(data || []);
+    setCouponsLoading(false);
+  }
+
+  async function saveCoupon(e) {
+    e.preventDefault();
+    setCouponError('');
+    if (!couponForm.code.trim()) { setCouponError('Code is required'); return; }
+    if (!couponForm.discount_value || Number(couponForm.discount_value) <= 0) { setCouponError('Discount value must be > 0'); return; }
+    if (couponForm.discount_type === 'percent' && Number(couponForm.discount_value) > 100) { setCouponError('Percent discount cannot exceed 100'); return; }
+    setCouponSaving(true);
+    const { error } = await supabase.from('coupons').insert({
+      code:           couponForm.code.trim().toUpperCase(),
+      discount_type:  couponForm.discount_type,
+      discount_value: Number(couponForm.discount_value),
+      max_uses:       Number(couponForm.max_uses) || 100,
+      expires_at:     couponForm.expires_at || null,
+      event_id:       couponForm.event_id || null,
+    });
+    setCouponSaving(false);
+    if (error) { setCouponError(error.message); return; }
+    setCouponForm(BLANK_COUPON);
+    setCouponSaved(true);
+    setTimeout(() => setCouponSaved(false), 3000);
+    await loadCoupons();
+  }
+
+  async function toggleCoupon(id, active) {
+    await supabase.from('coupons').update({ active: !active }).eq('id', id);
+    await loadCoupons();
   }
 
   async function loadBankDetails() {
@@ -483,6 +530,11 @@ export default function Admin() {
           {isSuperAdmin && (
             <button className={`admin__tab admin__tab--super ${activeTab === 'sponsors' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('sponsors')}>
               ✦ Sponsors
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'coupons' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('coupons')}>
+              🏷 Coupons
             </button>
           )}
         </div>
@@ -861,6 +913,130 @@ export default function Admin() {
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
               Enquiries come to <strong>sponsor@q2q.co.in</strong>. When you agree a deal, open <code>src/data/sponsors.js</code> in your code editor, fill in the object above, and push. The banner goes live on main deploy.
             </p>
+          </div>
+        )}
+
+        {/* Coupons — superadmin only */}
+        {activeTab === 'coupons' && user?.email === SUPERADMIN && (
+          <div className="admin__form-section" style={{ maxWidth: 640 }}>
+            <h2>Coupon Codes</h2>
+
+            {/* Create form */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: 24, marginBottom: 28 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>Create new coupon</div>
+              <form onSubmit={saveCoupon} noValidate>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label className="admin__label">Code *</label>
+                    <input
+                      className="admin__input"
+                      placeholder="e.g. PRIDE25"
+                      value={couponForm.code}
+                      onChange={e => setCouponForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                      style={{ fontFamily: 'monospace', letterSpacing: '0.06em', textTransform: 'uppercase' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin__label">Discount type *</label>
+                    <select
+                      className="admin__input"
+                      value={couponForm.discount_type}
+                      onChange={e => setCouponForm(f => ({ ...f, discount_type: e.target.value }))}
+                    >
+                      <option value="percent">Percent (%)</option>
+                      <option value="flat">Flat (₹)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="admin__label">
+                      {couponForm.discount_type === 'percent' ? 'Discount %' : 'Discount ₹'} *
+                    </label>
+                    <input
+                      className="admin__input"
+                      type="number"
+                      min="1"
+                      max={couponForm.discount_type === 'percent' ? 100 : undefined}
+                      placeholder={couponForm.discount_type === 'percent' ? '10' : '100'}
+                      value={couponForm.discount_value}
+                      onChange={e => setCouponForm(f => ({ ...f, discount_value: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin__label">Max uses</label>
+                    <input
+                      className="admin__input"
+                      type="number"
+                      min="1"
+                      placeholder="100"
+                      value={couponForm.max_uses}
+                      onChange={e => setCouponForm(f => ({ ...f, max_uses: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin__label">Expires at (optional)</label>
+                    <input
+                      className="admin__input"
+                      type="datetime-local"
+                      value={couponForm.expires_at}
+                      onChange={e => setCouponForm(f => ({ ...f, expires_at: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin__label">Event ID (optional — blank = all events)</label>
+                    <input
+                      className="admin__input"
+                      placeholder="Leave blank for all events"
+                      value={couponForm.event_id}
+                      onChange={e => setCouponForm(f => ({ ...f, event_id: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                {couponError && <div style={{ fontSize: 12, color: 'var(--error)', marginBottom: 10 }}>{couponError}</div>}
+                {couponSaved && <div style={{ fontSize: 12, color: 'var(--success)', marginBottom: 10 }}>Coupon created!</div>}
+                <button className="admin__btn" type="submit" disabled={couponSaving}>
+                  {couponSaving ? 'Saving…' : 'Create coupon'}
+                </button>
+              </form>
+            </div>
+
+            {/* Coupon list */}
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Existing coupons</div>
+            {couponsLoading ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
+            ) : coupons.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No coupons yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {coupons.map(c => (
+                  <div key={c.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    background: 'var(--surface)', border: `1px solid ${c.active ? 'var(--border)' : 'var(--border-2)'}`,
+                    borderRadius: 8, padding: '12px 16px',
+                    opacity: c.active ? 1 : 0.55,
+                  }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, letterSpacing: '0.06em' }}>{c.code}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                        {c.discount_type === 'percent' ? `${c.discount_value}% off` : `₹${c.discount_value} off`}
+                        {' · '}{c.uses_count}/{c.max_uses} uses
+                        {c.expires_at && ` · expires ${new Date(c.expires_at).toLocaleDateString('en-IN')}`}
+                        {c.event_id && ` · event: ${c.event_id}`}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleCoupon(c.id, c.active)}
+                      style={{
+                        flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px',
+                        borderRadius: 20, border: '1px solid var(--border-2)',
+                        background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer',
+                      }}
+                    >
+                      {c.active ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

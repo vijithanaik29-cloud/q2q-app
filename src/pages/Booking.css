@@ -280,6 +280,67 @@
   color: var(--text);
 }
 
+/* ─── Coupon / promo code ─── */
+.booking__coupon {
+  margin-bottom: 16px;
+  padding: 14px;
+  background: var(--surface-2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.booking__coupon-row {
+  display: flex;
+  gap: 8px;
+}
+.booking__coupon-input {
+  flex: 1;
+  font-size: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.booking__coupon-input:focus { outline: none; border-color: var(--accent); }
+.booking__coupon-error {
+  font-size: 12px;
+  color: var(--error);
+  margin-top: 7px;
+  margin-bottom: 0;
+}
+.booking__coupon-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--success, #34d399);
+}
+.booking__coupon-applied strong { color: var(--success, #34d399); }
+.booking__coupon-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0;
+  flex-shrink: 0;
+}
+.booking__coupon-remove:hover { color: var(--error); }
+
+.booking__confirm-discount {
+  color: var(--success, #34d399) !important;
+}
+.booking__confirm-discount strong { color: var(--success, #34d399) !important; }
+
+.booking__summary-discount {
+  color: var(--success, #34d399);
+  font-size: 12px;
+}
+
 /* ─── Sidebar summary ─── */
 .booking__summary { overflow: hidden; position: sticky; top: calc(var(--nav-h) + 24px); }
 

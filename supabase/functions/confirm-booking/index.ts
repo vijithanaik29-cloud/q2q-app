@@ -60,6 +60,11 @@ serve(async (req) => {
     });
   }
 
+  // Increment coupon uses_count if one was applied
+  if (booking.couponId) {
+    await supabase.rpc('increment_coupon_uses', { p_coupon_id: booking.couponId });
+  }
+
   return new Response(JSON.stringify({
     booking: {
       id:         data.id,

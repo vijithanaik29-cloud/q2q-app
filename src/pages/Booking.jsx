@@ -20,6 +20,11 @@ export default function Booking() {
   const [paymentError,  setPaymentError]  = useState('');
   const [consent,       setConsent]       = useState(false);
 
+  const [couponCode,    setCouponCode]    = useState('');
+  const [couponResult,  setCouponResult]  = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError,   setCouponError]   = useState('');
+
   if (!event) {
     return (
       <div className="container" style={{ paddingTop: 60 }}>
@@ -38,15 +43,42 @@ export default function Booking() {
       const next = Math.max(0, cur + delta);
       return { ...prev, [ticketId]: next };
     });
+    clearCoupon();
   }
 
   const selectedTickets = event.tickets
     .filter(t => (quantities[t.id] || 0) > 0)
     .map(t => ({ ...t, qty: quantities[t.id] }));
 
-  const total    = selectedTickets.reduce((sum, t) => sum + t.price * t.qty, 0);
-  const totalQty = selectedTickets.reduce((sum, t) => sum + t.qty, 0);
+  const total      = selectedTickets.reduce((sum, t) => sum + t.price * t.qty, 0);
+  const totalQty   = selectedTickets.reduce((sum, t) => sum + t.qty, 0);
   const hasSelection = totalQty > 0;
+  const discount   = couponResult?.valid ? (couponResult.discount || 0) : 0;
+  const finalTotal = Math.max(0, total - discount);
+
+  async function applyCode() {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponResult(null);
+    setCouponError('');
+    const { data, error } = await supabase.functions.invoke('validate-coupon', {
+      body: { code: couponCode, eventId: event.id, total },
+    });
+    if (error || !data) {
+      setCouponError('Could not apply code. Try again.');
+    } else if (!data.valid) {
+      setCouponError(data.error || 'Invalid code');
+    } else {
+      setCouponResult(data);
+    }
+    setCouponLoading(false);
+  }
+
+  function clearCoupon() {
+    setCouponCode('');
+    setCouponResult(null);
+    setCouponError('');
+  }
 
   function validateForm() {
     const errs = {};
@@ -78,13 +110,14 @@ export default function Booking() {
       eventCity:  event.city,
       gradient:   event.gradient,
       tickets:    selectedTickets,
-      total,
+      total:      finalTotal,
+      couponId:   couponResult?.couponId || null,
       attendee:   form,
     };
 
     try {
-      // Free tickets — save directly to Supabase (no payment needed)
-      if (total === 0) {
+      // Free tickets (or fully discounted) — save directly to Supabase
+      if (finalTotal === 0) {
         const booking = await addBooking(bookingData);
         navigate('/confirmation', { state: { booking, event } });
         return;
@@ -93,7 +126,7 @@ export default function Booking() {
       // Paid tickets — Razorpay flow
       // Step 1: create a Razorpay order via edge function
       const { data: order, error: orderErr } = await supabase.functions.invoke('create-order', {
-        body: { amount: total * 100, receipt: `Q2Q-${Date.now()}` },
+        body: { amount: finalTotal * 100, receipt: `Q2Q-${Date.now()}` },
       });
       if (orderErr) throw new Error(orderErr.message);
 
@@ -173,6 +206,39 @@ export default function Booking() {
                     </div>
                   ))}
                 </div>
+                {/* Promo code — only for paid selections */}
+                {hasSelection && total > 0 && (
+                  <div className="booking__coupon">
+                    {couponResult?.valid ? (
+                      <div className="booking__coupon-applied">
+                        <span>🎉 <strong>{couponResult.label}</strong> applied — saving ₹{discount.toLocaleString('en-IN')}</span>
+                        <button type="button" className="booking__coupon-remove" onClick={clearCoupon}>Remove</button>
+                      </div>
+                    ) : (
+                      <div className="booking__coupon-row">
+                        <input
+                          type="text"
+                          placeholder="Promo code"
+                          value={couponCode}
+                          onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                          onKeyDown={e => e.key === 'Enter' && applyCode()}
+                          className="booking__coupon-input"
+                          maxLength={20}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={applyCode}
+                          disabled={couponLoading || !couponCode.trim()}
+                        >
+                          {couponLoading ? '…' : 'Apply'}
+                        </button>
+                      </div>
+                    )}
+                    {couponError && <p className="booking__coupon-error">{couponError}</p>}
+                  </div>
+                )}
+
                 <button
                   className="btn btn-primary btn-full btn-lg"
                   disabled={!hasSelection}
@@ -249,11 +315,17 @@ export default function Booking() {
                       <strong>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</strong>
                     </div>
                   ))}
+                  {discount > 0 && (
+                    <div className="booking__confirm-ticket booking__confirm-discount">
+                      <span>Promo ({couponResult.label})</span>
+                      <strong>− ₹{discount.toLocaleString('en-IN')}</strong>
+                    </div>
+                  )}
                 </div>
 
                 <div className="booking__confirm-total">
                   <span>Total</span>
-                  <strong>{total === 0 ? 'Free' : `₹${total.toLocaleString('en-IN')}`}</strong>
+                  <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
                 </div>
 
                 <label className="booking__consent">
@@ -281,11 +353,11 @@ export default function Booking() {
                 >
                   {submitting ? (
                     <><div className="spinner" style={{ width: 16, height: 16 }} /> Processing…</>
-                  ) : total === 0 ? 'Confirm booking' : `Pay ₹${total.toLocaleString('en-IN')}`}
+                  ) : finalTotal === 0 ? 'Confirm booking' : `Pay ₹${finalTotal.toLocaleString('en-IN')}`}
                 </button>
 
                 <p className="booking__privacy" style={{ marginTop: 12 }}>
-                  {total > 0 ? 'Secure payment via Razorpay.' : 'No payment required for free tickets.'}
+                  {finalTotal > 0 ? 'Secure payment via Razorpay.' : 'No payment required for free tickets.'}
                 </p>
               </div>
             )}
@@ -319,9 +391,15 @@ export default function Booking() {
                         <span>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</span>
                       </div>
                     ))}
+                    {discount > 0 && (
+                      <div className="booking__summary-line booking__summary-discount">
+                        <span>Promo ({couponResult.label})</span>
+                        <span>− ₹{discount.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
                     <div className="booking__summary-total">
                       <span>Total</span>
-                      <strong>{total === 0 ? 'Free' : `₹${total.toLocaleString('en-IN')}`}</strong>
+                      <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
                     </div>
                   </>
                 )}
