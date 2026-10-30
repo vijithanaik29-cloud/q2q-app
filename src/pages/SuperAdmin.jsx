@@ -140,7 +140,7 @@ export default function SuperAdmin() {
     if (activeTab === 'influencers') loadInfluencers();
     if (activeTab === 'stories')     loadStories();
     if (activeTab === 'sponsors')    loadAllSponsorSubs();
-  }, [user, activeTab, pinVerified]);
+  }, [user, activeTab, totpVerified]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────────
   async function loadApplications() {
