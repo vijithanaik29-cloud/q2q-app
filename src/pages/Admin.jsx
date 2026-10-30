@@ -75,10 +75,7 @@ export default function Admin() {
   const rafRef    = useRef(null);
   const streamRef = useRef(null);
 
-  // Superadmin goes to their own portal
-  useEffect(() => {
-    if (user?.email === SUPERADMIN) navigate('/superadmin', { replace: true });
-  }, [user]);
+  const isSuperAdmin = user?.email === SUPERADMIN;
 
   useEffect(() => {
     if (user && activeTab === 'payout')    loadBankDetails();
@@ -442,6 +439,16 @@ export default function Admin() {
 
   return (
     <div className="admin fade-up">
+      {isSuperAdmin && (
+        <div style={{ background: 'rgba(139,92,246,0.12)', borderBottom: '1px solid rgba(139,92,246,0.25)', padding: '10px 0' }}>
+          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 13, color: '#a78bfa' }}>👑 Viewing as SuperAdmin</span>
+            <a href="/superadmin" className="btn btn-ghost btn-sm" style={{ fontSize: 12, color: '#a78bfa', border: '1px solid rgba(139,92,246,0.4)' }}>
+              SuperAdmin Panel →
+            </a>
+          </div>
+        </div>
+      )}
       <div className="admin__hero">
         <div className="container admin__hero-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div>
