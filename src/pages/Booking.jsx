@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, NavLink } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
@@ -19,6 +19,39 @@ export default function Booking() {
   const [submitting,    setSubmitting]    = useState(false);
   const [paymentError,  setPaymentError]  = useState('');
   const [consent,       setConsent]       = useState(false);
+
+  // Pre-fill from existing session
+  const [savedDetails,  setSavedDetails]  = useState(null); // { name, email, phone }
+  const [usingSaved,    setUsingSaved]    = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user?.email) return;
+      const email = session.user.email;
+      // Try to get name + phone from their most recent booking
+      const { data } = await supabase
+        .from('bookings')
+        .select('attendee')
+        .filter('attendee->>email', 'eq', email)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const details = {
+        name:  data?.attendee?.name  || '',
+        email,
+        phone: data?.attendee?.phone || '',
+      };
+      setSavedDetails(details);
+      if (details.name && details.phone) {
+        // Full details available — pre-fill and mark as using saved
+        setForm(details);
+        setUsingSaved(true);
+      } else {
+        // Only email known — pre-fill email only
+        setForm(p => ({ ...p, email }));
+      }
+    });
+  }, []);
 
   const [couponCode,      setCouponCode]      = useState('');
   const [couponResult,    setCouponResult]    = useState(null);
@@ -282,39 +315,63 @@ export default function Booking() {
                   ← Back to tickets
                 </button>
                 <h2 className="booking__panel-title">Your Details</h2>
-                <p className="booking__panel-sub">Tickets will be sent to the email below.</p>
 
-                <div className="form-group">
-                  <label htmlFor="name">Full Name</label>
-                  <input id="name" type="text" placeholder="Your full name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
-                  {errors.name && <span className="booking__error">{errors.name}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="email">Email Address</label>
-                  <input
-                    id="email" type="email" placeholder="you@example.com"
-                    value={form.email}
-                    onChange={e => {
-                      setForm(p => ({ ...p, email: e.target.value }));
-                      setIsInfluencer(false);
-                      setInfluencerChecked(false);
-                    }}
-                    onBlur={e => checkInfluencer(e.target.value)}
-                  />
-                  {errors.email && <span className="booking__error">{errors.email}</span>}
-                  {isInfluencer && (
-                    <div className="booking__influencer-badge">
-                      🎟 Complimentary press pass — your tickets are on us!
+                {/* Returning-user quick-fill banner */}
+                {usingSaved && savedDetails?.name && savedDetails?.phone ? (
+                  <div className="booking__saved-card">
+                    <div className="booking__saved-card__info">
+                      <div className="booking__saved-card__label">Booking as</div>
+                      <div className="booking__saved-card__name">{savedDetails.name}</div>
+                      <div className="booking__saved-card__email">{savedDetails.email}</div>
                     </div>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => { setUsingSaved(false); setForm(savedDetails); }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <p className="booking__panel-sub">Tickets will be sent to the email below.</p>
+                )}
 
-                <div className="form-group">
-                  <label htmlFor="phone">Mobile Number</label>
-                  <input id="phone" type="tel" placeholder="10-digit mobile number" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
-                  {errors.phone && <span className="booking__error">{errors.phone}</span>}
-                </div>
+                {/* Show fields only when not using saved details */}
+                {!usingSaved && (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="name">Full Name</label>
+                      <input id="name" type="text" placeholder="Your full name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+                      {errors.name && <span className="booking__error">{errors.name}</span>}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="email">Email Address</label>
+                      <input
+                        id="email" type="email" placeholder="you@example.com"
+                        value={form.email}
+                        onChange={e => {
+                          setForm(p => ({ ...p, email: e.target.value }));
+                          setIsInfluencer(false);
+                          setInfluencerChecked(false);
+                        }}
+                        onBlur={e => checkInfluencer(e.target.value)}
+                      />
+                      {errors.email && <span className="booking__error">{errors.email}</span>}
+                      {isInfluencer && (
+                        <div className="booking__influencer-badge">
+                          🎟 Complimentary press pass — your tickets are on us!
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="phone">Mobile Number</label>
+                      <input id="phone" type="tel" placeholder="10-digit mobile number" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+                      {errors.phone && <span className="booking__error">{errors.phone}</span>}
+                    </div>
+                  </>
+                )}
 
                 <p className="booking__privacy">
                   Your details are only used to send your booking confirmation and process payment. See our <Link to="/privacy">Privacy Policy</Link>.
