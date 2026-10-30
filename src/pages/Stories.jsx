@@ -5,6 +5,25 @@ import './Stories.css';
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Other'];
 const MAX = 1200;
 
+const ADJECTIVES = [
+  'Fabulous', 'Glittery', 'Sparkling', 'Dramatic', 'Extra', 'Iconic',
+  'Sassy', 'Dazzling', 'Flamboyant', 'Radiant', 'Majestic', 'Fierce',
+  'Legendary', 'Desi', 'Bollywood', 'Spicy', 'Chaotic', 'Magical',
+  'Proud', 'Caffeinated', 'Confused', 'Nervous', 'Crying', 'Screaming',
+];
+const NOUNS = [
+  'Peacock', 'Flamingo', 'Disco Ball', 'Samosa', 'Chai Cup', 'Saree',
+  'Unicorn', 'Rainbow', 'Butterfly', 'Lotus', 'Mango', 'Gulab Jamun',
+  'Sequin', 'Bangles', 'Supernova', 'Coconut', 'Auto-Rickshaw', 'Paneer',
+  'Marigold', 'Kite', 'Firework', 'Moon', 'Meteor', 'Bollywood Extra',
+];
+
+function randomName() {
+  const adj  = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  return `${adj} ${noun}`;
+}
+
 export default function Stories() {
   const [stories,   setStories]   = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -21,7 +40,7 @@ export default function Stories() {
     setLoading(true);
     const { data } = await supabase
       .from('stories')
-      .select('id, content, city, created_at')
+      .select('id, content, city, author_name, created_at')
       .eq('status', 'approved')
       .order('created_at', { ascending: false });
     setStories(data || []);
@@ -34,8 +53,9 @@ export default function Stories() {
     if (content.trim().length < 10) { setError('Story must be at least 10 characters.'); return; }
     setSaving(true);
     const { error: err } = await supabase.from('stories').insert({
-      content: content.trim(),
-      city:    city || null,
+      content:     content.trim(),
+      city:        city || null,
+      author_name: randomName(),
     });
     setSaving(false);
     if (err) { setError('Could not submit your story. Please try again.'); return; }
@@ -121,6 +141,7 @@ export default function Stories() {
             stories.map((s, i) => (
               <article key={s.id} className="stories__post">
                 <div className="stories__post-meta">
+                  <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
                   {s.city && <span className="stories__post-city">{s.city}</span>}
                   <span className="stories__post-date">
                     {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}

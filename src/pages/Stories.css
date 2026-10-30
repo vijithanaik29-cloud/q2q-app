@@ -194,6 +194,13 @@
   margin-bottom: 20px;
 }
 
+.stories__post-author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+}
+
 .stories__post-city {
   font-size: 10px;
   font-weight: 700;
