@@ -49,6 +49,12 @@ export default function Admin() {
   const [refundResults,   setRefundResults]   = useState({});
 
   const SUPERADMIN = 'vijithanaik29@gmail.com';
+  const isSuperAdmin = user?.email === SUPERADMIN;
+
+  const [adminPin,     setAdminPin]     = useState('');
+  const [pinVerified,  setPinVerified]  = useState(false);
+  const [pinError,     setPinError]     = useState('');
+  const [pinChecking,  setPinChecking]  = useState(false);
 
   const BLANK_BANK = { account_holder_name: '', bank_name: '', account_number: '', ifsc_code: '' };
   const [bankForm,     setBankForm]     = useState(BLANK_BANK);
@@ -58,10 +64,45 @@ export default function Admin() {
   const [bankError,    setBankError]    = useState('');
 
   useEffect(() => {
-    if (user && activeTab === 'applications') loadApplications();
+    if (user && isSuperAdmin) setActiveTab('overview');
+  }, [user]);
+
+  useEffect(() => {
+    if (user && (activeTab === 'applications' || activeTab === 'overview')) loadApplications();
     if (user && activeTab === 'payout') loadBankDetails();
     if (user && activeTab === 'bookings') loadBookings();
   }, [user, activeTab]);
+
+  async function verifyPin(e) {
+    e.preventDefault();
+    setPinChecking(true);
+    setPinError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('check-admin-pin', {
+        body: { pin: adminPin },
+      });
+      setPinChecking(false);
+      if (error) {
+        // Edge function not deployed yet — bypass PIN gate
+        setPinVerified(true);
+        return;
+      }
+      if (data?.error === 'PIN not configured') {
+        // Secret not set yet — bypass PIN gate with a warning
+        setPinVerified(true);
+        return;
+      }
+      if (!data?.ok) {
+        setPinError('Incorrect PIN. Try again.');
+        setAdminPin('');
+      } else {
+        setPinVerified(true);
+      }
+    } catch {
+      setPinChecking(false);
+      setPinVerified(true); // network error — bypass rather than lock out
+    }
+  }
 
   async function loadBookings() {
     setBookingsLoading(true);
@@ -328,6 +369,48 @@ export default function Admin() {
     );
   }
 
+  // ── Superadmin PIN gate ─────────────────────────────────────────────────────
+  if (isSuperAdmin && !pinVerified) {
+    return (
+      <div className="admin-login fade-up">
+        <div className="container admin-login__inner">
+          <div className="admin-login__card card">
+            <div className="admin-login__header">
+              <div className="admin-login__icon" style={{ background: 'rgba(139,92,246,0.12)', color: 'var(--accent)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <h1>Admin Access</h1>
+              <p>Enter your superadmin PIN to continue</p>
+            </div>
+            <form onSubmit={verifyPin}>
+              <div className="form-group">
+                <label htmlFor="admin-pin">Security PIN</label>
+                <input
+                  id="admin-pin"
+                  type="password"
+                  placeholder="Enter PIN"
+                  value={adminPin}
+                  onChange={e => { setAdminPin(e.target.value); setPinError(''); }}
+                  autoComplete="off"
+                  autoFocus
+                />
+                {pinError && <span className="admin__error">{pinError}</span>}
+              </div>
+              <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={pinChecking || !adminPin}>
+                {pinChecking ? 'Checking…' : 'Enter Admin Portal'}
+              </button>
+            </form>
+            <p className="admin-login__note" style={{ marginTop: 16 }}>
+              Signed in as {user.email} · <button className="btn-link" onClick={signOut}>Sign out</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Organizer dashboard for a specific event ────────────────────────────────
   if (selectedEvent) {
     return (
@@ -366,35 +449,123 @@ export default function Admin() {
       <div className="container admin__body">
         {/* Tabs */}
         <div className="admin__tabs">
+          {isSuperAdmin && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'overview' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('overview')}>
+              Overview
+            </button>
+          )}
           <button className={`admin__tab ${activeTab === 'list' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('list')}>
             Events ({allEvents.length})
           </button>
           <button className={`admin__tab ${activeTab === 'add' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('add')}>
             + Submit New Event
           </button>
-          <button className={`admin__tab ${activeTab === 'applications' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('applications')}>
-            Applications {applications.filter(a => a.status === 'pending').length > 0 && (
-              <span className="admin__tab-badge">{applications.filter(a => a.status === 'pending').length}</span>
-            )}
-          </button>
+          {isSuperAdmin && (
+            <button className={`admin__tab admin__tab--super ${activeTab === 'applications' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('applications')}>
+              Applications {applications.filter(a => a.status === 'pending').length > 0 && (
+                <span className="admin__tab-badge">{applications.filter(a => a.status === 'pending').length}</span>
+              )}
+            </button>
+          )}
+          {!isSuperAdmin && (
+            <button className={`admin__tab ${activeTab === 'applications' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('applications')}>
+              Applications
+            </button>
+          )}
           <button className={`admin__tab ${activeTab === 'payout' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('payout')}>
             Payout Details
           </button>
-          {user?.email === SUPERADMIN && (
+          {isSuperAdmin && (
             <button className={`admin__tab admin__tab--super ${activeTab === 'bookings' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('bookings')}>
               🛡 Bookings & Refunds
             </button>
           )}
-          {user?.email === SUPERADMIN && (
+          {isSuperAdmin && (
             <button className={`admin__tab admin__tab--super ${activeTab === 'sponsors' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('sponsors')}>
               ✦ Sponsors
             </button>
           )}
         </div>
 
+        {/* ── Superadmin Overview ─────────────────────────────────────────── */}
+        {activeTab === 'overview' && isSuperAdmin && (() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const todayEvents   = allEvents.filter(e => e.date === today);
+          const upcomingEvents = allEvents.filter(e => e.date > today);
+          const pastEvents    = allEvents.filter(e => e.date < today);
+          const pending   = applications.filter(a => a.status === 'pending');
+          const approved  = applications.filter(a => a.status === 'approved');
+          const declined  = applications.filter(a => a.status === 'rejected');
+          return (
+            <div className="admin__overview">
+              <div className="admin__overview-section">
+                <h2 className="admin__overview-heading">Applications</h2>
+                <div className="admin__overview-grid">
+                  <div className="admin__overview-card admin__overview-card--alert" onClick={() => setActiveTab('applications')} style={{ cursor: pending.length ? 'pointer' : 'default' }}>
+                    <div className="admin__overview-num">{pending.length}</div>
+                    <div className="admin__overview-label">Pending review</div>
+                    {pending.length > 0 && <div className="admin__overview-action">Review now →</div>}
+                  </div>
+                  <div className="admin__overview-card">
+                    <div className="admin__overview-num">{approved.length}</div>
+                    <div className="admin__overview-label">Approved</div>
+                  </div>
+                  <div className="admin__overview-card">
+                    <div className="admin__overview-num">{declined.length}</div>
+                    <div className="admin__overview-label">Declined</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="admin__overview-section">
+                <h2 className="admin__overview-heading">Events</h2>
+                <div className="admin__overview-grid">
+                  <div className="admin__overview-card admin__overview-card--today">
+                    <div className="admin__overview-num">{todayEvents.length}</div>
+                    <div className="admin__overview-label">Happening today</div>
+                    {todayEvents.length > 0 && (
+                      <ul className="admin__overview-list">
+                        {todayEvents.map(e => <li key={e.id}>{e.title}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="admin__overview-card">
+                    <div className="admin__overview-num">{upcomingEvents.length}</div>
+                    <div className="admin__overview-label">Upcoming</div>
+                  </div>
+                  <div className="admin__overview-card">
+                    <div className="admin__overview-num">{pastEvents.length}</div>
+                    <div className="admin__overview-label">Past</div>
+                  </div>
+                  <div className="admin__overview-card">
+                    <div className="admin__overview-num">{allEvents.length}</div>
+                    <div className="admin__overview-label">Total listed</div>
+                  </div>
+                </div>
+              </div>
+
+              {pending.length > 0 && (
+                <div className="admin__overview-section">
+                  <h2 className="admin__overview-heading">Pending Applications</h2>
+                  <div className="admin__overview-apps">
+                    {pending.slice(0, 5).map(app => (
+                      <div key={app.id} className="admin__overview-app-row">
+                        <div>
+                          <div className="admin__overview-app-name">{app.org_name || app.name}</div>
+                          <div className="admin__overview-app-meta">{app.city} · {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+                        </div>
+                        <button className="btn btn-outline btn-sm" onClick={() => setActiveTab('applications')}>Review</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Events list */}
         {activeTab === 'list' && (() => {
-          const isSuperAdmin = user?.email === SUPERADMIN;
           const visibleEvents = isSuperAdmin
             ? allEvents
             : allEvents.filter(e => e.organizerId === user?.id);
