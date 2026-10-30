@@ -105,32 +105,46 @@
   margin-bottom: 20px;
 }
 
+/* Section filter tabs */
+.mb-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.mb-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border-2);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.mb-tab:hover { border-color: var(--accent); color: var(--text); }
+.mb-tab--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.mb-tab__count {
+  font-size: .72rem;
+  font-weight: 700;
+  background: rgba(255,255,255,.2);
+  padding: 1px 6px;
+  border-radius: 100px;
+}
+.mb-tab--active .mb-tab__count { background: rgba(0,0,0,.2); }
+
 .mb-list {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-}
-.mb-section__label {
-  font-size: .72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.mb-section__label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-2);
-}
-.mb-section__cards {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 /* Booking card — ticket stub layout */
@@ -147,34 +161,34 @@
 
 /* Gradient header */
 .mb-card__header {
-  padding: 20px 20px 18px;
+  padding: 14px 16px 12px;
   position: relative;
 }
 .mb-card__past-badge {
   display: inline-block;
-  font-size: .68rem;
+  font-size: .65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .07em;
   background: rgba(0,0,0,.28);
   color: #fff;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 100px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .mb-card__title {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 800;
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,.25);
   text-wrap: balance;
 }
 .mb-card__meta {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: .82rem;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: .78rem;
   color: rgba(255,255,255,.85);
 }
 
@@ -205,20 +219,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 20px;
+  gap: 10px;
+  padding: 10px 16px;
 }
 .mb-card__footer-left {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 .mb-card__footer-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 .mb-card__tickets {

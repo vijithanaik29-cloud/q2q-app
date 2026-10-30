@@ -63,6 +63,7 @@ export default function MyBookings() {
   const [error, setError]     = useState('');
   const [bookings, setBookings] = useState([]);
   const [userEmail, setUserEmail] = useState('');
+  const [activeSection, setActiveSection] = useState('upcoming'); // 'today' | 'upcoming' | 'past'
 
   const loadBookings = useCallback(async (mail) => {
     setStep('loading');
@@ -204,25 +205,42 @@ export default function MyBookings() {
             </Link>
           </div>
         ) : (() => {
-          const today = new Date().toISOString().slice(0, 10);
+          const today        = new Date().toISOString().slice(0, 10);
           const todayList    = bookings.filter(b => b.eventDate === today);
           const upcomingList = bookings.filter(b => b.eventDate >  today);
           const pastList     = bookings.filter(b => b.eventDate <  today);
-          const Section = ({ label, emoji, items }) => items.length === 0 ? null : (
-            <div>
-              <div className="mb-section__label">{emoji} {label}</div>
-              <div className="mb-section__cards">
-                {items.map(b => <BookingCard key={b.id} booking={b} />)}
-              </div>
-            </div>
-          );
+
+          const tabs = [
+            { key: 'today',    label: 'Today',    count: todayList.length    },
+            { key: 'upcoming', label: 'Upcoming', count: upcomingList.length },
+            { key: 'past',     label: 'Past',     count: pastList.length     },
+          ].filter(t => t.count > 0);
+
+          // fall back to first available tab if activeSection is empty
+          const current  = tabs.find(t => t.key === activeSection) ? activeSection : tabs[0]?.key;
+          const shownList = current === 'today' ? todayList
+                          : current === 'past'  ? pastList
+                          : upcomingList;
+
           return (
             <>
-              <p className="mb-count">{bookings.length} booking{bookings.length !== 1 ? 's' : ''}</p>
+              {/* Filter tabs */}
+              <div className="mb-tabs">
+                {tabs.map(t => (
+                  <button
+                    key={t.key}
+                    className={`mb-tab ${current === t.key ? 'mb-tab--active' : ''}`}
+                    onClick={() => setActiveSection(t.key)}
+                  >
+                    {t.label}
+                    <span className="mb-tab__count">{t.count}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Cards for active section */}
               <div className="mb-list">
-                <Section label="Today" emoji="🔥" items={todayList} />
-                <Section label="Upcoming" emoji="📅" items={upcomingList} />
-                <Section label="Past" emoji="🗂" items={pastList} />
+                {shownList.map(b => <BookingCard key={b.id} booking={b} />)}
               </div>
             </>
           );
