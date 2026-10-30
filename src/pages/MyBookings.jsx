@@ -9,38 +9,46 @@ function BookingCard({ booking }) {
 
   return (
     <div className={`mb-card ${isPast ? 'mb-card--past' : ''}`}>
-      <div className="mb-card__banner" style={{ background: booking.gradient || 'linear-gradient(135deg,#667eea,#764ba2)' }}>
-        <div className="mb-card__ref">{booking.id}</div>
+      {/* Gradient header — event title lives here */}
+      <div className="mb-card__header" style={{ background: booking.gradient || 'linear-gradient(135deg,#667eea,#764ba2)' }}>
         {isPast && <span className="mb-card__past-badge">Past</span>}
+        <h3 className="mb-card__title">{booking.eventTitle}</h3>
+        <div className="mb-card__meta">
+          <span>📅 {formatDate(booking.eventDate)}</span>
+          <span>📍 {booking.eventVenue}, {booking.eventCity}</span>
+        </div>
       </div>
-      <div className="mb-card__body">
-        <div className="mb-card__info">
-          <h3 className="mb-card__title">{booking.eventTitle}</h3>
-          <div className="mb-card__meta">
-            <span>📅 {formatDate(booking.eventDate)}</span>
-            <span>
-              📍 {booking.eventVenue}, {booking.eventCity}
-              {booking.eventVenue && (
-                <a
-                  className="mb-card__directions"
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${booking.eventVenue}, ${booking.eventCity}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Get directions →
-                </a>
-              )}
-            </span>
-          </div>
+
+      {/* Tear line */}
+      <div className="mb-card__tear" />
+
+      {/* Footer strip */}
+      <div className="mb-card__footer">
+        <div className="mb-card__footer-left">
           <div className="mb-card__tickets">
             {(booking.tickets || []).map((t, i) => (
-              <span key={i} className="mb-ticket-chip">
-                {t.type} × {t.qty}
-              </span>
+              <span key={i} className="mb-ticket-chip">{t.type} × {t.qty}</span>
             ))}
           </div>
-          {booking.total > 0 && (
-            <div className="mb-card__total">₹{booking.total.toLocaleString('en-IN')} paid</div>
+          {booking.attendee?.name && (
+            <div className="mb-card__attendee">👤 {booking.attendee.name}</div>
+          )}
+          <div className="mb-card__ref">{booking.id}</div>
+        </div>
+        <div className="mb-card__footer-right">
+          {booking.total > 0
+            ? <div className="mb-card__total">₹{booking.total.toLocaleString('en-IN')}</div>
+            : <div className="mb-card__total mb-card__total--free">Free</div>
+          }
+          {booking.eventVenue && (
+            <a
+              className="mb-card__directions"
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${booking.eventVenue}, ${booking.eventCity}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Get directions →
+            </a>
           )}
         </div>
       </div>
@@ -195,14 +203,30 @@ export default function MyBookings() {
               Explore events
             </Link>
           </div>
-        ) : (
-          <>
-            <p className="mb-count">{bookings.length} booking{bookings.length !== 1 ? 's' : ''} found</p>
-            <div className="mb-list">
-              {bookings.map(b => <BookingCard key={b.id} booking={b} />)}
+        ) : (() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const todayList    = bookings.filter(b => b.eventDate === today);
+          const upcomingList = bookings.filter(b => b.eventDate >  today);
+          const pastList     = bookings.filter(b => b.eventDate <  today);
+          const Section = ({ label, emoji, items }) => items.length === 0 ? null : (
+            <div>
+              <div className="mb-section__label">{emoji} {label}</div>
+              <div className="mb-section__cards">
+                {items.map(b => <BookingCard key={b.id} booking={b} />)}
+              </div>
             </div>
-          </>
-        )}
+          );
+          return (
+            <>
+              <p className="mb-count">{bookings.length} booking{bookings.length !== 1 ? 's' : ''}</p>
+              <div className="mb-list">
+                <Section label="Today" emoji="🔥" items={todayList} />
+                <Section label="Upcoming" emoji="📅" items={upcomingList} />
+                <Section label="Past" emoji="🗂" items={pastList} />
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
