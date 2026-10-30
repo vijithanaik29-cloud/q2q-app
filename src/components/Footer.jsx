@@ -27,7 +27,8 @@ export default function Footer() {
           <div className="footer__col">
             <h4>Support</h4>
             <a href="mailto:hello@q2q.in">Contact Us</a>
-            <span className="footer__safe">Safe Space Pledge</span>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
           </div>
         </div>
       </div>

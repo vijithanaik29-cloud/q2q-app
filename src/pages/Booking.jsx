@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, NavLink } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { formatDate } from '../data/events';
@@ -211,7 +211,7 @@ export default function Booking() {
                 </div>
 
                 <p className="booking__privacy">
-                  Your details are only used to send your booking confirmation.
+                  Your details are only used to send your booking confirmation and process payment. See our <Link to="/privacy">Privacy Policy</Link>.
                 </p>
 
                 <button type="submit" className="btn btn-primary btn-full btn-lg">

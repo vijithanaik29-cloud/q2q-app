@@ -1,0 +1,124 @@
+.legal {
+  padding: 60px 0 100px;
+  min-height: 100vh;
+}
+
+.legal__header {
+  max-width: 720px;
+  margin: 0 auto 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legal__tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.2);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
+.legal__header h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.legal__meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.legal__body {
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+.legal__body h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 36px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legal__body p {
+  margin: 0 0 14px;
+}
+
+.legal__body ul {
+  padding-left: 20px;
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legal__body li {
+  color: var(--text-secondary);
+}
+
+.legal__body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.legal__body a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.legal__body a:hover {
+  text-decoration: underline;
+}
+
+.legal__highlight {
+  background: rgba(139,92,246,0.07);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 20px 0;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.legal__nav {
+  max-width: 720px;
+  margin: 0 auto 36px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.legal__nav a {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: all 0.15s;
+}
+
+.legal__nav a:hover,
+.legal__nav a.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .legal { padding: 40px 0 80px; }
+  .legal__header { margin-bottom: 32px; }
+}

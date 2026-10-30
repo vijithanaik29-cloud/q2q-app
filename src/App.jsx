@@ -8,6 +8,8 @@ import Booking from './pages/Booking';
 import Confirmation from './pages/Confirmation';
 import Admin from './pages/Admin';
 import Apply from './pages/Apply';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -24,6 +26,8 @@ export default function App() {
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/apply" element={<Apply />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
