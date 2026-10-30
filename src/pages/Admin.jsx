@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import jsQR from 'jsqr';
 import { useApp } from '../context/AppContext';
 import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
@@ -78,6 +79,16 @@ export default function Admin() {
   const BLANK_BANK = { account_holder_name: '', bank_name: '', account_number: '', ifsc_code: '' };
   const [bankForm,     setBankForm]     = useState(BLANK_BANK);
   const [bankLoading,  setBankLoading]  = useState(false);
+
+  const [scannerActive,   setScannerActive]   = useState(false);
+  const [scannedBooking,  setScannedBooking]  = useState(null);
+  const [scanError,       setScanError]       = useState('');
+  const [scanCheckedIn,   setScanCheckedIn]   = useState(false);
+  const [scanChecking,    setScanChecking]    = useState(false);
+  const videoRef   = useRef(null);
+  const canvasRef  = useRef(null);
+  const rafRef     = useRef(null);
+  const streamRef  = useRef(null);
   const [bankSaving,   setBankSaving]   = useState(false);
   const [bankSaved,    setBankSaved]    = useState(false);
   const [bankError,    setBankError]    = useState('');
@@ -245,6 +256,72 @@ export default function Admin() {
   async function moderateStory(id, status) {
     await supabase.from('stories').update({ status }).eq('id', id);
     await loadPendingStories();
+  }
+
+  function stopScanner() {
+    cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setScannerActive(false);
+  }
+
+  async function startScanner() {
+    setScannedBooking(null);
+    setScanError('');
+    setScanCheckedIn(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setScannerActive(true);
+      scanLoop();
+    } catch {
+      setScanError('Camera access denied. Please allow camera permission and try again.');
+    }
+  }
+
+  function scanLoop() {
+    const video  = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code?.data) {
+        stopScanner();
+        lookupBookingById(code.data);
+        return;
+      }
+    }
+    rafRef.current = requestAnimationFrame(scanLoop);
+  }
+
+  async function lookupBookingById(bookingId) {
+    setScanError('');
+    setScannedBooking(null);
+    setScanCheckedIn(false);
+    const { data, error } = await supabase.from('bookings').select('*').eq('id', bookingId).single();
+    if (error || !data) {
+      setScanError(`Booking not found: ${bookingId}`);
+      return;
+    }
+    const { data: ci } = await supabase.from('checkins').select('booking_id').eq('booking_id', bookingId).maybeSingle();
+    setScannedBooking(data);
+    setScanCheckedIn(!!ci);
+  }
+
+  async function doCheckIn(bookingId) {
+    setScanChecking(true);
+    await supabase.from('checkins').upsert({ booking_id: bookingId });
+    setScanCheckedIn(true);
+    setScanChecking(false);
   }
 
   async function toggleBoost(eventId, boosted) {
@@ -610,6 +687,9 @@ export default function Admin() {
               ✍️ Stories
             </button>
           )}
+          <button className={`admin__tab ${activeTab === 'scanner' ? 'admin__tab--active' : ''}`} onClick={() => { stopScanner(); setScannedBooking(null); setScanError(''); setScanCheckedIn(false); setActiveTab('scanner'); }}>
+            📷 Scanner
+          </button>
         </div>
 
         {/* ── Superadmin Overview ─────────────────────────────────────────── */}
@@ -1280,6 +1360,99 @@ export default function Admin() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Scanner — venue door check-in */}
+        {activeTab === 'scanner' && (
+          <div className="admin__form-section" style={{ maxWidth: 480 }}>
+            <h2>Venue Door Scanner</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Point the camera at an attendee's QR code to look up their booking and check them in.
+            </p>
+
+            {/* hidden canvas for jsQR */}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+            {!scannerActive && !scannedBooking && (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                {scanError && (
+                  <p style={{ color: 'var(--error)', fontSize: 13, marginBottom: 16 }}>{scanError}</p>
+                )}
+                <button className="btn btn-primary" onClick={startScanner}>
+                  📷 Start Camera
+                </button>
+              </div>
+            )}
+
+            {scannerActive && (
+              <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', marginBottom: 16 }}>
+                <video ref={videoRef} style={{ width: '100%', display: 'block' }} playsInline muted />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(transparent 30%, rgba(0,0,0,0.4) 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{
+                    width: 160, height: 160,
+                    border: '2px solid rgba(255,255,255,0.8)',
+                    borderRadius: 12,
+                    boxShadow: '0 0 0 4000px rgba(0,0,0,0.4)',
+                  }} />
+                </div>
+                <button
+                  onClick={stopScanner}
+                  style={{
+                    position: 'absolute', top: 10, right: 10,
+                    background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 20,
+                    color: '#fff', fontSize: 12, padding: '5px 12px', cursor: 'pointer',
+                  }}
+                >
+                  Stop
+                </button>
+              </div>
+            )}
+
+            {scannedBooking && (
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 20px 16px', marginBottom: 16 }}>
+                {scanCheckedIn && (
+                  <div style={{
+                    background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)',
+                    borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+                    color: 'var(--success)', fontWeight: 700, fontSize: 14,
+                  }}>
+                    ✅ Checked in
+                  </div>
+                )}
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{scannedBooking.event_title}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                  {new Date(scannedBooking.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · {scannedBooking.event_venue}
+                </div>
+                <div style={{ fontSize: 13, marginBottom: 2 }}><strong>Name:</strong> {scannedBooking.attendee?.name}</div>
+                <div style={{ fontSize: 13, marginBottom: 2 }}><strong>Email:</strong> {scannedBooking.attendee?.email}</div>
+                <div style={{ fontSize: 13, marginBottom: 2 }}><strong>Ref:</strong> {scannedBooking.id}</div>
+                <div style={{ fontSize: 13, marginBottom: 16 }}>
+                  <strong>Tickets:</strong> {(scannedBooking.tickets || []).map(t => `${t.type} ×${t.qty}`).join(', ')}
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {!scanCheckedIn && (
+                    <button
+                      className="btn btn-primary"
+                      disabled={scanChecking}
+                      onClick={() => doCheckIn(scannedBooking.id)}
+                    >
+                      {scanChecking ? 'Checking in…' : '✅ Check In'}
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => { setScannedBooking(null); setScanError(''); setScanCheckedIn(false); startScanner(); }}
+                  >
+                    Scan Next
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -158,23 +158,12 @@
   margin-top: 8px;
 }
 
-.confirmation__qr {
-  width: 140px;
-  height: 140px;
-  padding: 14px;
-  background: var(--text);
+.confirmation__qr-canvas {
+  width: 180px;
+  height: 180px;
   border-radius: var(--radius-md);
+  display: block;
 }
-
-.confirmation__qr-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-}
-
-.confirmation__qr-cell { border-radius: 1px; }
 
 .confirmation__qr-hint {
   font-size: 12px;
