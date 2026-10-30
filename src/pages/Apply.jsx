@@ -57,6 +57,8 @@ export default function Apply() {
     else if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, ''))) errs.phone = 'Enter a valid Indian mobile number';
     if (!form.city)            errs.city     = 'Required';
     if (!form.event_types.length) errs.event_types = 'Select at least one';
+    if (!form.instagram.trim() && !form.facebook.trim())
+      errs.social = 'Please provide at least one: Instagram or Facebook business profile';
     return errs;
   }
 
@@ -302,24 +304,26 @@ export default function Apply() {
           </div>
 
           <div className="apply__section-title" style={{ marginTop: 8 }}>Verify your identity</div>
-          <p className="apply__section-sub">Share your business social links so we can verify you're a real event organiser.</p>
+          <p className="apply__section-sub">We verify every organiser before approving. Provide at least one social profile so we can confirm you're a real event organiser or business.</p>
 
           <div className="apply__row">
             <div className="form-group">
-              <label htmlFor="instagram">Instagram business link</label>
+              <label htmlFor="instagram">Instagram business profile *</label>
               <input id="instagram" type="url" placeholder="https://instagram.com/rainbowcollective"
                 value={form.instagram} onChange={e => set('instagram', e.target.value)} />
             </div>
             <div className="form-group">
-              <label htmlFor="facebook">Facebook business link</label>
+              <label htmlFor="facebook">Facebook business page *</label>
               <input id="facebook" type="url" placeholder="https://facebook.com/rainbowcollective"
                 value={form.facebook} onChange={e => set('facebook', e.target.value)} />
             </div>
           </div>
+          {errors.social && <span className="apply__error">{errors.social}</span>}
+          <p className="apply__section-sub" style={{ marginTop: -8 }}>* At least one of Instagram or Facebook is required.</p>
 
           <div className="form-group">
-            <label htmlFor="website">Website</label>
-            <input id="website" type="url" placeholder="https://rainbowcollective.in"
+            <label htmlFor="website">Website or Google Maps link <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(restaurants, cafés, venues)</span></label>
+            <input id="website" type="url" placeholder="https://rainbowcollective.in or maps.google.com/..."
               value={form.website} onChange={e => set('website', e.target.value)} />
           </div>
 

@@ -286,8 +286,8 @@ export default function OrganizerDashboard({ event, onBack }) {
             <div className="od__payout-status-row">
               <span className="od__payout-status-label">Status</span>
               <span className={`od__payout-badge od__payout-badge--${payoutStatus}`}>
-                {payoutStatus === 'pending' && 'Pending: paid 7 days after event'}
-                {payoutStatus === 'processing' && 'Processing: 1-2 business days'}
+                {payoutStatus === 'pending' && 'Pending: paid 30 min after event starts'}
+                {payoutStatus === 'processing' && 'Processing: within 24 hours'}
                 {payoutStatus === 'none' && 'No paid tickets'}
               </span>
             </div>
@@ -302,10 +302,9 @@ export default function OrganizerDashboard({ event, onBack }) {
           <div className="od__payout-info">
             <h4>How payouts work</h4>
             <ul>
-              <li>Q2Q charges a <strong>5% platform fee</strong> on paid ticket revenue</li>
+              <li>Q2Q charges a <strong>10% platform fee</strong> on paid ticket revenue</li>
               <li>Free events have no platform fee</li>
-              <li>Standard payouts are processed <strong>within 7 days</strong> after the event</li>
-              <li>Early payout requests are processed within <strong>48 hours</strong></li>
+              <li>Payouts are processed <strong>within 30 minutes of your event starting</strong></li>
               <li>Transfers are made via NEFT / IMPS to your registered bank account</li>
             </ul>
           </div>

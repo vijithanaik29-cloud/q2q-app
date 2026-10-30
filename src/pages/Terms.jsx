@@ -68,7 +68,7 @@ export default function Terms() {
           <ul>
             <li>Q2Q charges a <strong>10% platform fee</strong> on every paid ticket sold through the platform.</li>
             <li>Free events carry no platform fee.</li>
-            <li>Earnings are paid out to your registered bank account typically <strong>7 days after the event date</strong>, subject to no refund disputes being open.</li>
+            <li>Earnings are paid out to your registered bank account <strong>within 30 minutes of the event's start time</strong>, once the event is confirmed as having started, subject to no active refund disputes.</li>
           </ul>
 
           <p><strong>Sponsored placement</strong></p>
