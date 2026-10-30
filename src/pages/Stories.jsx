@@ -44,19 +44,31 @@ export default function Stories() {
 
     const { data, count } = await supabase
       .from('stories')
-      .select('id, content, city, author_name, created_at', { count: 'exact' })
+      .select('id, content, city, author_name, views, created_at', { count: 'exact' })
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
 
+    const newStories = data || [];
+
     if (offset === 0) {
-      setStories(data || []);
+      setStories(newStories);
     } else {
-      setStories(prev => [...prev, ...(data || [])]);
+      setStories(prev => [...prev, ...newStories]);
     }
     setTotal(count || 0);
     setLoading(false);
     setLoadingMore(false);
+
+    // Increment view counts once per session per story
+    try {
+      const seen = JSON.parse(sessionStorage.getItem('q2q_seen_stories') || '[]');
+      const unseen = newStories.filter(s => !seen.includes(s.id));
+      if (unseen.length > 0) {
+        unseen.forEach(s => supabase.rpc('increment_story_views', { story_id: s.id }));
+        sessionStorage.setItem('q2q_seen_stories', JSON.stringify([...seen, ...unseen.map(s => s.id)]));
+      }
+    } catch (_) {}
   }, []);
 
   useEffect(() => { loadStories(0); }, [loadStories]);
@@ -175,6 +187,12 @@ export default function Stories() {
                         <span className="stories__post-date">
                           {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </span>
+                        {s.views > 0 && (
+                          <span className="stories__post-views">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            {s.views}
+                          </span>
+                        )}
                       </div>
                       <blockquote className="stories__post-body">{text}</blockquote>
                       {isLong && (
