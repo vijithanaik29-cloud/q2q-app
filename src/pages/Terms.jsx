@@ -78,14 +78,22 @@ export default function Terms() {
           </ul>
 
           <p><strong>Organiser responsibilities</strong></p>
+          <p>
+            <strong>The safety, security, and welfare of all attendees at your event is solely your responsibility.</strong> Q2Q is a ticketing platform and has no presence at or control over any event. By listing an event on Q2Q, you accept full and sole responsibility for ensuring the event is safe and lawful for attendees.
+          </p>
           <p>By listing an event on Q2Q, you confirm that:</p>
           <ul>
-            <li>You have all necessary permissions, licences, and venue approvals to hold the event</li>
+            <li>You have all necessary permissions, licences, police permissions, and venue approvals to hold the event</li>
+            <li>The venue meets applicable fire safety, capacity, and health and safety regulations</li>
+            <li>Adequate security and crowd management measures are in place for the event</li>
             <li>The event details you list (date, time, venue, price) are accurate</li>
             <li>You will notify Q2Q and all ticket holders promptly if the event is cancelled, postponed, or relocated</li>
             <li>You will not discriminate against any attendee on the basis of gender identity, sexual orientation, caste, religion, disability, or any other protected characteristic</li>
             <li>Attendee data (name, email, phone) shared with you by Q2Q will only be used to manage your event and will not be shared with any third party</li>
           </ul>
+          <p>
+            Q2Q accepts no liability for any injury, loss, or harm suffered by any person at or in connection with an event listed on the platform, regardless of cause.
+          </p>
 
           <p><strong>Event removal</strong></p>
           <p>
