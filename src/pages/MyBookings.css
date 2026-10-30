@@ -178,12 +178,13 @@
 }
 .mb-ticket-chip {
   font-size: .78rem;
-  font-weight: 600;
+  font-weight: 700;
   padding: 3px 10px;
-  background: var(--surface-3);
-  color: var(--text-2);
+  background: linear-gradient(90deg, #E40303, #FF8C00, #FFED00, #008026, #004DFF, #750787);
+  color: #fff;
   border-radius: 100px;
-  border: 1px solid var(--border-2);
+  border: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
 }
 .mb-card__total {
   font-size: .85rem;
