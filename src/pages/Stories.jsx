@@ -167,22 +167,25 @@ export default function Stories() {
 
                 return (
                   <article key={s.id} className="stories__post">
-                    <div className="stories__post-meta">
-                      <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
-                      {s.city && <span className="stories__post-city">{s.city}</span>}
-                      <span className="stories__post-date">
-                        {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </span>
+                    <div className="stories__post-num">#{String(i + 1).padStart(2, '0')}</div>
+                    <div className="stories__post-content">
+                      <div className="stories__post-meta">
+                        <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
+                        {s.city && <span className="stories__post-city">{s.city}</span>}
+                        <span className="stories__post-date">
+                          {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <blockquote className="stories__post-body">{text}</blockquote>
+                      {isLong && (
+                        <button
+                          className="stories__read-more"
+                          onClick={() => setExpanded(prev => ({ ...prev, [s.id]: !prev[s.id] }))}
+                        >
+                          {isOpen ? 'Show less ↑' : 'Read full story ↓'}
+                        </button>
+                      )}
                     </div>
-                    <blockquote className="stories__post-body">{text}</blockquote>
-                    {isLong && (
-                      <button
-                        className="stories__read-more"
-                        onClick={() => setExpanded(prev => ({ ...prev, [s.id]: !prev[s.id] }))}
-                      >
-                        {isOpen ? 'Show less ↑' : 'Read full story ↓'}
-                      </button>
-                    )}
                     {i < stories.length - 1 && <hr className="stories__divider" />}
                   </article>
                 );
