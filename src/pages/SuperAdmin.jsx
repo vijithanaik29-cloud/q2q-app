@@ -56,15 +56,17 @@ export default function SuperAdmin() {
   const [submitted,     setSubmitted]     = useState(false);
 
   // ── Applications ─────────────────────────────────────────────────────────────
-  const [applications, setApplications] = useState([]);
-  const [appsLoading,  setAppsLoading]  = useState(false);
-  const [appActionId,  setAppActionId]  = useState(null);
+  const [applications,    setApplications]    = useState([]);
+  const [appsLoading,     setAppsLoading]     = useState(false);
+  const [appActionId,     setAppActionId]     = useState(null);
+  const [confirmRejectId, setConfirmRejectId] = useState(null);
 
   // ── Bookings & refunds ───────────────────────────────────────────────────────
-  const [bookings,       setBookings]       = useState([]);
-  const [bookingsLoading,setBookingsLoading]= useState(false);
-  const [refundingEvent, setRefundingEvent] = useState(null);
-  const [refundResults,  setRefundResults]  = useState({});
+  const [bookings,         setBookings]         = useState([]);
+  const [bookingsLoading,  setBookingsLoading]  = useState(false);
+  const [refundingEvent,   setRefundingEvent]   = useState(null);
+  const [refundResults,    setRefundResults]    = useState({});
+  const [confirmRefundId,  setConfirmRefundId]  = useState(null);
 
   // ── Coupons ──────────────────────────────────────────────────────────────────
   const BLANK_COUPON = { code: '', discount_type: 'percent', discount_value: '', max_uses: '100', expires_at: '', event_id: '' };
@@ -176,8 +178,8 @@ export default function SuperAdmin() {
   }
 
   async function handleReject(app) {
-    if (!window.confirm(`Reject application from ${app.name}? This cannot be undone.`)) return;
     setAppActionId(app.id);
+    setConfirmRejectId(null);
     await supabase.from('organizer_applications').update({ status: 'rejected', rejected_at: new Date().toISOString() }).eq('id', app.id);
     await supabase.functions.invoke('send-rejection', { body: { email: app.email, name: app.name, org_name: app.org_name } });
     setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a));
@@ -185,7 +187,7 @@ export default function SuperAdmin() {
   }
 
   async function handleRefundEvent(eventId, eventTitle) {
-    if (!window.confirm(`Cancel "${eventTitle}" and refund ALL active bookings? This cannot be undone.`)) return;
+    setConfirmRefundId(null);
     setRefundingEvent(eventId);
     const { data: { session } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke('refund-event', {
@@ -658,12 +660,22 @@ export default function SuperAdmin() {
                     </div>
                     {app.status === 'pending' && (
                       <div className="admin__app-actions">
-                        <button className="btn btn-primary btn-sm" disabled={appActionId === app.id} onClick={() => handleApprove(app)}>
-                          {appActionId === app.id ? 'Sending invite…' : 'Approve & Send Invite'}
+                        <button className="btn btn-primary btn-sm" disabled={appActionId === app.id} onClick={() => { setConfirmRejectId(null); handleApprove(app); }}>
+                          {appActionId === app.id && confirmRejectId !== app.id ? 'Sending invite…' : 'Approve & Send Invite'}
                         </button>
-                        <button className="btn btn-ghost btn-sm" disabled={appActionId === app.id} onClick={() => handleReject(app)} style={{ color: 'var(--error)' }}>
-                          Reject
-                        </button>
+                        {confirmRejectId === app.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Reject this application?</span>
+                            <button className="btn btn-sm" style={{ background: 'var(--error)', color: '#fff', border: 'none' }} disabled={appActionId === app.id} onClick={() => handleReject(app)}>
+                              {appActionId === app.id ? 'Rejecting…' : 'Yes, Reject'}
+                            </button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRejectId(null)}>Cancel</button>
+                          </div>
+                        ) : (
+                          <button className="btn btn-ghost btn-sm" disabled={appActionId === app.id} onClick={() => setConfirmRejectId(app.id)} style={{ color: 'var(--error)' }}>
+                            Reject
+                          </button>
+                        )}
                       </div>
                     )}
                     {app.status === 'approved' && <p className="admin__app-done">✓ Invite sent.</p>}
@@ -706,10 +718,21 @@ export default function SuperAdmin() {
                         </div>
                       </div>
                       {active.length > 0 && (
-                        <button className="btn btn-sm admin__refund-btn" disabled={refundingEvent === group.event_id}
-                          onClick={() => handleRefundEvent(group.event_id, group.event_title)}>
-                          {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
-                        </button>
+                        confirmRefundId === group.event_id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Refund all {active.length} bookings?</span>
+                            <button className="btn btn-sm" style={{ background: 'var(--error)', color: '#fff', border: 'none' }} disabled={refundingEvent === group.event_id}
+                              onClick={() => handleRefundEvent(group.event_id, group.event_title)}>
+                              {refundingEvent === group.event_id ? 'Refunding…' : 'Yes, Refund All'}
+                            </button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRefundId(null)}>Cancel</button>
+                          </div>
+                        ) : (
+                          <button className="btn btn-sm admin__refund-btn" disabled={refundingEvent === group.event_id}
+                            onClick={() => setConfirmRefundId(group.event_id)}>
+                            {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
+                          </button>
+                        )
                       )}
                     </div>
                     {result && <div className="admin__refund-result">✓ Refunded {result.refunded} bookings · ₹{(result.total_amount || 0).toLocaleString('en-IN')} returned</div>}
