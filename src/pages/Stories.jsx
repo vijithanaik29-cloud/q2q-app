@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import './Stories.css';
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Other'];
-const MAX = 1200;
+const MAX       = 1200;
+const PAGE_SIZE = 10;
+const PREVIEW   = 280; // chars before "Read more"
 
 const ADJECTIVES = [
   'Fabulous', 'Glittery', 'Sparkling', 'Dramatic', 'Extra', 'Iconic',
@@ -25,27 +27,39 @@ function randomName() {
 }
 
 export default function Stories() {
-  const [stories,   setStories]   = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [content,   setContent]   = useState('');
-  const [city,      setCity]      = useState('');
-  const [saving,    setSaving]    = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error,     setError]     = useState('');
-  const [showForm,  setShowForm]  = useState(false);
+  const [stories,    setStories]    = useState([]);
+  const [total,      setTotal]      = useState(0);
+  const [loading,    setLoading]    = useState(true);
+  const [loadingMore,setLoadingMore] = useState(false);
+  const [content,    setContent]    = useState('');
+  const [city,       setCity]       = useState('');
+  const [saving,     setSaving]     = useState(false);
+  const [submitted,  setSubmitted]  = useState(false);
+  const [error,      setError]      = useState('');
+  const [showForm,   setShowForm]   = useState(false);
+  const [expanded,   setExpanded]   = useState({});  // id → true when expanded
 
-  useEffect(() => { loadStories(); }, []);
+  const loadStories = useCallback(async (offset = 0) => {
+    if (offset === 0) setLoading(true); else setLoadingMore(true);
 
-  async function loadStories() {
-    setLoading(true);
-    const { data } = await supabase
+    const { data, count } = await supabase
       .from('stories')
-      .select('id, content, city, author_name, created_at')
+      .select('id, content, city, author_name, created_at', { count: 'exact' })
       .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-    setStories(data || []);
+      .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (offset === 0) {
+      setStories(data || []);
+    } else {
+      setStories(prev => [...prev, ...(data || [])]);
+    }
+    setTotal(count || 0);
     setLoading(false);
-  }
+    setLoadingMore(false);
+  }, []);
+
+  useEffect(() => { loadStories(0); }, [loadStories]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -64,6 +78,8 @@ export default function Stories() {
     setSubmitted(true);
   }
 
+  const hasMore = stories.length < total;
+
   return (
     <div className="stories fade-up">
 
@@ -76,9 +92,14 @@ export default function Stories() {
             Real coming out moments from queer people across India — shared anonymously,
             so the next person doesn't feel so alone.
           </p>
-          <button className="btn btn-rainbow" onClick={() => setShowForm(v => !v)}>
-            {showForm ? 'Close' : 'Share your story'}
-          </button>
+          <div className="stories__banner-actions">
+            <button className="btn btn-rainbow" onClick={() => setShowForm(v => !v)}>
+              {showForm ? 'Close' : 'Share your story'}
+            </button>
+            {total > 0 && (
+              <span className="stories__total-count">{total} {total === 1 ? 'story' : 'stories'} shared</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -138,19 +159,47 @@ export default function Stories() {
               <p>Be the first to share yours.</p>
             </div>
           ) : (
-            stories.map((s, i) => (
-              <article key={s.id} className="stories__post">
-                <div className="stories__post-meta">
-                  <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
-                  {s.city && <span className="stories__post-city">{s.city}</span>}
-                  <span className="stories__post-date">
-                    {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
+            <>
+              {stories.map((s, i) => {
+                const isLong = s.content.length > PREVIEW;
+                const isOpen = expanded[s.id];
+                const text   = isLong && !isOpen ? s.content.slice(0, PREVIEW).trimEnd() + '…' : s.content;
+
+                return (
+                  <article key={s.id} className="stories__post">
+                    <div className="stories__post-meta">
+                      <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
+                      {s.city && <span className="stories__post-city">{s.city}</span>}
+                      <span className="stories__post-date">
+                        {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <blockquote className="stories__post-body">{text}</blockquote>
+                    {isLong && (
+                      <button
+                        className="stories__read-more"
+                        onClick={() => setExpanded(prev => ({ ...prev, [s.id]: !prev[s.id] }))}
+                      >
+                        {isOpen ? 'Show less ↑' : 'Read full story ↓'}
+                      </button>
+                    )}
+                    {i < stories.length - 1 && <hr className="stories__divider" />}
+                  </article>
+                );
+              })}
+
+              {hasMore && (
+                <div className="stories__load-more">
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => loadStories(stories.length)}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Loading…' : `Load more stories (${total - stories.length} left)`}
+                  </button>
                 </div>
-                <blockquote className="stories__post-body">{s.content}</blockquote>
-                {i < stories.length - 1 && <hr className="stories__divider" />}
-              </article>
-            ))
+              )}
+            </>
           )}
 
         </div>

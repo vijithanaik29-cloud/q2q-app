@@ -46,6 +46,18 @@
   color: var(--text);
 }
 
+.stories__banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stories__total-count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .stories__banner-sub {
   font-size: 16px;
   color: var(--text-secondary);
@@ -253,6 +265,25 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-left: 2px;
+}
+
+.stories__read-more {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  margin-top: 10px;
+  opacity: 0.8;
+  transition: opacity var(--transition);
+}
+.stories__read-more:hover { opacity: 1; }
+
+.stories__load-more {
+  text-align: center;
+  padding: 32px 0 16px;
 }
 
 .stories__divider {
