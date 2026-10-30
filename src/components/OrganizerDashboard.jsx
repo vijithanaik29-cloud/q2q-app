@@ -4,7 +4,7 @@ import { formatDate } from '../data/events';
 import QRVerifier from './QRVerifier';
 import './OrganizerDashboard.css';
 
-const PLATFORM_FEE_RATE = 0.05;
+const PLATFORM_FEE_RATE = 0.10;
 
 export default function OrganizerDashboard({ event, onBack }) {
   const { bookings, checkedIn, checkIn } = useApp();
@@ -140,7 +140,7 @@ export default function OrganizerDashboard({ event, onBack }) {
             {metrics.netPayout === 0 ? '—' : `₹${metrics.netPayout.toLocaleString('en-IN')}`}
           </div>
           {metrics.grossRevenue > 0 && (
-            <div className="od__metric-sub">after 5% fee</div>
+            <div className="od__metric-sub">after 10% fee</div>
           )}
         </div>
       </div>
@@ -273,7 +273,7 @@ export default function OrganizerDashboard({ event, onBack }) {
                 <strong>₹{metrics.grossRevenue.toLocaleString('en-IN')}</strong>
               </div>
               <div className="od__payout-row od__payout-row--fee">
-                <span>Platform Fee (5%)</span>
+                <span>Platform Fee (10%)</span>
                 <strong>− ₹{metrics.platformFee.toLocaleString('en-IN')}</strong>
               </div>
             </div>
