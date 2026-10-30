@@ -68,7 +68,19 @@ export default function MyBookings() {
       .select('*')
       .filter('attendee->>email', 'eq', mail)
       .order('created_at', { ascending: false });
-    setBookings(data || []);
+    const mapped = (data || []).map(row => ({
+      id:         row.id,
+      eventTitle: row.event_title,
+      eventDate:  row.event_date,
+      eventVenue: row.event_venue,
+      eventCity:  row.event_city,
+      gradient:   row.gradient,
+      total:      row.total,
+      tickets:    row.tickets,
+      attendee:   row.attendee,
+      createdAt:  row.created_at,
+    }));
+    setBookings(mapped);
     setStep('results');
   }, []);
 
