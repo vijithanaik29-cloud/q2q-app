@@ -123,6 +123,23 @@
 }
 
 /* ─── Tabs ─── */
+/* Payout info strip */
+.od__payout-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.od__payout-strip svg { flex-shrink: 0; color: var(--success); }
+.od__payout-strip strong { color: var(--text); }
+
 .od__tabs {
   display: flex;
   border-bottom: 1px solid var(--border);

@@ -145,6 +145,14 @@ export default function OrganizerDashboard({ event, onBack }) {
         </div>
       </div>
 
+      {/* Payout info strip */}
+      <div className="od__payout-strip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>Payout processed <strong>30 minutes after your event ends</strong> — 10% platform fee deducted automatically.</span>
+      </div>
+
       {/* Tabs */}
       <div className="od__tabs">
         <button
@@ -286,7 +294,7 @@ export default function OrganizerDashboard({ event, onBack }) {
             <div className="od__payout-status-row">
               <span className="od__payout-status-label">Status</span>
               <span className={`od__payout-badge od__payout-badge--${payoutStatus}`}>
-                {payoutStatus === 'pending' && 'Pending: paid 30 min after event starts'}
+                {payoutStatus === 'pending' && 'Pending: processed 30 min after event ends'}
                 {payoutStatus === 'processing' && 'Processing: within 24 hours'}
                 {payoutStatus === 'none' && 'No paid tickets'}
               </span>

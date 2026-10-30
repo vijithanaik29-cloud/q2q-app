@@ -148,7 +148,7 @@ export default function Apply() {
             <span className="apply__model-icon">🎟️</span>
             <div>
               <div className="apply__model-label">We take 10%</div>
-              <div className="apply__model-desc">On every paid ticket sold through Q2Q. Free events always ₹0.</div>
+              <div className="apply__model-desc">On every paid ticket sold through Q2Q. Your payout lands <strong>30 min after your event ends</strong>. Free events always ₹0.</div>
             </div>
           </div>
           <div className="apply__model-divider">→</div>
