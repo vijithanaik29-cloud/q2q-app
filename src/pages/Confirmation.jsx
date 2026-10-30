@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
-import QRCode from 'qrcode';
 import { formatDate } from '../data/events';
 import RainbowCelebration from '../components/RainbowCelebration';
 import './Confirmation.css';
@@ -9,22 +8,9 @@ export default function Confirmation() {
   const { state } = useLocation();
   const [celebrated, setCelebrated] = useState(false);
 
-  const qrRef = useRef();
-
   if (!state?.booking) return <Navigate to="/" replace />;
 
   const { booking } = state;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    if (qrRef.current) {
-      QRCode.toCanvas(qrRef.current, booking.id, {
-        width: 180,
-        margin: 1,
-        color: { dark: '#111111', light: '#ffffff' },
-      });
-    }
-  }, [booking.id]);
 
   return (
     <>
@@ -89,11 +75,6 @@ export default function Confirmation() {
               </div>
             </div>
 
-            {/* QR code */}
-            <div className="confirmation__qr-section">
-              <canvas ref={qrRef} className="confirmation__qr-canvas" aria-label="Ticket QR code" />
-              <p className="confirmation__qr-hint">Show this at the venue entrance</p>
-            </div>
           </div>
         </div>
 

@@ -1,23 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import QRCode from 'qrcode';
 import { supabase } from '../lib/supabase';
 import { formatDate } from '../data/events';
 import './MyBookings.css';
 
 function BookingCard({ booking }) {
-  const canvasRef = useRef();
-
-  useEffect(() => {
-    if (canvasRef.current) {
-      QRCode.toCanvas(canvasRef.current, booking.id, {
-        width: 140,
-        margin: 1,
-        color: { dark: '#111111', light: '#ffffff' },
-      });
-    }
-  }, [booking.id]);
-
   const isPast = booking.eventDate && booking.eventDate < new Date().toISOString().slice(0, 10);
 
   return (
@@ -55,10 +42,6 @@ function BookingCard({ booking }) {
           {booking.total > 0 && (
             <div className="mb-card__total">₹{booking.total.toLocaleString('en-IN')} paid</div>
           )}
-        </div>
-        <div className="mb-card__qr">
-          <canvas ref={canvasRef} aria-label="Ticket QR code" />
-          <p className="mb-card__qr-hint">Show at entrance</p>
         </div>
       </div>
     </div>
