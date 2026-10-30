@@ -8,16 +8,16 @@ const PAGE_SIZE = 10;
 const PREVIEW   = 280; // chars before "Read more"
 
 const TAGS = [
-  { id: 'family',          label: 'Family' },
-  { id: 'relationships',   label: 'Relationships' },
-  { id: 'school',          label: 'School / College' },
-  { id: 'workplace',       label: 'Workplace' },
-  { id: 'first-pride',     label: 'First Pride' },
-  { id: 'acceptance',      label: 'Acceptance' },
-  { id: 'mental-health',   label: 'Mental Health' },
-  { id: 'religion',        label: 'Religion' },
-  { id: 'self-discovery',  label: 'Self-Discovery' },
-  { id: 'found-community', label: 'Found Community' },
+  { id: 'gay',        label: '🏳️‍🌈 Gay' },
+  { id: 'lesbian',    label: '🏳️‍🌈 Lesbian' },
+  { id: 'bisexual',   label: '🏳️‍🌈 Bisexual' },
+  { id: 'trans',      label: '🏳️‍⚧️ Trans' },
+  { id: 'non-binary', label: 'Non-Binary' },
+  { id: 'queer',      label: '🌈 Queer' },
+  { id: 'pansexual',  label: '💜 Pan' },
+  { id: 'asexual',    label: '🖤 Ace' },
+  { id: 'questioning',label: 'Questioning' },
+  { id: 'intersex',   label: 'Intersex' },
 ];
 
 const ADJECTIVES = [
