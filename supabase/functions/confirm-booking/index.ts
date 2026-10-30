@@ -35,7 +35,16 @@ serve(async (req) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
-  const id = `Q2Q-${Date.now().toString(36).toUpperCase()}`;
+
+  function genBookingId(category: string, organizer: string): string {
+    const cat  = (category  || 'EVT').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    const org  = (organizer || '').split(/\s+/).filter(Boolean).map((w: string) => w[0]).join('')
+                   .replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'ORG';
+    const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
+    return `Q2Q-${cat}${org}-${rand}`;
+  }
+
+  const id = genBookingId(booking.eventCategory, booking.organizer);
 
   const { data, error } = await supabase.from('bookings').insert({
     id,

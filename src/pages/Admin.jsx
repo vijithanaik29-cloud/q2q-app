@@ -30,13 +30,137 @@ const BLANK_EVENT = {
   tickets: [{ type: 'General Admission', price: '', description: '', available: '' }],
 };
 
-function CheckInTab() {
+function StatsTab({ myEvents }) {
+  const [stats,      setStats]      = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [lastRefresh,setLastRefresh]= useState(null);
+
+  async function load() {
+    setLoading(true);
+    const eventIds = myEvents.map(e => e.id);
+    if (!eventIds.length) { setStats({ bookings: [], checkins: new Set() }); setLoading(false); return; }
+
+    const { data: bData } = await supabase.from('bookings').select('*').in('event_id', eventIds);
+    const bookingIds = (bData || []).map(b => b.id);
+    const { data: ciData } = bookingIds.length
+      ? await supabase.from('checkins').select('booking_id').in('booking_id', bookingIds)
+      : { data: [] };
+
+    setStats({ bookings: bData || [], checkins: new Set((ciData || []).map(c => c.booking_id)) });
+    setLastRefresh(new Date());
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30 * 60 * 1000); // 30-min refresh
+    return () => clearInterval(interval);
+  }, [myEvents.length]);
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+      <div className="spinner" style={{ width: 28, height: 28 }} />
+    </div>
+  );
+
+  const { bookings, checkins } = stats;
+  const active    = bookings.filter(b => b.status !== 'cancelled');
+  const cancelled = bookings.filter(b => b.status === 'cancelled');
+  const totalTickets  = active.reduce((s, b) => s + (b.tickets || []).reduce((a, t) => a + t.qty, 0), 0);
+  const totalRevenue  = active.reduce((s, b) => s + (b.total || 0), 0);
+  const platformFee   = Math.round(totalRevenue * 0.10);
+  const netPayout     = totalRevenue - platformFee;
+  const totalCheckedIn= checkins.size;
+
+  // per-event breakdown
+  const perEvent = myEvents.map(ev => {
+    const evBookings = active.filter(b => b.event_id === ev.id);
+    const evCancelled = cancelled.filter(b => b.event_id === ev.id);
+    const tickets  = evBookings.reduce((s, b) => s + (b.tickets || []).reduce((a, t) => a + t.qty, 0), 0);
+    const revenue  = evBookings.reduce((s, b) => s + (b.total || 0), 0);
+    const ciCount  = evBookings.filter(b => checkins.has(b.id)).length;
+    const isPast   = ev.date && ev.date < new Date().toISOString().slice(0, 10);
+    return { ev, tickets, revenue, ciCount, cancelled: evCancelled.length, isPast };
+  });
+
+  const tile = (label, value, sub) => (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, padding: '18px 20px', minWidth: 0 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+        <h2 style={{ margin: 0 }}>Overview</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {lastRefresh && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Updated {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · auto-refreshes every 30 min</span>}
+          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>Refresh</button>
+        </div>
+      </div>
+
+      {/* Summary tiles */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+        {tile('Events Hosted', myEvents.length)}
+        {tile('Tickets Sold', totalTickets)}
+        {tile('Checked In', totalCheckedIn)}
+        {tile('Cancelled', cancelled.length)}
+        {tile('Gross Revenue', `₹${totalRevenue.toLocaleString('en-IN')}`)}
+        {tile('Net Payout', `₹${netPayout.toLocaleString('en-IN')}`, '(after 10% fee)')}
+      </div>
+
+      {/* Per-event table */}
+      {myEvents.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state__icon">📊</div>
+          <h3>No events yet</h3>
+          <p>Stats will appear once you publish your first event.</p>
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border-2)' }}>
+                {['Event', 'Date', 'Tickets', 'Checked In', 'Cancelled', 'Revenue'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {perEvent.map(({ ev, tickets, revenue, ciCount, cancelled: evCancelled, isPast }) => (
+                <tr key={ev.id} style={{ borderBottom: '1px solid var(--border)', opacity: isPast ? 0.6 : 1 }}>
+                  <td style={{ padding: '12px 12px', color: 'var(--text)', fontWeight: 600, maxWidth: 200 }}>
+                    {ev.title}
+                    {isPast && <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 6px', borderRadius: 99, background: 'var(--surface-3)', color: 'var(--text-muted)' }}>Past</span>}
+                  </td>
+                  <td style={{ padding: '12px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDate(ev.date)}</td>
+                  <td style={{ padding: '12px 12px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{tickets}</td>
+                  <td style={{ padding: '12px 12px', color: tickets > 0 ? 'var(--success, #34d399)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{ciCount}</td>
+                  <td style={{ padding: '12px 12px', color: evCancelled > 0 ? '#f87171' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{evCancelled}</td>
+                  <td style={{ padding: '12px 12px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {revenue > 0 ? `₹${revenue.toLocaleString('en-IN')}` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CheckInTab({ myEventIds = [] }) {
   const [query,      setQuery]      = useState('');
   const [searching,  setSearching]  = useState(false);
   const [results,    setResults]    = useState(null); // null = not searched yet
   const [checkedIn,  setCheckedIn]  = useState(new Set());
   const [checking,   setChecking]   = useState(null);
   const [error,      setError]      = useState('');
+
+  const today = new Date().toISOString().slice(0, 10);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -49,10 +173,15 @@ function CheckInTab() {
 
     if (isId) {
       ({ data, error: err } = await supabase
-        .from('bookings').select('*').ilike('id', q).limit(1));
+        .from('bookings').select('*').ilike('id', q)
+        .gte('event_date', today).limit(1));
     } else {
-      ({ data, error: err } = await supabase
-        .from('bookings').select('*').ilike('attendee->>name', `%${q}%`).limit(20));
+      let qb = supabase.from('bookings').select('*')
+        .ilike('attendee->>name', `%${q}%`)
+        .gte('event_date', today)
+        .limit(20);
+      if (myEventIds.length) qb = qb.in('event_id', myEventIds);
+      ({ data, error: err } = await qb);
     }
 
     if (err || !data) { setError('Something went wrong. Try again.'); setSearching(false); return; }
@@ -78,7 +207,7 @@ function CheckInTab() {
     <div className="admin__form-section" style={{ maxWidth: 520 }}>
       <h2>Door Check-in</h2>
       <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-        Search by booking ID (e.g. Q2Q-MVVEOXZV) or attendee name to find and check in a guest.
+        Search by booking ID (e.g. Q2Q-PRIVN-A8F3K) or attendee name. Only today's and upcoming events are shown — past events disappear automatically.
       </p>
 
       <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
@@ -533,6 +662,10 @@ export default function Admin() {
             onClick={() => setActiveTab('scanner')}>
             ✅ Check-in
           </button>
+          <button className={`admin__tab ${activeTab === 'stats' ? 'admin__tab--active' : ''}`}
+            onClick={() => setActiveTab('stats')}>
+            📊 Stats
+          </button>
         </div>
 
         {/* My Events */}
@@ -713,7 +846,14 @@ export default function Admin() {
 
         {/* Check-in */}
         {activeTab === 'scanner' && (
-          <CheckInTab />
+          <CheckInTab myEventIds={myEvents.map(e => e.id)} />
+        )}
+
+        {/* Stats */}
+        {activeTab === 'stats' && (
+          <div className="admin__form-section">
+            <StatsTab myEvents={myEvents} />
+          </div>
         )}
 
         {/* Submit Event */}

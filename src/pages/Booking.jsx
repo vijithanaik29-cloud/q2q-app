@@ -115,16 +115,18 @@ export default function Booking() {
     setPaymentError('');
 
     const bookingData = {
-      eventId:    event.id,
-      eventTitle: event.title,
-      eventDate:  event.date,
-      eventVenue: event.venue,
-      eventCity:  event.city,
-      gradient:   event.gradient,
-      tickets:    selectedTickets,
-      total:      finalTotal,
-      couponId:   couponResult?.couponId || null,
-      attendee:   form,
+      eventId:       event.id,
+      eventTitle:    event.title,
+      eventDate:     event.date,
+      eventVenue:    event.venue,
+      eventCity:     event.city,
+      gradient:      event.gradient,
+      tickets:       selectedTickets,
+      total:         finalTotal,
+      couponId:      couponResult?.couponId || null,
+      attendee:      form,
+      eventCategory: event.category,
+      organizer:     event.organizer,
     };
 
     try {

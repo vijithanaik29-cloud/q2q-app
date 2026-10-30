@@ -157,8 +157,16 @@ export function AppProvider({ children }) {
 
   // Used for FREE tickets only.
   // Paid bookings are created server-side by the confirm-booking edge function after Razorpay verification.
+  function genBookingId(category, organizer) {
+    const cat  = (category  || 'EVT').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+    const org  = (organizer || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('')
+                   .replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'ORG';
+    const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
+    return `Q2Q-${cat}${org}-${rand}`;
+  }
+
   async function addBooking(booking) {
-    const id  = `Q2Q-${Date.now().toString(36).toUpperCase()}`;
+    const id  = genBookingId(booking.eventCategory, booking.organizer);
     const row = {
       id,
       event_id:    booking.eventId,
