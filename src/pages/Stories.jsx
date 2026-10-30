@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import './Stories.css';
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Other'];
-const MAX = 600;
+const MAX = 1200;
 
 export default function Stories() {
   const [stories,   setStories]   = useState([]);
@@ -13,10 +13,9 @@ export default function Stories() {
   const [saving,    setSaving]    = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error,     setError]     = useState('');
+  const [showForm,  setShowForm]  = useState(false);
 
-  useEffect(() => {
-    loadStories();
-  }, []);
+  useEffect(() => { loadStories(); }, []);
 
   async function loadStories() {
     setLoading(true);
@@ -47,91 +46,95 @@ export default function Stories() {
 
   return (
     <div className="stories fade-up">
-      <div className="container">
 
-        {/* Hero */}
-        <div className="stories__hero">
-          <div className="stories__hero-eyebrow">Coming Out</div>
-          <h1 className="stories__hero-title">Your Coming Out Story</h1>
-          <p className="stories__hero-sub">
-            Every queer person in India has a coming out story. Some are joyful, some are painful,
-            most are both. Share yours anonymously — and remind someone else they're not alone.
+      {/* ── Hero banner ── */}
+      <div className="stories__banner">
+        <div className="container stories__banner-inner">
+          <div className="stories__banner-eyebrow">Coming Out Stories</div>
+          <h1 className="stories__banner-title">Every story matters.</h1>
+          <p className="stories__banner-sub">
+            Real coming out moments from queer people across India — shared anonymously,
+            so the next person doesn't feel so alone.
           </p>
+          <button className="btn btn-rainbow" onClick={() => setShowForm(v => !v)}>
+            {showForm ? 'Close' : 'Share your story'}
+          </button>
         </div>
+      </div>
 
-        {/* Submit form */}
-        <div className="stories__submit">
-          <h2 className="stories__submit-title">Share your coming out story</h2>
-          {submitted ? (
-            <div className="stories__thanks">
-              <div className="stories__thanks-icon">🏳️‍🌈</div>
-              <strong>Thank you for sharing.</strong>
-              <p>Your story is under review and will appear here once approved — usually within 24 hours.</p>
-              <button className="stories__again-btn" onClick={() => setSubmitted(false)}>Share another</button>
+      {/* ── Submit form (toggled) ── */}
+      {showForm && (
+        <div className="stories__form-wrap">
+          <div className="container">
+            <div className="stories__submit">
+              {submitted ? (
+                <div className="stories__thanks">
+                  <div className="stories__thanks-icon">🏳️‍🌈</div>
+                  <strong>Thank you for sharing.</strong>
+                  <p>Your story is under review and will appear here once approved — usually within 24 hours.</p>
+                  <button className="stories__again-btn" onClick={() => { setSubmitted(false); setShowForm(false); }}>Done</button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} noValidate>
+                  <label className="stories__label">Your coming out story</label>
+                  <textarea
+                    className="stories__textarea"
+                    placeholder="How did you come out? What happened? How did it feel? There's no right way to tell it — write as much or as little as you want…"
+                    value={content}
+                    onChange={e => setContent(e.target.value.slice(0, MAX))}
+                    rows={7}
+                  />
+                  <div className="stories__textarea-meta">
+                    <select className="stories__city-select" value={city} onChange={e => setCity(e.target.value)}>
+                      <option value="">City (optional)</option>
+                      {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <span className="stories__char-count" style={{ color: content.length > MAX - 100 ? 'var(--error)' : 'var(--text-muted)' }}>
+                      {content.length}/{MAX}
+                    </span>
+                  </div>
+                  {error && <div className="stories__error">{error}</div>}
+                  <button className="btn btn-rainbow btn-full" type="submit" disabled={saving || !content.trim()}>
+                    {saving ? 'Submitting…' : 'Submit anonymously'}
+                  </button>
+                  <p className="stories__disclaimer">No name or email is stored. Stories are reviewed before publishing.</p>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Blog feed ── */}
+      <div className="container">
+        <div className="stories__blog">
+
+          {loading ? (
+            <div className="stories__loading">Loading stories…</div>
+          ) : stories.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state__icon">🏳️‍🌈</div>
+              <h3>No stories yet</h3>
+              <p>Be the first to share yours.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} noValidate>
-              <textarea
-                className="stories__textarea"
-                placeholder="How did you come out? What happened? How did it feel? It can be one sentence or many — there's no right way to tell it…"
-                value={content}
-                onChange={e => setContent(e.target.value.slice(0, MAX))}
-                rows={5}
-              />
-              <div className="stories__textarea-meta">
-                <select
-                  className="stories__city-select"
-                  value={city}
-                  onChange={e => setCity(e.target.value)}
-                >
-                  <option value="">City (optional)</option>
-                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <span className="stories__char-count" style={{ color: content.length > MAX - 50 ? 'var(--error)' : 'var(--text-muted)' }}>
-                  {content.length}/{MAX}
-                </span>
-              </div>
-              {error && <div className="stories__error">{error}</div>}
-              <button className="btn btn-rainbow btn-full" type="submit" disabled={saving || !content.trim()}>
-                {saving ? 'Submitting…' : 'Submit anonymously'}
-              </button>
-              <p className="stories__disclaimer">
-                No name or email is stored. Stories are reviewed before publishing.
-              </p>
-            </form>
-          )}
-        </div>
-
-        {/* Story feed */}
-        <div className="stories__feed-header">
-          <h2>Coming out stories</h2>
-          {!loading && <span className="stories__count">{stories.length} {stories.length === 1 ? 'story' : 'stories'}</span>}
-        </div>
-
-        {loading ? (
-          <div className="stories__loading">Loading stories…</div>
-        ) : stories.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state__icon">🏳️‍🌈</div>
-            <h3>No stories yet</h3>
-            <p>Be the first to share your coming out story.</p>
-          </div>
-        ) : (
-          <div className="stories__grid">
-            {stories.map(s => (
-              <div key={s.id} className="stories__card">
-                <p className="stories__card-text">"{s.content}"</p>
-                <div className="stories__card-meta">
-                  {s.city && <span className="stories__card-city">{s.city}</span>}
-                  <span className="stories__card-date">
-                    {new Date(s.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+            stories.map((s, i) => (
+              <article key={s.id} className="stories__post">
+                <div className="stories__post-meta">
+                  {s.city && <span className="stories__post-city">{s.city}</span>}
+                  <span className="stories__post-date">
+                    {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+                <blockquote className="stories__post-body">{s.content}</blockquote>
+                {i < stories.length - 1 && <hr className="stories__divider" />}
+              </article>
+            ))
+          )}
+
+        </div>
       </div>
+
     </div>
   );
 }
