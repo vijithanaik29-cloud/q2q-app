@@ -30,9 +30,9 @@ const BLANK_EVENT = {
 export default function Admin() {
   const { allEvents, addEvent, user, signIn, signOut, authLoading } = useApp();
   const [email,      setEmail]      = useState('');
-  const [password,   setPassword]   = useState('');
   const [loginError, setLoginError] = useState('');
   const [signingIn,  setSigningIn]  = useState(false);
+  const [linkSent,   setLinkSent]   = useState(false);
   const [activeTab,  setActiveTab]  = useState('list');
   const [form,       setForm]       = useState(BLANK_EVENT);
   const [errors,     setErrors]     = useState({});
@@ -192,9 +192,10 @@ export default function Admin() {
     e.preventDefault();
     setSigningIn(true);
     setLoginError('');
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email);
     setSigningIn(false);
     if (error) setLoginError(error.message);
+    else setLinkSent(true);
   }
 
   function setField(key, val) {
@@ -288,34 +289,36 @@ export default function Admin() {
               <h1>Organizer Portal</h1>
               <p>Submit and manage queer events on Q2Q</p>
             </div>
-            <form onSubmit={handleLogin}>
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@yourorg.in"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setLoginError(''); }}
-                  autoComplete="email"
-                />
+            {linkSent ? (
+              <div className="admin-login__sent">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <p><strong>Check your email</strong></p>
+                <p className="admin-login__sent-sub">We sent a sign-in link to <strong>{email}</strong>. Click it to access the portal — no password needed.</p>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setLinkSent(false); setEmail(''); }}>
+                  Use a different email
+                </button>
               </div>
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setLoginError(''); }}
-                  autoComplete="current-password"
-                />
-                {loginError && <span className="admin__error">{loginError}</span>}
-              </div>
-              <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn}>
-                {signingIn ? 'Signing in…' : 'Sign In'}
-              </button>
-            </form>
+            ) : (
+              <form onSubmit={handleLogin}>
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="you@yourorg.in"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setLoginError(''); }}
+                    autoComplete="email"
+                  />
+                  {loginError && <span className="admin__error">{loginError}</span>}
+                </div>
+                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email}>
+                  {signingIn ? 'Sending…' : 'Send sign-in link'}
+                </button>
+              </form>
+            )}
             <p className="admin-login__note">
               Don't have access? <a href="mailto:hello@q2q.in">Contact us</a> to become a verified organizer.
             </p>
