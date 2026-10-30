@@ -34,6 +34,7 @@ export default function Admin() {
   const [loginError, setLoginError] = useState('');
   const [signingIn,  setSigningIn]  = useState(false);
   const [linkSent,   setLinkSent]   = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [activeTab,  setActiveTab]  = useState('list');
   const [form,       setForm]       = useState(BLANK_EVENT);
   const [errors,     setErrors]     = useState({});
@@ -505,7 +506,26 @@ export default function Admin() {
     const { error } = await signIn(email);
     setSigningIn(false);
     if (error) setLoginError(error.message);
-    else setLinkSent(true);
+    else { setLinkSent(true); startResendCooldown(); }
+  }
+
+  function startResendCooldown() {
+    setResendCooldown(30);
+    const interval = setInterval(() => {
+      setResendCooldown(c => {
+        if (c <= 1) { clearInterval(interval); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  }
+
+  async function resendLink() {
+    setSigningIn(true);
+    setLoginError('');
+    const { error } = await signIn(email);
+    setSigningIn(false);
+    if (error) setLoginError(error.message);
+    else startResendCooldown();
   }
 
   function setField(key, val) {
@@ -606,7 +626,15 @@ export default function Admin() {
                 </svg>
                 <p><strong>Check your email</strong></p>
                 <p className="admin-login__sent-sub">We sent a sign-in link to <strong>{email}</strong>. Click it to access the portal — no password needed.</p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setLinkSent(false); setEmail(''); }}>
+                <button
+                  className="btn btn-rainbow btn-sm"
+                  style={{ marginTop: 16 }}
+                  onClick={resendLink}
+                  disabled={signingIn || resendCooldown > 0}
+                >
+                  {signingIn ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend link'}
+                </button>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: 8 }} onClick={() => { setLinkSent(false); setEmail(''); setResendCooldown(0); }}>
                   Use a different email
                 </button>
               </div>
