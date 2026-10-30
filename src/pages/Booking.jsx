@@ -152,7 +152,7 @@ export default function Booking() {
           name:        'Q2Q',
           description: event.title,
           prefill:     { name: form.name, email: form.email, contact: form.phone },
-          theme:       { color: '#9333EA' },
+          theme:       { color: '#E53E7A' },
           config: {
             display: {
               blocks: {
