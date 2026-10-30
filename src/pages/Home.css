@@ -73,7 +73,7 @@
 
 .hero__search-icon {
   position: absolute;
-  left: 14px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
@@ -82,7 +82,7 @@
 
 .hero__search {
   width: 100%;
-  padding: 13px 42px 13px 48px;
+  padding: 13px 42px 13px 56px;
   background: var(--surface);
   border: 1.5px solid var(--border-3);
   border-radius: var(--radius-lg);
