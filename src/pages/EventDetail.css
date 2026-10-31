@@ -103,7 +103,8 @@
 
 /* ─── Body ─── */
 .event-detail__body {
-  padding: 48px 0 100px;
+  /* 100px clears the fixed mobile sticky CTA (~70px) + some breathing room */
+  padding: 48px 0 120px;
 }
 
 @media (min-width: 900px) { .event-detail__body { padding: 56px 0 60px; } }
@@ -184,8 +185,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  position: sticky;
-  top: calc(var(--nav-h) + 24px);
+  /* sticky only makes sense in the desktop sidebar */
+}
+
+@media (min-width: 900px) {
+  .ticket-card {
+    position: sticky;
+    top: calc(var(--nav-h) + 24px);
+  }
 }
 
 .ticket-card__header {
