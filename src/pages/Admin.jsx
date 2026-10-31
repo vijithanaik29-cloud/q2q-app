@@ -800,10 +800,6 @@ export default function Admin() {
           <button className={`admin__tab ${activeTab === 'advertise'? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('advertise')}>
             ✦ Advertise
           </button>
-          <button className={`admin__tab ${activeTab === 'scanner'  ? 'admin__tab--active' : ''}`}
-            onClick={() => setActiveTab('scanner')}>
-            ✅ Check-in
-          </button>
           <button className={`admin__tab ${activeTab === 'stats' ? 'admin__tab--active' : ''}`}
             onClick={() => setActiveTab('stats')}>
             📊 Stats
@@ -1036,10 +1032,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Check-in */}
-        {activeTab === 'scanner' && (
-          <CheckInTab myEventIds={myEvents.map(e => e.id)} />
-        )}
 
         {/* Stats */}
         {activeTab === 'stats' && (
