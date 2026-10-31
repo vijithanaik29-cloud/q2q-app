@@ -105,6 +105,11 @@ export default function SuperAdmin() {
   const [fundraisersLoading, setFundraisersLoading] = useState(false);
   const [frActing,           setFrActing]           = useState(null);
 
+  // ── Analytics ─────────────────────────────────────────────────────────────────
+  const [analytics,        setAnalytics]        = useState(null);
+  const [analyticsRange,   setAnalyticsRange]   = useState('90');
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   // ── QR Scanner ───────────────────────────────────────────────────────────────
   const [scannerActive, setScannerActive]  = useState(false);
   const [scannedBooking,setScannedBooking] = useState(null);
@@ -146,7 +151,12 @@ export default function SuperAdmin() {
     if (activeTab === 'stories')      loadStories();
     if (activeTab === 'sponsors')     loadAllSponsorSubs();
     if (activeTab === 'fundraisers')  loadAllFundraisers();
+    if (activeTab === 'analytics')    { loadApplications(); loadAnalytics(analyticsRange); }
   }, [user, activeTab, totpVerified]);
+
+  useEffect(() => {
+    if (totpVerified && activeTab === 'analytics') loadAnalytics(analyticsRange);
+  }, [analyticsRange]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────────
   async function loadApplications() {
@@ -196,6 +206,47 @@ export default function SuperAdmin() {
     const { data } = await supabase.from('fundraisers').select('*').order('created_at', { ascending: false });
     setAllFundraisers(data || []);
     setFundraisersLoading(false);
+  }
+
+  async function loadAnalytics(rangeDays) {
+    setAnalyticsLoading(true);
+    const fromDate = rangeDays === 'all'
+      ? null
+      : new Date(Date.now() - Number(rangeDays) * 86400000).toISOString();
+
+    let q = supabase
+      .from('bookings')
+      .select('id, attendee, total, status, created_at, event_title')
+      .order('created_at', { ascending: true });
+    if (fromDate) q = q.gte('created_at', fromDate);
+    const { data: bData } = await q;
+    const bookings = bData || [];
+
+    const activeB = bookings.filter(b => b.status === 'active');
+    const emailCounts = {};
+    bookings.forEach(b => {
+      const e = b.attendee?.email;
+      if (e) emailCounts[e] = (emailCounts[e] || 0) + 1;
+    });
+    const uniqueEmails   = Object.keys(emailCounts);
+    const repeatBookers  = uniqueEmails.filter(e => emailCounts[e] >= 2).length;
+    const revenue        = activeB.reduce((s, b) => s + (b.total || 0), 0);
+
+    // Month-by-month buckets
+    const buckets = {};
+    bookings.forEach(b => {
+      const key = b.created_at.slice(0, 7);
+      if (!buckets[key]) buckets[key] = { month: key, count: 0, revenue: 0, emails: new Set() };
+      buckets[key].count++;
+      if (b.status === 'active') buckets[key].revenue += (b.total || 0);
+      if (b.attendee?.email) buckets[key].emails.add(b.attendee.email);
+    });
+    const months = Object.values(buckets)
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(m => ({ month: m.month, count: m.count, revenue: m.revenue, unique: m.emails.size }));
+
+    setAnalytics({ total: bookings.length, uniqueBookers: uniqueEmails.length, repeatBookers, revenue, months });
+    setAnalyticsLoading(false);
   }
 
   async function setFundraiserStatus(id, status) {
@@ -691,6 +742,7 @@ export default function SuperAdmin() {
         {/* Tabs */}
         <div className="admin__tabs">
           <button className={`admin__tab admin__tab--super ${activeTab === 'overview'     ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+          <button className={`admin__tab admin__tab--super ${activeTab === 'analytics'   ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('analytics')}>📊 Analytics</button>
           <button className={`admin__tab admin__tab--super ${activeTab === 'events'       ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('events')}>Events ({allEvents.length})</button>
           <button className={`admin__tab admin__tab--super ${activeTab === 'add'          ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('add')}>+ Add Event</button>
           <button className={`admin__tab admin__tab--super ${activeTab === 'applications' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('applications')}>
@@ -763,6 +815,135 @@ export default function SuperAdmin() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Analytics ────────────────────────────────────────────────────── */}
+        {activeTab === 'analytics' && (() => {
+          const approved = applications.filter(a => a.status === 'approved');
+          const declined = applications.filter(a => a.status === 'rejected');
+          const pending  = applications.filter(a => a.status === 'pending');
+
+          const RANGES = [
+            { value: '30',  label: 'Last 30 days' },
+            { value: '90',  label: 'Last 90 days' },
+            { value: '365', label: 'Last 12 months' },
+            { value: 'all', label: 'All time' },
+          ];
+
+          const maxCount = analytics ? Math.max(...analytics.months.map(m => m.count), 1) : 1;
+          const fmtMonth = (key) => {
+            const [y, m] = key.split('-');
+            return new Date(Number(y), Number(m) - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+          };
+
+          return (
+            <div style={{ maxWidth: 820 }}>
+              {/* Range selector */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 4 }}>Range</span>
+                {RANGES.map(r => (
+                  <button
+                    key={r.value}
+                    onClick={() => setAnalyticsRange(r.value)}
+                    style={{
+                      padding: '6px 16px', borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      border: analyticsRange === r.value ? '1px solid #8B5CF6' : '1px solid var(--border-2)',
+                      background: analyticsRange === r.value ? '#8B5CF6' : 'transparent',
+                      color: analyticsRange === r.value ? '#fff' : 'var(--text-muted)',
+                      transition: 'all 0.15s',
+                    }}
+                  >{r.label}</button>
+                ))}
+                {analyticsLoading && <div className="spinner" style={{ width: 16, height: 16, marginLeft: 8 }} />}
+              </div>
+
+              {/* Bookings metrics */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Bookings</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 36 }}>
+                {[
+                  { label: 'Total Bookings',   value: analytics?.total         ?? '—', color: '#8B5CF6' },
+                  { label: 'Unique Bookers',   value: analytics?.uniqueBookers ?? '—', color: 'var(--accent)' },
+                  { label: 'Repeat Bookers',   value: analytics?.repeatBookers ?? '—', color: '#F59E0B' },
+                  { label: 'Revenue',
+                    value: analytics ? `₹${analytics.revenue.toLocaleString('en-IN')}` : '—',
+                    color: 'var(--success)', small: true },
+                ].map(tile => (
+                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px' }}>
+                    <div style={{ fontSize: tile.small ? 22 : 28, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 6 }}>{tile.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Org metrics */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Organisations</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 36 }}>
+                {[
+                  { label: 'Verified Orgs',  value: approved.length, color: 'var(--success)' },
+                  { label: 'Declined Orgs',  value: declined.length, color: 'var(--error)' },
+                  { label: 'Pending Review', value: pending.length,  color: 'var(--accent)',
+                    action: pending.length > 0 ? () => setActiveTab('applications') : null },
+                ].map(tile => (
+                  <div key={tile.label}
+                    onClick={tile.action || undefined}
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', cursor: tile.action ? 'pointer' : 'default' }}>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 6 }}>{tile.label}</div>
+                    {tile.action && tile.value > 0 && <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 4 }}>Review now →</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Month-by-month */}
+              {analytics?.months?.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Month-by-Month Bookings</h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                    {/* Bar chart */}
+                    <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'flex-end', gap: 6, height: 100 }}>
+                      {analytics.months.map(m => (
+                        <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                          <div style={{ width: '100%', background: '#8B5CF6', borderRadius: '4px 4px 0 0', opacity: 0.85,
+                            height: `${Math.max(4, Math.round((m.count / maxCount) * 72))}px`,
+                            transition: 'height 0.3s ease' }} title={`${m.count} bookings`} />
+                        </div>
+                      ))}
+                    </div>
+                    {/* Table */}
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderTop: '1px solid var(--border)' }}>
+                            {['Month', 'Bookings', 'Unique Users', 'Revenue'].map(h => (
+                              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...analytics.months].reverse().map((m, i) => (
+                            <tr key={m.month} style={{ borderTop: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                              <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{fmtMonth(m.month)}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{m.count}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{m.unique}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--success)' }}>₹{m.revenue.toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!analyticsLoading && analytics?.months?.length === 0 && (
+                <div className="empty-state" style={{ paddingBlock: 40 }}>
+                  <div className="empty-state__icon">📊</div>
+                  <h3>No data yet</h3>
+                  <p>Bookings will appear here once they start coming in.</p>
                 </div>
               )}
             </div>
