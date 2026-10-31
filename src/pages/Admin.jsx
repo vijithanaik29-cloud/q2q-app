@@ -282,6 +282,140 @@ function CheckInTab({ myEventIds = [] }) {
   );
 }
 
+function FundraisersTab({ user }) {
+  const [fundraisers, setFundraisers] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [showForm, setShowForm]       = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const [saveError, setSaveError]     = useState('');
+  const [saveOk, setSaveOk]           = useState(false);
+  const [form, setForm] = useState({ title: '', cause: '', target: '', end_date: '' });
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from('fundraisers').select('*')
+      .eq('organizer_id', user.id).order('created_at', { ascending: false });
+    setFundraisers(data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, [user.id]);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    setSaveError('');
+    if (!form.title.trim()) { setSaveError('Campaign title is required.'); return; }
+    if (!form.cause.trim()) { setSaveError('Campaign story is required.'); return; }
+    if (!form.target || isNaN(form.target) || Number(form.target) < 1) { setSaveError('Enter a valid target amount.'); return; }
+
+    setSaving(true);
+    const { error } = await supabase.from('fundraisers').insert({
+      title:          form.title.trim(),
+      cause:          form.cause.trim(),
+      organizer_id:   user.id,
+      organizer_name: user.user_metadata?.name || user.email.split('@')[0],
+      target_amount:  Number(form.target),
+      end_date:       form.end_date || null,
+      status:         'active',
+    });
+    setSaving(false);
+    if (error) { setSaveError(error.message); return; }
+    setSaveOk(true);
+    setShowForm(false);
+    setForm({ title: '', cause: '', target: '', end_date: '' });
+    load();
+    setTimeout(() => setSaveOk(false), 4000);
+  }
+
+  const pct = (f) => Math.min(100, Math.round((f.collected_amount / f.target_amount) * 100));
+
+  return (
+    <div className="admin__form-section">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <h2 style={{ margin: 0 }}>Your Fundraisers</h2>
+        <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(v => !v); setSaveError(''); }}>
+          {showForm ? 'Cancel' : '+ New Campaign'}
+        </button>
+      </div>
+
+      {saveOk && <div className="admin__success" style={{ marginBottom: 16 }}>Campaign created! It's now live on the Fundraisers page.</div>}
+
+      {showForm && (
+        <form className="admin__form" onSubmit={handleCreate} noValidate style={{ marginBottom: 32 }}>
+          <div className="admin__form-section" style={{ marginTop: 0 }}>
+            <h2>New Fundraiser</h2>
+            <div className="form-group">
+              <label>Campaign Title *</label>
+              <input type="text" placeholder="e.g. Pride Legal Aid Fund 2026" value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label>Campaign Story *</label>
+              <textarea rows={5} placeholder="Describe the cause, why it matters, and how donations will be used…"
+                value={form.cause} onChange={e => setForm(f => ({ ...f, cause: e.target.value }))} />
+            </div>
+            <div className="form-row form-row-2">
+              <div className="form-group">
+                <label>Target Amount (₹) *</label>
+                <input type="number" min="1" placeholder="50000" value={form.target}
+                  onChange={e => setForm(f => ({ ...f, target: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label>End Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                <input type="date" value={form.end_date}
+                  onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+              </div>
+            </div>
+            {saveError && <div className="admin__error" style={{ marginBottom: 12 }}>{saveError}</div>}
+            <div className="admin__submit-row">
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Creating…' : 'Launch Campaign'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading campaigns…</p>
+      ) : fundraisers.length === 0 ? (
+        <div className="empty-state" style={{ paddingBlock: 40 }}>
+          <div className="empty-state__icon">💚</div>
+          <h3>No campaigns yet</h3>
+          <p>Click "+ New Campaign" to launch your first fundraiser.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {fundraisers.map(f => (
+            <div key={f.id} style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', borderRadius: 14, padding: '18px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text)' }}>{f.title}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                    {f.donor_count} {f.donor_count === 1 ? 'donor' : 'donors'} · ₹{f.collected_amount.toLocaleString('en-IN')} raised
+                  </p>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100,
+                  background: f.status === 'active' ? 'rgba(16,185,129,.12)' : 'rgba(255,255,255,.06)',
+                  color:      f.status === 'active' ? '#10b981'              : 'var(--text-muted)' }}>
+                  {f.status}
+                </span>
+              </div>
+              <div style={{ height: 5, background: 'var(--border-2)', borderRadius: 100, overflow: 'hidden', marginBottom: 6 }}>
+                <div style={{ height: '100%', background: 'linear-gradient(90deg,#10b981,#059669)', borderRadius: 100, width: `${pct(f)}%`, minWidth: 4 }} />
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                {pct(f)}% of ₹{f.target_amount.toLocaleString('en-IN')} goal
+                {f.end_date ? ` · ends ${new Date(f.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const { allEvents, addEvent, user, signIn, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut, authLoading } = useApp();
@@ -666,6 +800,10 @@ export default function Admin() {
             onClick={() => setActiveTab('stats')}>
             📊 Stats
           </button>
+          <button className={`admin__tab ${activeTab === 'fundraisers' ? 'admin__tab--active' : ''}`}
+            onClick={() => setActiveTab('fundraisers')}>
+            💚 Fundraisers
+          </button>
         </div>
 
         {/* My Events */}
@@ -854,6 +992,11 @@ export default function Admin() {
           <div className="admin__form-section">
             <StatsTab myEvents={myEvents} />
           </div>
+        )}
+
+        {/* Fundraisers */}
+        {activeTab === 'fundraisers' && user && (
+          <FundraisersTab user={user} />
         )}
 
         {/* Submit Event */}

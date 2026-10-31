@@ -12,6 +12,7 @@ import Apply from './pages/Apply';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Stories from './pages/Stories';
+import Fundraisers from './pages/Fundraisers';
 import MyBookings from './pages/MyBookings';
 import NotFound from './pages/NotFound';
 
@@ -32,6 +33,8 @@ export default function App() {
             <Route path="/superadmin" element={<SuperAdmin />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/stories" element={<Stories />} />
+            <Route path="/fundraisers" element={<Fundraisers />} />
+            <Route path="/fundraisers/:id" element={<Fundraisers />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />

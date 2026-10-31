@@ -44,6 +44,9 @@ export default function Navbar() {
             <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
               Coming Out
             </NavLink>
+            <NavLink to="/fundraisers" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
+              Fundraisers
+            </NavLink>
             <NavLink to="/my-bookings" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
               My Tickets
             </NavLink>
@@ -95,6 +98,13 @@ export default function Navbar() {
             <span className="navbar__mobile-link-content">
               <span className="navbar__mobile-link-title">My Tickets</span>
               <span className="navbar__mobile-link-sub">View your bookings and QR codes</span>
+            </span>
+          </NavLink>
+          <NavLink to="/fundraisers" className="navbar__mobile-link">
+            <span className="navbar__mobile-icon">💚</span>
+            <span className="navbar__mobile-link-content">
+              <span className="navbar__mobile-link-title">Fundraisers</span>
+              <span className="navbar__mobile-link-sub">Support queer causes across India</span>
             </span>
           </NavLink>
           <NavLink to="/admin" className="navbar__mobile-link">
