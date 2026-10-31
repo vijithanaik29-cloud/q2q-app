@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { supabase } from '../lib/supabase';
 import './Admin.css';
 
@@ -429,6 +430,8 @@ export default function Admin() {
   const [authMode,      setAuthMode]      = useState('login'); // 'login' | 'signup' | 'forgot'
   const [resendCooldown,setResendCooldown]= useState(0);
 
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
   const [activeTab,     setActiveTab]     = useState('list');
   const [eventFilter,   setEventFilter]   = useState('upcoming');
   const [form,          setForm]          = useState(BLANK_EVENT);
@@ -778,7 +781,9 @@ export default function Admin() {
             <h1>Organizer Portal</h1>
             <p>Manage your queer events on Q2Q</p>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={signOut} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <button className="btn btn-ghost btn-sm"
+            onClick={() => setConfirmDialog({ title: 'Sign out', action: 'Sign out of your Organizer Portal', confirmLabel: 'Sign out', fn: signOut })}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
             Sign out
           </button>
         </div>
@@ -1170,6 +1175,8 @@ export default function Admin() {
           </form>
         )}
       </div>
+
+      <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { supabase } from '../lib/supabase';
 import './Admin.css';
 
@@ -63,7 +64,9 @@ export default function SuperAdmin() {
   const [applications,    setApplications]    = useState([]);
   const [appsLoading,     setAppsLoading]     = useState(false);
   const [appActionId,     setAppActionId]     = useState(null);
-  const [confirmRejectId, setConfirmRejectId] = useState(null);
+
+  // ── Confirm dialog ────────────────────────────────────────────────────────────
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   // ── Bookings & refunds ───────────────────────────────────────────────────────
   const [bookings,         setBookings]         = useState([]);
@@ -71,7 +74,6 @@ export default function SuperAdmin() {
   const [bookingSearch,    setBookingSearch]    = useState('');
   const [refundingEvent,   setRefundingEvent]   = useState(null);
   const [refundResults,    setRefundResults]    = useState({});
-  const [confirmRefundId,  setConfirmRefundId]  = useState(null);
 
   // ── Coupons ──────────────────────────────────────────────────────────────────
   const BLANK_COUPON = { code: '', discount_type: 'percent', discount_value: '', max_uses: '100', expires_at: '', event_id: '' };
@@ -271,7 +273,6 @@ export default function SuperAdmin() {
 
   async function handleReject(app) {
     setAppActionId(app.id);
-    setConfirmRejectId(null);
     await supabase.from('organizer_applications').update({ status: 'rejected', rejected_at: new Date().toISOString() }).eq('id', app.id);
     await supabase.functions.invoke('send-rejection', { body: { email: app.email, name: app.name, org_name: app.org_name } });
     setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a));
@@ -279,7 +280,6 @@ export default function SuperAdmin() {
   }
 
   async function handleRefundEvent(eventId, eventTitle) {
-    setConfirmRefundId(null);
     setRefundingEvent(eventId);
     const { data: { session } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke('refund-event', {
@@ -969,7 +969,15 @@ export default function SuperAdmin() {
                     <p className="admin__event-meta">{event.venue}</p>
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button className="admin__dashboard-btn" style={{ flex: 1 }} onClick={() => setSelectedEvent(event)}>View Dashboard →</button>
-                      <button onClick={() => toggleBoost(event.id, event.boosted)} title={event.boosted ? 'Remove boost' : 'Boost'}
+                      <button
+                        onClick={() => setConfirmDialog({
+                          title: event.boosted ? 'Remove Boost' : 'Boost Event',
+                          action: `${event.boosted ? 'Remove boost from' : 'Boost'} "${event.title}"`,
+                          confirmLabel: event.boosted ? 'Remove Boost' : 'Boost It',
+                          danger: event.boosted,
+                          fn: () => toggleBoost(event.id, event.boosted),
+                        })}
+                        title={event.boosted ? 'Remove boost' : 'Boost'}
                         style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: event.boosted ? 'rgba(234,179,8,0.12)' : 'var(--bg)', color: event.boosted ? '#ca8a04' : 'var(--text-muted)', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>⚡</button>
                     </div>
                   </div>
@@ -1022,22 +1030,26 @@ export default function SuperAdmin() {
                     </div>
                     {app.status === 'pending' && (
                       <div className="admin__app-actions">
-                        <button className="btn btn-primary btn-sm" disabled={appActionId === app.id} onClick={() => { setConfirmRejectId(null); handleApprove(app); }}>
-                          {appActionId === app.id && confirmRejectId !== app.id ? 'Sending invite…' : 'Approve & Send Invite'}
+                        <button className="btn btn-primary btn-sm" disabled={appActionId === app.id}
+                          onClick={() => setConfirmDialog({
+                            title: 'Approve Organiser',
+                            action: `Approve ${app.org_name || app.name} and send them an invite email`,
+                            confirmLabel: 'Approve & Send Invite',
+                            fn: () => handleApprove(app),
+                          })}>
+                          {appActionId === app.id ? 'Sending invite…' : 'Approve & Send Invite'}
                         </button>
-                        {confirmRejectId === app.id ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Reject this application?</span>
-                            <button className="btn btn-sm" style={{ background: 'var(--error)', color: '#fff', border: 'none' }} disabled={appActionId === app.id} onClick={() => handleReject(app)}>
-                              {appActionId === app.id ? 'Rejecting…' : 'Yes, Reject'}
-                            </button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRejectId(null)}>Cancel</button>
-                          </div>
-                        ) : (
-                          <button className="btn btn-ghost btn-sm" disabled={appActionId === app.id} onClick={() => setConfirmRejectId(app.id)} style={{ color: 'var(--error)' }}>
-                            Reject
-                          </button>
-                        )}
+                        <button className="btn btn-ghost btn-sm" disabled={appActionId === app.id}
+                          onClick={() => setConfirmDialog({
+                            title: 'Reject Application',
+                            action: `Reject ${app.org_name || app.name}'s application and notify them`,
+                            confirmLabel: 'Yes, Reject',
+                            danger: true,
+                            fn: () => handleReject(app),
+                          })}
+                          style={{ color: 'var(--error)' }}>
+                          Reject
+                        </button>
                       </div>
                     )}
                     {app.status === 'approved' && <p className="admin__app-done">✓ Invite sent.</p>}
@@ -1151,21 +1163,16 @@ export default function SuperAdmin() {
                           </div>
                         </div>
                         {active.length > 0 && (
-                          confirmRefundId === group.event_id ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Refund all {active.length} bookings?</span>
-                              <button className="btn btn-sm" style={{ background: 'var(--error)', color: '#fff', border: 'none' }} disabled={refundingEvent === group.event_id}
-                                onClick={() => handleRefundEvent(group.event_id, group.event_title)}>
-                                {refundingEvent === group.event_id ? 'Refunding…' : 'Yes, Refund All'}
-                              </button>
-                              <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRefundId(null)}>Cancel</button>
-                            </div>
-                          ) : (
-                            <button className="btn btn-sm admin__refund-btn" disabled={refundingEvent === group.event_id}
-                              onClick={() => setConfirmRefundId(group.event_id)}>
-                              {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
-                            </button>
-                          )
+                          <button className="btn btn-sm admin__refund-btn" disabled={refundingEvent === group.event_id}
+                            onClick={() => setConfirmDialog({
+                              title: 'Cancel & Refund Event',
+                              action: `Refund all ${active.length} active bookings for "${group.event_title}"`,
+                              confirmLabel: 'Yes, Refund All',
+                              danger: true,
+                              fn: () => handleRefundEvent(group.event_id, group.event_title),
+                            })}>
+                            {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
+                          </button>
                         )}
                       </div>
                       {result && <div className="admin__refund-result">✓ Refunded {result.refunded} bookings · ₹{(result.total_amount || 0).toLocaleString('en-IN')} returned</div>}
@@ -1218,12 +1225,17 @@ export default function SuperAdmin() {
                         style={{ flex: 1, minWidth: 200, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical', fontFamily: 'inherit' }} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {s.status === 'pending' && <>
-                          <button className="btn btn-rainbow btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'approve', sponsorNotes[s.id])}>Approve</button>
-                          <button className="btn btn-outline btn-sm" style={{ color: 'var(--error)', borderColor: 'var(--error)' }} disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'reject', sponsorNotes[s.id])}>Request edits</button>
+                          <button className="btn btn-rainbow btn-sm" disabled={sponsorActing === s.id}
+                            onClick={() => setConfirmDialog({ title: 'Approve Sponsor', action: `Approve ${s.business_name} and notify the organiser`, confirmLabel: 'Approve', fn: () => sponsorAction(s.id, 'approve', sponsorNotes[s.id]) })}>Approve</button>
+                          <button className="btn btn-outline btn-sm" style={{ color: 'var(--error)', borderColor: 'var(--error)' }} disabled={sponsorActing === s.id}
+                            onClick={() => setConfirmDialog({ title: 'Request Edits', action: `Send ${s.business_name} back for edits`, confirmLabel: 'Send Back', danger: true, fn: () => sponsorAction(s.id, 'reject', sponsorNotes[s.id]) })}>Request edits</button>
                         </>}
-                        {s.status === 'approved' && <button className="btn btn-primary btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'live', '')}>Set Live ✓</button>}
-                        {s.status === 'active'   && <button className="btn btn-outline btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'reject', 'Deactivated.')}>Deactivate</button>}
-                        {s.status === 'rejected' && <button className="btn btn-outline btn-sm" disabled={sponsorActing === s.id} onClick={() => sponsorAction(s.id, 'pending', '')}>Reopen</button>}
+                        {s.status === 'approved' && <button className="btn btn-primary btn-sm" disabled={sponsorActing === s.id}
+                          onClick={() => setConfirmDialog({ title: 'Set Sponsor Live', action: `Make ${s.business_name} visible to event attendees for 30 days`, confirmLabel: 'Set Live ✓', fn: () => sponsorAction(s.id, 'live', '') })}>Set Live ✓</button>}
+                        {s.status === 'active'   && <button className="btn btn-outline btn-sm" disabled={sponsorActing === s.id}
+                          onClick={() => setConfirmDialog({ title: 'Deactivate Sponsor', action: `Remove ${s.business_name} from active sponsors`, confirmLabel: 'Deactivate', danger: true, fn: () => sponsorAction(s.id, 'reject', 'Deactivated.') })}>Deactivate</button>}
+                        {s.status === 'rejected' && <button className="btn btn-outline btn-sm" disabled={sponsorActing === s.id}
+                          onClick={() => setConfirmDialog({ title: 'Reopen Sponsor', action: `Move ${s.business_name} back to pending review`, confirmLabel: 'Reopen', fn: () => sponsorAction(s.id, 'pending', '') })}>Reopen</button>}
                       </div>
                     </div>
                   </div>
@@ -1297,7 +1309,15 @@ export default function SuperAdmin() {
                         {c.event_id && ` · event: ${c.event_id}`}
                       </div>
                     </div>
-                    <button onClick={() => toggleCoupon(c.id, c.active)} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer' }}>
+                    <button
+                      onClick={() => setConfirmDialog({
+                        title: c.active ? 'Disable Coupon' : 'Enable Coupon',
+                        action: `${c.active ? 'Disable' : 'Enable'} coupon code ${c.code}`,
+                        confirmLabel: c.active ? 'Disable' : 'Enable',
+                        danger: c.active,
+                        fn: () => toggleCoupon(c.id, c.active),
+                      })}
+                      style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer' }}>
                       {c.active ? 'Disable' : 'Enable'}
                     </button>
                   </div>
@@ -1350,7 +1370,15 @@ export default function SuperAdmin() {
                           {expired ? 'Expired' : `Expires ${new Date(inf.expires_at).toLocaleDateString('en-IN')}`}
                         </div>
                       </div>
-                      <button onClick={() => toggleInfluencer(inf.id, inf.active)} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer' }}>
+                      <button
+                        onClick={() => setConfirmDialog({
+                          title: inf.active ? 'Revoke Free Pass' : 'Restore Free Pass',
+                          action: `${inf.active ? 'Revoke' : 'Restore'} the free pass for ${inf.name || inf.email}`,
+                          confirmLabel: inf.active ? 'Revoke Pass' : 'Restore Pass',
+                          danger: inf.active,
+                          fn: () => toggleInfluencer(inf.id, inf.active),
+                        })}
+                        style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-2)', cursor: 'pointer' }}>
                         {inf.active ? 'Revoke' : 'Restore'}
                       </button>
                     </div>
@@ -1398,8 +1426,16 @@ export default function SuperAdmin() {
                     </div>
                     <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 14, fontStyle: 'italic' }}>"{s.content}"</p>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      {s.status !== 'approved' && <button onClick={() => moderateStory(s.id, 'approved')} style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--success)', background: 'rgba(52,211,153,0.08)', color: 'var(--success)', cursor: 'pointer' }}>Approve</button>}
-                      {s.status !== 'rejected' && <button onClick={() => moderateStory(s.id, 'rejected')} style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Reject</button>}
+                      {s.status !== 'approved' && (
+                        <button
+                          onClick={() => setConfirmDialog({ title: 'Approve Story', action: 'Publish this story on the public Stories page', confirmLabel: 'Approve & Publish', fn: () => moderateStory(s.id, 'approved') })}
+                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--success)', background: 'rgba(52,211,153,0.08)', color: 'var(--success)', cursor: 'pointer' }}>Approve</button>
+                      )}
+                      {s.status !== 'rejected' && (
+                        <button
+                          onClick={() => setConfirmDialog({ title: 'Reject Story', action: 'Reject and hide this story from the public page', confirmLabel: 'Yes, Reject', danger: true, fn: () => moderateStory(s.id, 'rejected') })}
+                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Reject</button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1494,19 +1530,22 @@ export default function SuperAdmin() {
                         </p>
                         <div style={{ display: 'flex', gap: 6 }}>
                           {f.status !== 'active' && (
-                            <button disabled={frActing === f.id} onClick={() => setFundraiserStatus(f.id, 'active')}
+                            <button disabled={frActing === f.id}
+                              onClick={() => setConfirmDialog({ title: 'Set Fundraiser Active', action: `Make "${f.title}" live and accepting donations`, confirmLabel: 'Set Active', fn: () => setFundraiserStatus(f.id, 'active') })}
                               style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, border: '1px solid #10b981', background: 'rgba(16,185,129,.08)', color: '#10b981', cursor: 'pointer' }}>
                               Set Active
                             </button>
                           )}
                           {f.status !== 'closed' && (
-                            <button disabled={frActing === f.id} onClick={() => setFundraiserStatus(f.id, 'closed')}
+                            <button disabled={frActing === f.id}
+                              onClick={() => setConfirmDialog({ title: 'Close Fundraiser', action: `Close "${f.title}" — no new donations will be accepted`, confirmLabel: 'Close It', danger: true, fn: () => setFundraiserStatus(f.id, 'closed') })}
                               style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>
                               Close
                             </button>
                           )}
                           {f.status !== 'draft' && (
-                            <button disabled={frActing === f.id} onClick={() => setFundraiserStatus(f.id, 'draft')}
+                            <button disabled={frActing === f.id}
+                              onClick={() => setConfirmDialog({ title: 'Move to Draft', action: `Move "${f.title}" back to draft — it will be hidden from users`, confirmLabel: 'Move to Draft', danger: true, fn: () => setFundraiserStatus(f.id, 'draft') })}
                               style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(139,92,246,.3)', background: 'rgba(139,92,246,.06)', color: 'var(--accent)', cursor: 'pointer' }}>
                               Draft
                             </button>
@@ -1520,6 +1559,9 @@ export default function SuperAdmin() {
             )}
           </div>
         )}
+
+        {/* ── Confirm dialog ───────────────────────────────────────────────── */}
+        <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
 
         {/* ── Add Event ─────────────────────────────────────────────────────── */}
         {activeTab === 'add' && (
