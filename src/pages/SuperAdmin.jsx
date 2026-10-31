@@ -68,6 +68,7 @@ export default function SuperAdmin() {
   // ── Bookings & refunds ───────────────────────────────────────────────────────
   const [bookings,         setBookings]         = useState([]);
   const [bookingsLoading,  setBookingsLoading]  = useState(false);
+  const [bookingSearch,    setBookingSearch]    = useState('');
   const [refundingEvent,   setRefundingEvent]   = useState(null);
   const [refundResults,    setRefundResults]    = useState({});
   const [confirmRefundId,  setConfirmRefundId]  = useState(null);
@@ -1049,73 +1050,145 @@ export default function SuperAdmin() {
         )}
 
         {/* ── Bookings & Refunds ────────────────────────────────────────────── */}
-        {activeTab === 'bookings' && (
-          <div className="admin__bookings">
-            <div className="admin__bookings-header">
-              <h2>All Bookings</h2>
-              <button className="btn btn-ghost btn-sm" onClick={loadBookings}>↻ Refresh</button>
-            </div>
-            {bookingsLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><div className="spinner" style={{ width: 28, height: 28 }} /></div>
-            ) : bookings.length === 0 ? (
-              <div className="empty-state"><div className="empty-state__icon">🎟️</div><h3>No bookings yet</h3></div>
-            ) : (
-              groupBookingsByEvent(bookings).map(group => {
-                const active   = group.bookings.filter(b => b.status === 'active');
-                const refunded = group.bookings.filter(b => b.status === 'refunded');
-                const revenue  = active.reduce((s, b) => s + (b.total || 0), 0);
-                const allPaid  = group.bookings.every(b => b.payout_released);
-                const result   = refundResults[group.event_id];
-                return (
-                  <div key={group.event_id} className="admin__booking-group card">
-                    <div className="admin__booking-group-header">
-                      <div>
-                        <div className="admin__booking-event-title">{group.event_title}</div>
-                        <div className="admin__booking-event-stats">
-                          <span className="admin__booking-stat admin__booking-stat--active">{active.length} active</span>
-                          {refunded.length > 0 && <span className="admin__booking-stat admin__booking-stat--refunded">{refunded.length} refunded</span>}
-                          <span className="admin__booking-stat">₹{revenue.toLocaleString('en-IN')} held</span>
-                          <span className={`admin__booking-payout ${allPaid ? 'admin__booking-payout--released' : ''}`}>{allPaid ? '✓ Payout released' : '⏳ Payout held'}</span>
-                        </div>
-                      </div>
-                      {active.length > 0 && (
-                        confirmRefundId === group.event_id ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Refund all {active.length} bookings?</span>
-                            <button className="btn btn-sm" style={{ background: 'var(--error)', color: '#fff', border: 'none' }} disabled={refundingEvent === group.event_id}
-                              onClick={() => handleRefundEvent(group.event_id, group.event_title)}>
-                              {refundingEvent === group.event_id ? 'Refunding…' : 'Yes, Refund All'}
-                            </button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRefundId(null)}>Cancel</button>
-                          </div>
-                        ) : (
-                          <button className="btn btn-sm admin__refund-btn" disabled={refundingEvent === group.event_id}
-                            onClick={() => setConfirmRefundId(group.event_id)}>
-                            {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
-                          </button>
-                        )
-                      )}
+        {activeTab === 'bookings' && (() => {
+          const q = bookingSearch.trim().toLowerCase();
+          const searchResults = q
+            ? bookings.filter(b =>
+                b.attendee?.name?.toLowerCase().includes(q) ||
+                b.attendee?.email?.toLowerCase().includes(q) ||
+                b.id?.toLowerCase().includes(q) ||
+                b.event_title?.toLowerCase().includes(q)
+              )
+            : [];
+
+          return (
+            <div className="admin__bookings">
+              {/* Header + search */}
+              <div className="admin__bookings-header" style={{ flexWrap: 'wrap', gap: 12 }}>
+                <h2 style={{ margin: 0 }}>All Bookings</h2>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, minWidth: 220, maxWidth: 400 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}>
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Search by name, email, ref or event…"
+                      value={bookingSearch}
+                      onChange={e => setBookingSearch(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 32, paddingRight: bookingSearch ? 32 : 12, paddingBlock: 8, fontSize: 13, border: '1px solid var(--border-2)', borderRadius: 'var(--radius-full)', background: 'var(--surface)', color: 'var(--text)' }}
+                    />
+                    {bookingSearch && (
+                      <button onClick={() => setBookingSearch('')}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+                    )}
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={loadBookings}>↻</button>
+                </div>
+              </div>
+
+              {bookingsLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><div className="spinner" style={{ width: 28, height: 28 }} /></div>
+              ) : bookings.length === 0 ? (
+                <div className="empty-state"><div className="empty-state__icon">🎟️</div><h3>No bookings yet</h3></div>
+
+              ) : q ? (
+                /* ── Search results (flat list) ── */
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+                    {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "<strong style={{ color: 'var(--text)' }}>{bookingSearch.trim()}</strong>"
+                  </div>
+                  {searchResults.length === 0 ? (
+                    <div className="empty-state" style={{ paddingBlock: 40 }}>
+                      <div className="empty-state__icon">🔍</div>
+                      <h3>No matches</h3>
+                      <p>Try a different name, email or booking ref.</p>
                     </div>
-                    {result && <div className="admin__refund-result">✓ Refunded {result.refunded} bookings · ₹{(result.total_amount || 0).toLocaleString('en-IN')} returned</div>}
-                    <div className="admin__booking-table">
-                      <div className="admin__booking-thead"><span>Ref</span><span>Attendee</span><span>Tickets</span><span>Amount</span><span>Status</span><span>Date</span></div>
-                      {group.bookings.map(b => (
-                        <div key={b.id} className={`admin__booking-row admin__booking-row--${b.status}`}>
-                          <span className="admin__booking-id">{b.id}</span>
-                          <span><div>{b.attendee?.name}</div><div className="admin__booking-email">{b.attendee?.email}</div></span>
-                          <span>{b.tickets?.map(t => `${t.type} ×${t.qty}`).join(', ')}</span>
-                          <span>₹{(b.total || 0).toLocaleString('en-IN')}</span>
-                          <span className={`admin__booking-status admin__booking-status--${b.status}`}>{b.status}</span>
-                          <span className="admin__booking-date">{new Date(b.created_at).toLocaleDateString('en-IN')}</span>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {searchResults.map(b => (
+                        <div key={b.id} style={{ background: 'var(--surface)', border: `1px solid ${b.status === 'refunded' ? 'var(--border-2)' : 'var(--border)'}`, borderRadius: 12, padding: '16px 20px', opacity: b.status === 'refunded' ? 0.65 : 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{b.attendee?.name || '—'}</div>
+                              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{b.attendee?.email || '—'}</div>
+                            </div>
+                            <span className={`admin__booking-status admin__booking-status--${b.status}`} style={{ flexShrink: 0 }}>{b.status}</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '6px 20px', fontSize: 12 }}>
+                            <div><span style={{ color: 'var(--text-muted)' }}>Event </span><span style={{ color: 'var(--text-2)', fontWeight: 600 }}>{b.event_title}</span></div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>Booking ID </span><span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-2)' }}>{b.id}</span></div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>Tickets </span><span style={{ color: 'var(--text-2)' }}>{b.tickets?.map(t => `${t.type} ×${t.qty}`).join(', ') || '—'}</span></div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>Amount </span><span style={{ color: 'var(--success)', fontWeight: 700 }}>₹{(b.total || 0).toLocaleString('en-IN')}</span></div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>Date </span><span style={{ color: 'var(--text-2)' }}>{new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
+                  )}
+                </>
+
+              ) : (
+                /* ── Default grouped-by-event view ── */
+                groupBookingsByEvent(bookings).map(group => {
+                  const active   = group.bookings.filter(b => b.status === 'active');
+                  const refunded = group.bookings.filter(b => b.status === 'refunded');
+                  const revenue  = active.reduce((s, b) => s + (b.total || 0), 0);
+                  const allPaid  = group.bookings.every(b => b.payout_released);
+                  const result   = refundResults[group.event_id];
+                  return (
+                    <div key={group.event_id} className="admin__booking-group card">
+                      <div className="admin__booking-group-header">
+                        <div>
+                          <div className="admin__booking-event-title">{group.event_title}</div>
+                          <div className="admin__booking-event-stats">
+                            <span className="admin__booking-stat admin__booking-stat--active">{active.length} active</span>
+                            {refunded.length > 0 && <span className="admin__booking-stat admin__booking-stat--refunded">{refunded.length} refunded</span>}
+                            <span className="admin__booking-stat">₹{revenue.toLocaleString('en-IN')} held</span>
+                            <span className={`admin__booking-payout ${allPaid ? 'admin__booking-payout--released' : ''}`}>{allPaid ? '✓ Payout released' : '⏳ Payout held'}</span>
+                          </div>
+                        </div>
+                        {active.length > 0 && (
+                          confirmRefundId === group.event_id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>Refund all {active.length} bookings?</span>
+                              <button className="btn btn-sm" style={{ background: 'var(--error)', color: '#fff', border: 'none' }} disabled={refundingEvent === group.event_id}
+                                onClick={() => handleRefundEvent(group.event_id, group.event_title)}>
+                                {refundingEvent === group.event_id ? 'Refunding…' : 'Yes, Refund All'}
+                              </button>
+                              <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRefundId(null)}>Cancel</button>
+                            </div>
+                          ) : (
+                            <button className="btn btn-sm admin__refund-btn" disabled={refundingEvent === group.event_id}
+                              onClick={() => setConfirmRefundId(group.event_id)}>
+                              {refundingEvent === group.event_id ? 'Refunding…' : `Cancel & Refund ${active.length} bookings`}
+                            </button>
+                          )
+                        )}
+                      </div>
+                      {result && <div className="admin__refund-result">✓ Refunded {result.refunded} bookings · ₹{(result.total_amount || 0).toLocaleString('en-IN')} returned</div>}
+                      <div className="admin__booking-table">
+                        <div className="admin__booking-thead"><span>Ref</span><span>Attendee</span><span>Tickets</span><span>Amount</span><span>Status</span><span>Date</span></div>
+                        {group.bookings.map(b => (
+                          <div key={b.id} className={`admin__booking-row admin__booking-row--${b.status}`}>
+                            <span className="admin__booking-id">{b.id}</span>
+                            <span><div>{b.attendee?.name}</div><div className="admin__booking-email">{b.attendee?.email}</div></span>
+                            <span>{b.tickets?.map(t => `${t.type} ×${t.qty}`).join(', ')}</span>
+                            <span>₹{(b.total || 0).toLocaleString('en-IN')}</span>
+                            <span className={`admin__booking-status admin__booking-status--${b.status}`}>{b.status}</span>
+                            <span className="admin__booking-date">{new Date(b.created_at).toLocaleDateString('en-IN')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Sponsor Review ────────────────────────────────────────────────── */}
         {activeTab === 'sponsors' && (
