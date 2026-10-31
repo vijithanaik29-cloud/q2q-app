@@ -261,6 +261,24 @@
   color: #fff;
 }
 
+.stories__filter-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--border-2);
+  align-self: center;
+  margin: 0 4px;
+}
+
+.stories__tag-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
 /* ─── Post tags ─── */
 .stories__post-tags {
   display: flex;

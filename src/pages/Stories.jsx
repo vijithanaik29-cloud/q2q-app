@@ -7,7 +7,7 @@ const MAX       = 1200;
 const PAGE_SIZE = 6;
 const PREVIEW   = 280; // chars before "Read more"
 
-const TAGS = [
+const IDENTITY_TAGS = [
   { id: 'gay',        label: '🏳️‍🌈 Gay' },
   { id: 'lesbian',    label: '🏳️‍🌈 Lesbian' },
   { id: 'bisexual',   label: '🏳️‍🌈 Bisexual' },
@@ -19,6 +19,19 @@ const TAGS = [
   { id: 'questioning',label: 'Questioning' },
   { id: 'intersex',   label: 'Intersex' },
 ];
+
+const PERSPECTIVE_TAGS = [
+  { id: 'dont-care',   label: "I don't care 🤍" },
+  { id: 'my-brother',  label: 'My bro came out' },
+  { id: 'my-sister',   label: 'My sis came out' },
+  { id: 'my-friend',   label: 'My friend came out' },
+  { id: 'my-son',      label: 'My son came out' },
+  { id: 'my-daughter', label: 'My daughter came out' },
+  { id: 'my-husband',  label: 'My husband came out' },
+  { id: 'my-wife',     label: 'My wife came out' },
+];
+
+const TAGS = [...IDENTITY_TAGS, ...PERSPECTIVE_TAGS];
 
 const ADJECTIVES = [
   'Fabulous', 'Glittery', 'Sparkling', 'Dramatic', 'Extra', 'Iconic',
@@ -170,8 +183,28 @@ export default function Stories() {
                   />
                   <div className="stories__tag-picker">
                     <span className="stories__tag-picker-label">Tags (optional, pick up to 3)</span>
+                    <p className="stories__tag-group-label">Your identity</p>
                     <div className="stories__tag-chips">
-                      {TAGS.map(t => {
+                      {IDENTITY_TAGS.map(t => {
+                        const active = selectedTags.includes(t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            className={`stories__tag-chip${active ? ' stories__tag-chip--active' : ''}`}
+                            onClick={() => setSelectedTags(prev =>
+                              active ? prev.filter(x => x !== t.id)
+                                     : prev.length < 3 ? [...prev, t.id] : prev
+                            )}
+                          >
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="stories__tag-group-label" style={{ marginTop: 12 }}>Someone came out to you?</p>
+                    <div className="stories__tag-chips">
+                      {PERSPECTIVE_TAGS.map(t => {
                         const active = selectedTags.includes(t.id);
                         return (
                           <button
@@ -220,7 +253,17 @@ export default function Stories() {
             >
               All stories
             </button>
-            {TAGS.map(t => (
+            {IDENTITY_TAGS.map(t => (
+              <button
+                key={t.id}
+                className={`stories__filter-chip${activeTag === t.id ? ' stories__filter-chip--active' : ''}`}
+                onClick={() => handleTagFilter(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+            <span className="stories__filter-sep" aria-hidden="true" />
+            {PERSPECTIVE_TAGS.map(t => (
               <button
                 key={t.id}
                 className={`stories__filter-chip${activeTag === t.id ? ' stories__filter-chip--active' : ''}`}
@@ -263,22 +306,6 @@ export default function Stories() {
                           <span className="stories__post-views">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             {s.views}
-                          </span>
-                        )}
-                      {s.tags?.length > 0 && (
-                          <span className="stories__post-tags">
-                            {s.tags.map(tid => {
-                              const t = TAGS.find(x => x.id === tid);
-                              return t ? (
-                                <button
-                                  key={tid}
-                                  className={`stories__post-tag${activeTag === tid ? ' stories__post-tag--active' : ''}`}
-                                  onClick={() => handleTagFilter(tid)}
-                                >
-                                  {t.label}
-                                </button>
-                              ) : null;
-                            })}
                           </span>
                         )}
                       </div>
