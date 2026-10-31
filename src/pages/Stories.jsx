@@ -262,7 +262,6 @@ export default function Stories() {
                 {t.label}
               </button>
             ))}
-            <span className="stories__filter-sep" aria-hidden="true" />
             {PERSPECTIVE_TAGS.map(t => (
               <button
                 key={t.id}
