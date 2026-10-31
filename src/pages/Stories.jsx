@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import './Stories.css';
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Other'];
 const MAX       = 1200;
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 6;
 const PREVIEW   = 280; // chars before "Read more"
 
 const TAGS = [
@@ -40,44 +40,40 @@ function randomName() {
 }
 
 export default function Stories() {
-  const [stories,    setStories]    = useState([]);
-  const [total,      setTotal]      = useState(0);
-  const [loading,    setLoading]    = useState(true);
-  const [loadingMore,setLoadingMore] = useState(false);
-  const [content,    setContent]    = useState('');
-  const [city,       setCity]       = useState('');
+  const [stories,      setStories]      = useState([]);
+  const [total,        setTotal]        = useState(0);
+  const [loading,      setLoading]      = useState(true);
+  const [page,         setPage]         = useState(1);
+  const [content,      setContent]      = useState('');
+  const [city,         setCity]         = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
-  const [activeTag,  setActiveTag]  = useState('');  // '' = all
-  const [saving,     setSaving]     = useState(false);
-  const [submitted,  setSubmitted]  = useState(false);
-  const [error,      setError]      = useState('');
-  const [showForm,   setShowForm]   = useState(false);
-  const [expanded,   setExpanded]   = useState({});  // id → true when expanded
+  const [activeTag,    setActiveTag]    = useState('');
+  const [saving,       setSaving]       = useState(false);
+  const [submitted,    setSubmitted]    = useState(false);
+  const [error,        setError]        = useState('');
+  const [showForm,     setShowForm]     = useState(false);
+  const [expanded,     setExpanded]     = useState({});
+  const feedRef = useRef(null);
 
-  const loadStories = useCallback(async (offset = 0, tag = '') => {
-    if (offset === 0) setLoading(true); else setLoadingMore(true);
+  const loadStories = useCallback(async (pg = 1, tag = '') => {
+    setLoading(true);
+    const from = (pg - 1) * PAGE_SIZE;
+    const to   = pg * PAGE_SIZE - 1;
 
     let q = supabase
       .from('stories')
       .select('id, content, city, author_name, views, tags, created_at', { count: 'exact' })
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1);
+      .range(from, to);
 
     if (tag) q = q.contains('tags', [tag]);
 
     const { data, count } = await q;
-
     const newStories = data || [];
-
-    if (offset === 0) {
-      setStories(newStories);
-    } else {
-      setStories(prev => [...prev, ...newStories]);
-    }
+    setStories(newStories);
     setTotal(count || 0);
     setLoading(false);
-    setLoadingMore(false);
 
     // Increment view counts once per session per story
     try {
@@ -90,10 +86,19 @@ export default function Stories() {
     } catch (_) {}
   }, []);
 
-  useEffect(() => { loadStories(0, activeTag); }, [loadStories, activeTag]);
+  useEffect(() => { loadStories(page, activeTag); }, [loadStories, page, activeTag]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  function handlePageChange(newPage) {
+    setPage(newPage);
+    setExpanded({});
+    feedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function handleTagFilter(tag) {
     setActiveTag(prev => prev === tag ? '' : tag);
+    setPage(1);
     setExpanded({});
   }
 
@@ -230,7 +235,7 @@ export default function Stories() {
 
       {/* ── Blog feed ── */}
       <div className="container">
-        <div className="stories__blog">
+        <div className="stories__blog" ref={feedRef}>
 
           {loading ? (
             <div className="stories__loading">Loading stories…</div>
@@ -249,7 +254,7 @@ export default function Stories() {
 
                 return (
                   <article key={s.id} className="stories__post">
-                    <div className="stories__post-num">#{String(i + 1).padStart(2, '0')}</div>
+                    <div className="stories__post-num">#{String((page - 1) * PAGE_SIZE + i + 1).padStart(2, '0')}</div>
                     <div className="stories__post-content">
                       <div className="stories__post-meta">
                         <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
@@ -292,15 +297,29 @@ export default function Stories() {
                 );
               })}
 
-              {hasMore && (
-                <div className="stories__load-more">
+              {totalPages > 1 && (
+                <div className="stories__pagination">
                   <button
-                    className="btn btn-outline"
-                    onClick={() => loadStories(stories.length, activeTag)}
-                    disabled={loadingMore}
-                  >
-                    {loadingMore ? 'Loading…' : `Load more stories (${total - stories.length} left)`}
-                  </button>
+                    className="stories__page-btn stories__page-btn--nav"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 1}
+                    aria-label="Previous page"
+                  >←</button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      className={`stories__page-btn${p === page ? ' stories__page-btn--active' : ''}`}
+                      onClick={() => handlePageChange(p)}
+                    >{p}</button>
+                  ))}
+
+                  <button
+                    className="stories__page-btn stories__page-btn--nav"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === totalPages}
+                    aria-label="Next page"
+                  >→</button>
                 </div>
               )}
             </>
