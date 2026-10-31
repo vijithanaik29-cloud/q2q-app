@@ -108,6 +108,12 @@ export default function SuperAdmin() {
   const [fundraisersLoading, setFundraisersLoading] = useState(false);
   const [frActing,           setFrActing]           = useState(null);
 
+  // ── Users ─────────────────────────────────────────────────────────────────────
+  const [users,        setUsers]        = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch,   setUserSearch]   = useState('');
+  const [expandedUser, setExpandedUser] = useState(null);
+
   // ── Analytics ─────────────────────────────────────────────────────────────────
   const [analytics,        setAnalytics]        = useState(null);
   const [analyticsRange,   setAnalyticsRange]   = useState('90');
@@ -147,13 +153,14 @@ export default function SuperAdmin() {
 
   useEffect(() => {
     if (!totpVerified) return;
-    if (activeTab === 'overview' || activeTab === 'applications') loadApplications();
+    if (activeTab === 'overview' || activeTab === 'applications') { loadApplications(); loadBookings(); }
     if (activeTab === 'bookings')     loadBookings();
     if (activeTab === 'coupons')      loadCoupons();
     if (activeTab === 'influencers')  loadInfluencers();
     if (activeTab === 'stories')      loadStories();
     if (activeTab === 'sponsors')     loadAllSponsorSubs();
     if (activeTab === 'fundraisers')  loadAllFundraisers();
+    if (activeTab === 'users')        loadUsers();
     if (activeTab === 'analytics')    { loadApplications(); loadAnalytics(analyticsRange); }
   }, [user, activeTab, totpVerified]);
 
@@ -209,6 +216,35 @@ export default function SuperAdmin() {
     const { data } = await supabase.from('fundraisers').select('*').order('created_at', { ascending: false });
     setAllFundraisers(data || []);
     setFundraisersLoading(false);
+  }
+
+  async function loadUsers() {
+    setUsersLoading(true);
+    const { data } = await supabase
+      .from('bookings')
+      .select('attendee, total, status, created_at, event_title, event_id')
+      .order('created_at', { ascending: false });
+    const map = {};
+    for (const b of data || []) {
+      const email = b.attendee?.email?.toLowerCase();
+      if (!email) continue;
+      if (!map[email]) map[email] = { email, name: b.attendee?.name, bookings: [] };
+      if (!map[email].name && b.attendee?.name) map[email].name = b.attendee.name;
+      map[email].bookings.push(b);
+    }
+    const list = Object.values(map).map(u => {
+      const active = u.bookings.filter(b => b.status === 'active');
+      return {
+        ...u,
+        count: u.bookings.length,
+        activeCount: active.length,
+        spent: active.reduce((s, b) => s + (b.total || 0), 0),
+        lastAt: u.bookings[0]?.created_at,
+        eventTitles: [...new Set(u.bookings.map(b => b.event_title).filter(Boolean))],
+      };
+    });
+    setUsers(list.sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt)));
+    setUsersLoading(false);
   }
 
   async function loadAnalytics(rangeDays) {
@@ -750,6 +786,7 @@ export default function SuperAdmin() {
             Applications {pendingApps.length > 0 && <span className="admin__tab-badge">{pendingApps.length}</span>}
           </button>
           <button className={`admin__tab admin__tab--super ${activeTab === 'bookings'     ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('bookings')}>🛡 Bookings</button>
+          <button className={`admin__tab admin__tab--super ${activeTab === 'users'        ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('users')}>👤 Users</button>
           <button className={`admin__tab admin__tab--super ${activeTab === 'sponsors'     ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('sponsors')}>
             Sponsor Review {pendingSponsors.length > 0 && <span className="admin__tab-badge">{pendingSponsors.length}</span>}
           </button>
@@ -816,6 +853,122 @@ export default function SuperAdmin() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Users ────────────────────────────────────────────────────────── */}
+        {activeTab === 'users' && (() => {
+          const q = userSearch.trim().toLowerCase();
+          const filtered = q
+            ? users.filter(u => u.name?.toLowerCase().includes(q) || u.email.includes(q))
+            : users;
+          const totalSpend = users.reduce((s, u) => s + u.spent, 0);
+          const repeatUsers = users.filter(u => u.count >= 2).length;
+
+          return (
+            <div style={{ maxWidth: 760 }}>
+              {/* Stats row */}
+              <div style={{ display: 'flex', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Total Users',    value: users.length,                                           color: 'var(--accent)' },
+                  { label: 'Repeat Buyers',  value: repeatUsers,                                            color: '#8B5CF6' },
+                  { label: 'Total Revenue',  value: `₹${totalSpend.toLocaleString('en-IN')}`,               color: 'var(--success)', small: true },
+                ].map(tile => (
+                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', minWidth: 130 }}>
+                    <div style={{ fontSize: tile.small ? 20 : 26, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 4 }}>{tile.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div style={{ position: 'relative', marginBottom: 20, maxWidth: 380 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}>
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" placeholder="Search by name or email…" value={userSearch} onChange={e => setUserSearch(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 32, paddingRight: userSearch ? 32 : 12, paddingBlock: 9, fontSize: 13, border: '1px solid var(--border-2)', borderRadius: 'var(--radius-full)', background: 'var(--surface)', color: 'var(--text)' }} />
+                {userSearch && (
+                  <button onClick={() => setUserSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+                )}
+              </div>
+
+              {usersLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><div className="spinner" style={{ width: 28, height: 28 }} /></div>
+              ) : filtered.length === 0 ? (
+                <div className="empty-state" style={{ paddingBlock: 40 }}>
+                  <div className="empty-state__icon">👤</div>
+                  <h3>{q ? 'No matches' : 'No users yet'}</h3>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {q && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</div>}
+                  {filtered.map(u => {
+                    const isOpen = expandedUser === u.email;
+                    return (
+                      <div key={u.email} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                        {/* Row */}
+                        <button onClick={() => setExpandedUser(isOpen ? null : u.email)}
+                          style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', alignItems: 'center' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{u.name || '—'}</span>
+                              {u.count >= 2 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: 'rgba(139,92,246,0.1)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.2)' }}>Repeat</span>}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0 }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--success)', fontVariantNumeric: 'tabular-nums' }}>₹{u.spent.toLocaleString('en-IN')}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.activeCount} active · {u.count} total</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+                                {new Date(u.lastAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </div>
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>last purchase</div>
+                            </div>
+                            <span style={{ fontSize: 14, color: 'var(--text-muted)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>▾</span>
+                          </div>
+                        </button>
+
+                        {/* Expanded booking history */}
+                        {isOpen && (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: '12px 18px 16px' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>Booking history</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {u.bookings.map((b, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', flexWrap: 'wrap' }}>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>{b.event_title}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--success)' }}>₹{(b.total || 0).toLocaleString('en-IN')}</span>
+                                    <span className={`admin__booking-status admin__booking-status--${b.status}`}>{b.status}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {u.eventTitles.length > 0 && (
+                              <div style={{ marginTop: 12 }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Events attended</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                  {u.eventTitles.map(t => (
+                                    <span key={t} style={{ fontSize: 11, padding: '2px 9px', borderRadius: 20, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(229,62,122,0.2)' }}>{t}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1052,7 +1205,44 @@ export default function SuperAdmin() {
                         </button>
                       </div>
                     )}
-                    {app.status === 'approved' && <p className="admin__app-done">✓ Invite sent.</p>}
+                    {app.status === 'approved' && (() => {
+                      const orgEvts = allEvents.filter(e =>
+                        e.organizerContact?.toLowerCase() === app.email?.toLowerCase() ||
+                        (app.org_name && e.organizer?.toLowerCase().includes(app.org_name.toLowerCase().slice(0, 6)))
+                      );
+                      const orgEventIds = new Set(orgEvts.map(e => e.id));
+                      const orgBookings = bookings.filter(b => orgEventIds.has(b.event_id) && b.status === 'active');
+                      const revenue = orgBookings.reduce((s, b) => s + (b.total || 0), 0);
+                      const eventsWithSales = new Set(orgBookings.map(b => b.event_id)).size;
+                      const successRate = orgEvts.length ? Math.round((eventsWithSales / orgEvts.length) * 100) : null;
+                      return (
+                        <>
+                          <p className="admin__app-done">✓ Invite sent.</p>
+                          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Performance</div>
+                            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                              {[
+                                { label: 'Events', value: orgEvts.length, color: 'var(--text)' },
+                                { label: 'Revenue', value: `₹${revenue.toLocaleString('en-IN')}`, color: 'var(--success)' },
+                                ...(successRate !== null ? [{ label: 'Success Rate', value: `${successRate}%`, color: successRate >= 60 ? 'var(--success)' : 'var(--accent)' }] : []),
+                              ].map(tile => (
+                                <div key={tile.label}>
+                                  <div style={{ fontSize: 20, fontWeight: 800, color: tile.color, fontVariantNumeric: 'tabular-nums' }}>{tile.value}</div>
+                                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 2 }}>{tile.label}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {orgEvts.length > 0 && (
+                              <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {orgEvts.map(e => (
+                                  <span key={e.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>{e.title}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                     {app.status === 'rejected' && <p className="admin__app-done" style={{ color: 'var(--error)' }}>✕ Rejected</p>}
                   </div>
                 ))}
