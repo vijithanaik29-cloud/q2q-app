@@ -66,7 +66,9 @@ export default function Stories() {
   const [error,        setError]        = useState('');
   const [showForm,     setShowForm]     = useState(false);
   const [expanded,     setExpanded]     = useState({});
-  const feedRef = useRef(null);
+  const [filterOpen,   setFilterOpen]   = useState(false);
+  const feedRef    = useRef(null);
+  const filterRef  = useRef(null);
 
   const loadStories = useCallback(async (pg = 1, tag = '') => {
     setLoading(true);
@@ -100,6 +102,14 @@ export default function Stories() {
   }, []);
 
   useEffect(() => { loadStories(page, activeTag); }, [loadStories, page, activeTag]);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false);
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -243,34 +253,61 @@ export default function Stories() {
         </div>
       )}
 
-      {/* ── Tag filter bar ── */}
+      {/* ── Filter bar ── */}
       <div className="stories__filter-bar">
         <div className="container">
-          <div className="stories__filter-inner">
-            <button
-              className={`stories__filter-chip${activeTag === '' ? ' stories__filter-chip--active' : ''}`}
-              onClick={() => handleTagFilter('')}
-            >
-              All stories
-            </button>
-            {IDENTITY_TAGS.map(t => (
+          <div className="stories__filter-row">
+            <div className="stories__filter-dropdown" ref={filterRef}>
               <button
-                key={t.id}
-                className={`stories__filter-chip${activeTag === t.id ? ' stories__filter-chip--active' : ''}`}
-                onClick={() => handleTagFilter(t.id)}
+                className={`stories__filter-btn${activeTag ? ' stories__filter-btn--active' : ''}`}
+                onClick={() => setFilterOpen(v => !v)}
+                aria-expanded={filterOpen}
               >
-                {t.label}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+                </svg>
+                {activeTag ? (TAGS.find(t => t.id === activeTag)?.label ?? 'Filter') : 'Filter'}
+                {activeTag && (
+                  <span
+                    className="stories__filter-clear"
+                    role="button"
+                    aria-label="Clear filter"
+                    onClick={e => { e.stopPropagation(); handleTagFilter(''); }}
+                  >×</span>
+                )}
               </button>
-            ))}
-            {PERSPECTIVE_TAGS.map(t => (
-              <button
-                key={t.id}
-                className={`stories__filter-chip${activeTag === t.id ? ' stories__filter-chip--active' : ''}`}
-                onClick={() => handleTagFilter(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
+
+              {filterOpen && (
+                <div className="stories__filter-panel">
+                  <p className="stories__filter-group-label">Identity</p>
+                  <div className="stories__filter-options">
+                    {IDENTITY_TAGS.map(t => (
+                      <button
+                        key={t.id}
+                        className={`stories__filter-option${activeTag === t.id ? ' stories__filter-option--active' : ''}`}
+                        onClick={() => { handleTagFilter(t.id); setFilterOpen(false); }}
+                      >{t.label}</button>
+                    ))}
+                  </div>
+                  <p className="stories__filter-group-label" style={{ marginTop: 16 }}>Someone came out to you?</p>
+                  <div className="stories__filter-options">
+                    {PERSPECTIVE_TAGS.map(t => (
+                      <button
+                        key={t.id}
+                        className={`stories__filter-option${activeTag === t.id ? ' stories__filter-option--active' : ''}`}
+                        onClick={() => { handleTagFilter(t.id); setFilterOpen(false); }}
+                      >{t.label}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {activeTag && (
+              <span className="stories__filter-active-label">
+                Showing: <strong>{TAGS.find(t => t.id === activeTag)?.label}</strong>
+              </span>
+            )}
           </div>
         </div>
       </div>

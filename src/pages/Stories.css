@@ -226,39 +226,115 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 0;
+  padding: 12px 0;
 }
-.stories__filter-inner {
+
+.stories__filter-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 14px 0;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  gap: 12px;
 }
-.stories__filter-inner::-webkit-scrollbar { display: none; }
-.stories__filter-chip {
-  flex-shrink: 0;
+
+.stories__filter-dropdown {
+  position: relative;
+}
+
+.stories__filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.stories__filter-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stories__filter-btn--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.stories__filter-btn--active:hover {
+  opacity: 0.9;
+  color: #fff;
+}
+
+.stories__filter-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+.stories__filter-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 300px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 16px;
+  z-index: 100;
+}
+
+.stories__filter-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.stories__filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stories__filter-option {
   background: transparent;
   border: 1px solid var(--border-2);
   border-radius: var(--radius-full);
-  padding: 7px 16px;
-  font-size: 13px;
+  padding: 5px 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition);
   white-space: nowrap;
 }
-.stories__filter-chip:hover {
+.stories__filter-option:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
-.stories__filter-chip--active {
+.stories__filter-option--active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+.stories__filter-active-label {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .stories__tag-group-label {
