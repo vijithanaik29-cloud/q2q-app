@@ -430,6 +430,7 @@ export default function Admin() {
   const [resendCooldown,setResendCooldown]= useState(0);
 
   const [activeTab,     setActiveTab]     = useState('list');
+  const [eventFilter,   setEventFilter]   = useState('upcoming');
   const [form,          setForm]          = useState(BLANK_EVENT);
   const [errors,        setErrors]        = useState({});
   const [submitted,     setSubmitted]     = useState(false);
@@ -762,6 +763,12 @@ export default function Admin() {
 
   // ── Main organiser portal ────────────────────────────────────────────────────
   const myEvents = allEvents.filter(e => e.organizerId === user?.id);
+  const today = new Date().toISOString().slice(0, 10);
+  const filteredEvents = myEvents.filter(ev => {
+    if (eventFilter === 'upcoming') return !ev.date || ev.date >= today;
+    if (eventFilter === 'past')     return ev.date && ev.date < today;
+    return true;
+  });
 
   return (
     <div className="admin fade-up">
@@ -783,6 +790,7 @@ export default function Admin() {
           <button className={`admin__tab ${activeTab === 'list'     ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('list')}>
             My Events ({myEvents.length})
           </button>
+          {/* scanner tab removed — check-in is inline */}
           <button className={`admin__tab ${activeTab === 'add'      ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('add')}>
             + Submit New Event
           </button>
@@ -809,32 +817,78 @@ export default function Admin() {
         {/* My Events */}
         {activeTab === 'list' && (
           <div className="admin__list">
-            {myEvents.length === 0 ? (
+            {/* Past / Upcoming filter */}
+            {myEvents.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                {[['upcoming', 'Upcoming'], ['past', 'Past'], ['all', 'All']].map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setEventFilter(val)}
+                    style={{
+                      padding: '6px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: eventFilter === val ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: eventFilter === val ? 'var(--accent)' : 'transparent',
+                      color: eventFilter === val ? '#fff' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {label}
+                    <span style={{ marginLeft: 6, opacity: 0.7, fontWeight: 400 }}>
+                      ({myEvents.filter(ev => {
+                        if (val === 'upcoming') return !ev.date || ev.date >= today;
+                        if (val === 'past')     return ev.date && ev.date < today;
+                        return true;
+                      }).length})
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {filteredEvents.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state__icon">🎟️</div>
-                <h3>No events yet</h3>
-                <p>Submit your first event using the <strong>+ Submit New Event</strong> tab above.</p>
+                {myEvents.length === 0 ? (
+                  <>
+                    <h3>No events yet</h3>
+                    <p>Submit your first event using the <strong>+ Submit New Event</strong> tab above.</p>
+                  </>
+                ) : (
+                  <>
+                    <h3>No {eventFilter === 'all' ? '' : eventFilter} events</h3>
+                    <p>Switch to <strong>All</strong> to see all your events.</p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="admin__events-grid">
-                {myEvents.map(event => (
-                  <div key={event.id} className="admin__event-card card">
-                    <div className="admin__event-banner" style={{ background: event.gradient }} />
-                    <div className="admin__event-body">
-                      <div className="admin__event-badges">
-                        <span className="badge badge-green">Live</span>
-                        <span className="badge badge-gray">{event.city}</span>
-                        {event.boosted && <span className="badge" style={{ background: 'rgba(234,179,8,0.15)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.3)' }}>⚡ Boosted</span>}
+                {filteredEvents.map(event => {
+                  const isPast = event.date && event.date < today;
+                  return (
+                    <div key={event.id} className="admin__event-card card" style={isPast ? { opacity: 0.7 } : {}}>
+                      <div className="admin__event-banner" style={{ background: event.gradient }} />
+                      <div className="admin__event-body">
+                        <div className="admin__event-badges">
+                          {isPast
+                            ? <span className="badge badge-gray">Past</span>
+                            : <span className="badge badge-green">Live</span>}
+                          <span className="badge badge-gray">{event.city}</span>
+                          {event.boosted && <span className="badge" style={{ background: 'rgba(234,179,8,0.15)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.3)' }}>⚡ Boosted</span>}
+                        </div>
+                        <h3 className="admin__event-title">{event.title}</h3>
+                        <p className="admin__event-meta">{formatDate(event.date)}</p>
+                        <p className="admin__event-meta">{event.venue}</p>
+                        <button className="admin__dashboard-btn" style={{ marginTop: 12, width: '100%' }} onClick={() => setSelectedEvent(event)}>
+                          View Dashboard →
+                        </button>
                       </div>
-                      <h3 className="admin__event-title">{event.title}</h3>
-                      <p className="admin__event-meta">{formatDate(event.date)}</p>
-                      <p className="admin__event-meta">{event.venue}</p>
-                      <button className="admin__dashboard-btn" style={{ marginTop: 12, width: '100%' }} onClick={() => setSelectedEvent(event)}>
-                        View Dashboard →
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
