@@ -41,9 +41,10 @@ export default function Home() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setCity(city) {
-    if (city === 'All') { searchParams.delete('city'); lsSet('q2q_city_pref', null); }
-    else { searchParams.set('city', city); lsSet('q2q_city_pref', city); }
-    setSearchParams(searchParams, { replace: true });
+    const next = new URLSearchParams(searchParams);
+    if (city === 'All') { next.delete('city'); lsSet('q2q_city_pref', null); }
+    else { next.set('city', city); lsSet('q2q_city_pref', city); }
+    setSearchParams(next, { replace: true });
   }
 
   function setCategory(cat) {
@@ -81,7 +82,7 @@ export default function Home() {
   // Carousel: boosted first, then featured-only; filter by city if one is selected
   const carouselEvents = useMemo(() => {
     const pool = allEvents.filter(e => e.featured || e.boosted);
-    const cityPool = selectedCity === 'All' ? pool : pool.filter(e => e.city === selectedCity);
+    const cityPool = selectedCity === 'All' ? pool : pool.filter(e => (e.city || '').toLowerCase() === selectedCity.toLowerCase());
     const src = cityPool.length >= 2 ? cityPool : pool;
     const boosted  = src.filter(e => e.boosted);
     const featOnly = src.filter(e => e.featured && !e.boosted);
@@ -108,8 +109,8 @@ export default function Home() {
   const filteredEvents = useMemo(() => {
     const { todayStr, tomorrowStr, satStr, sunStr } = getDateRange(dateFilter);
     const filtered = allEvents.filter(e => {
-      const matchCity = selectedCity === 'All' || e.city === selectedCity;
-      const matchCat = selectedCategory === 'All' || e.category === selectedCategory;
+      const matchCity = selectedCity === 'All' || (e.city || '').toLowerCase() === selectedCity.toLowerCase();
+      const matchCat = selectedCategory === 'All' || (e.category || '').toLowerCase() === selectedCategory.toLowerCase();
       const matchSearch = !search ||
         e.title.toLowerCase().includes(search.toLowerCase()) ||
         e.venue.toLowerCase().includes(search.toLowerCase()) ||
@@ -118,11 +119,12 @@ export default function Home() {
       const matchPrice = priceFilter === 'All' ||
         (priceFilter === 'Free' && minPrice === 0) ||
         (priceFilter === 'Paid' && minPrice > 0);
+      const d = e.date ? String(e.date).slice(0, 10) : null;
       const matchDate = dateFilter === 'all' ? true :
-        dateFilter === 'upcoming' ? e.date >= todayStr :
-        dateFilter === 'today' ? e.date === todayStr :
-        dateFilter === 'tomorrow' ? e.date === tomorrowStr :
-        dateFilter === 'weekend' ? (e.date === satStr || e.date === sunStr) : true;
+        dateFilter === 'upcoming' ? (!d || d >= todayStr) :
+        dateFilter === 'today' ? d === todayStr :
+        dateFilter === 'tomorrow' ? d === tomorrowStr :
+        dateFilter === 'weekend' ? (d === satStr || d === sunStr) : true;
       return matchCity && matchCat && matchSearch && matchPrice && matchDate;
     });
     // Boosted events rotate to top (round-robin per 5-minute bucket)
