@@ -100,6 +100,11 @@ export default function SuperAdmin() {
   const [sponsorNotes,   setSponsorNotes]   = useState({});
   const [sponsorActing,  setSponsorActing]  = useState(null);
 
+  // ── Fundraisers ──────────────────────────────────────────────────────────────
+  const [allFundraisers,     setAllFundraisers]     = useState([]);
+  const [fundraisersLoading, setFundraisersLoading] = useState(false);
+  const [frActing,           setFrActing]           = useState(null);
+
   // ── QR Scanner ───────────────────────────────────────────────────────────────
   const [scannerActive, setScannerActive]  = useState(false);
   const [scannedBooking,setScannedBooking] = useState(null);
@@ -135,11 +140,12 @@ export default function SuperAdmin() {
   useEffect(() => {
     if (!totpVerified) return;
     if (activeTab === 'overview' || activeTab === 'applications') loadApplications();
-    if (activeTab === 'bookings')    loadBookings();
-    if (activeTab === 'coupons')     loadCoupons();
-    if (activeTab === 'influencers') loadInfluencers();
-    if (activeTab === 'stories')     loadStories();
-    if (activeTab === 'sponsors')    loadAllSponsorSubs();
+    if (activeTab === 'bookings')     loadBookings();
+    if (activeTab === 'coupons')      loadCoupons();
+    if (activeTab === 'influencers')  loadInfluencers();
+    if (activeTab === 'stories')      loadStories();
+    if (activeTab === 'sponsors')     loadAllSponsorSubs();
+    if (activeTab === 'fundraisers')  loadAllFundraisers();
   }, [user, activeTab, totpVerified]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────────
@@ -183,6 +189,20 @@ export default function SuperAdmin() {
     const { data } = await supabase.from('sponsor_submissions').select('*').order('created_at', { ascending: false });
     setAllSponsorSubs(data || []);
     setSponsorSubsLoad(false);
+  }
+
+  async function loadAllFundraisers() {
+    setFundraisersLoading(true);
+    const { data } = await supabase.from('fundraisers').select('*').order('created_at', { ascending: false });
+    setAllFundraisers(data || []);
+    setFundraisersLoading(false);
+  }
+
+  async function setFundraiserStatus(id, status) {
+    setFrActing(id);
+    await supabase.from('fundraisers').update({ status }).eq('id', id);
+    setAllFundraisers(prev => prev.map(f => f.id === id ? { ...f, status } : f));
+    setFrActing(null);
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────
@@ -689,6 +709,9 @@ export default function SuperAdmin() {
             onClick={() => { stopScanner(); setScannedBooking(null); setScanError(''); setScanCheckedIn(false); setActiveTab('scanner'); }}>
             📷 Scanner
           </button>
+          <button className={`admin__tab admin__tab--super ${activeTab === 'fundraisers' ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('fundraisers')}>
+            💚 Fundraisers
+          </button>
         </div>
 
         {/* ── Overview ─────────────────────────────────────────────────────── */}
@@ -1164,6 +1187,81 @@ export default function SuperAdmin() {
                   {!scanCheckedIn && <button className="btn btn-primary" disabled={scanChecking} onClick={() => doCheckIn(scannedBooking.id)}>{scanChecking ? 'Checking in…' : '✅ Check In'}</button>}
                   <button className="btn btn-outline" onClick={() => { setScannedBooking(null); setScanError(''); setScanCheckedIn(false); startScanner(); }}>Scan Next</button>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Fundraisers ───────────────────────────────────────────────────── */}
+        {activeTab === 'fundraisers' && (
+          <div className="admin__form-section" style={{ maxWidth: 760 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ margin: 0 }}>All Fundraisers</h2>
+              <button className="btn btn-ghost btn-sm" onClick={loadAllFundraisers}>↻ Refresh</button>
+            </div>
+            {fundraisersLoading ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</p>
+            ) : allFundraisers.length === 0 ? (
+              <div className="empty-state" style={{ paddingBlock: 40 }}>
+                <div className="empty-state__icon">💚</div>
+                <h3>No fundraisers yet</h3>
+                <p>Verified organizers create them from their Admin dashboard.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {allFundraisers.map(f => {
+                  const pct = Math.min(100, Math.round((f.collected_amount / f.target_amount) * 100));
+                  const daysLeft = f.end_date ? Math.max(0, Math.ceil((new Date(f.end_date) - Date.now()) / 86400000)) : null;
+                  return (
+                    <div key={f.id} style={{ background: 'var(--surface)', border: `1.5px solid ${f.status === 'active' ? 'rgba(16,185,129,.25)' : 'var(--border-2)'}`, borderRadius: 14, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--text)' }}>{f.title}</p>
+                          <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                            by {f.organizer_name}
+                            {f.end_date && <> · {daysLeft === 0 ? 'last day' : daysLeft !== null ? `${daysLeft}d left` : ''}</>}
+                            {' · '}created {new Date(f.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, flexShrink: 0,
+                          background: f.status === 'active' ? 'rgba(16,185,129,.12)' : f.status === 'closed' ? 'rgba(255,255,255,.06)' : 'rgba(139,92,246,.1)',
+                          color:      f.status === 'active' ? '#10b981'              : f.status === 'closed' ? 'var(--text-muted)'       : 'var(--accent)',
+                        }}>{f.status}</span>
+                      </div>
+
+                      <div style={{ height: 5, background: 'var(--border-2)', borderRadius: 100, overflow: 'hidden', marginBottom: 8 }}>
+                        <div style={{ height: '100%', background: 'linear-gradient(90deg,#10b981,#059669)', borderRadius: 100, width: `${pct}%`, minWidth: 4 }} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                          <strong style={{ color: '#10b981' }}>₹{f.collected_amount.toLocaleString('en-IN')}</strong>
+                          {' '}of ₹{f.target_amount.toLocaleString('en-IN')} · {pct}% · {f.donor_count} {f.donor_count === 1 ? 'donor' : 'donors'}
+                        </p>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {f.status !== 'active' && (
+                            <button disabled={frActing === f.id} onClick={() => setFundraiserStatus(f.id, 'active')}
+                              style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, border: '1px solid #10b981', background: 'rgba(16,185,129,.08)', color: '#10b981', cursor: 'pointer' }}>
+                              Set Active
+                            </button>
+                          )}
+                          {f.status !== 'closed' && (
+                            <button disabled={frActing === f.id} onClick={() => setFundraiserStatus(f.id, 'closed')}
+                              style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                              Close
+                            </button>
+                          )}
+                          {f.status !== 'draft' && (
+                            <button disabled={frActing === f.id} onClick={() => setFundraiserStatus(f.id, 'draft')}
+                              style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(139,92,246,.3)', background: 'rgba(139,92,246,.06)', color: 'var(--accent)', cursor: 'pointer' }}>
+                              Draft
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
