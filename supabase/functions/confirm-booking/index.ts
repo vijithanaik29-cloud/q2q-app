@@ -1,6 +1,7 @@
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const RAZORPAY_KEY_ID       = Deno.env.get('RAZORPAY_KEY_ID')!;
 const RAZORPAY_KEY_SECRET   = Deno.env.get('RAZORPAY_KEY_SECRET')!;
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -180,6 +181,18 @@ serve(async (req) => {
   const valid = await verifyRazorpaySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
   if (!valid) {
     return new Response(JSON.stringify({ error: 'Payment verification failed' }), {
+      status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Verify the order amount matches what the server created — prevents paying ₹1 for any ticket
+  const rpOrderRes = await fetch(`https://api.razorpay.com/v1/orders/${razorpay_order_id}`, {
+    headers: { Authorization: `Basic ${btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`)}` },
+  });
+  const rpOrder = await rpOrderRes.json();
+  if (!rpOrderRes.ok || rpOrder.amount !== Math.round(booking.total * 100)) {
+    console.error('Amount mismatch — order:', rpOrder.amount, 'claimed:', booking.total * 100);
+    return new Response(JSON.stringify({ error: 'Payment amount mismatch' }), {
       status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
     });
   }
