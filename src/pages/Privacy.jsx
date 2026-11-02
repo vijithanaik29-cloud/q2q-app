@@ -9,6 +9,7 @@ export default function Privacy() {
         <div className="legal__nav">
           <Link to="/privacy" className="active">Privacy Policy</Link>
           <Link to="/terms">Terms of Service</Link>
+          <Link to="/refund">Refund Policy</Link>
         </div>
 
         <div className="legal__header">

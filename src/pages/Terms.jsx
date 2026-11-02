@@ -9,6 +9,7 @@ export default function Terms() {
         <div className="legal__nav">
           <Link to="/privacy">Privacy Policy</Link>
           <Link to="/terms" className="active">Terms of Service</Link>
+          <Link to="/refund">Refund Policy</Link>
         </div>
 
         <div className="legal__header">

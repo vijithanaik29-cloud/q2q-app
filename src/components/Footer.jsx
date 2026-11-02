@@ -34,6 +34,7 @@ export default function Footer() {
             <a href="mailto:hello@q2q.in">Contact Us</a>
             <Link to="/privacy">Privacy Policy</Link>
             <Link to="/terms">Terms of Service</Link>
+            <Link to="/refund">Refund Policy</Link>
           </div>
         </div>
       </div>

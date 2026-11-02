@@ -11,6 +11,7 @@ import SuperAdmin from './pages/SuperAdmin';
 import Apply from './pages/Apply';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import Refund from './pages/Refund';
 import Stories from './pages/Stories';
 import Fundraisers from './pages/Fundraisers';
 import MyBookings from './pages/MyBookings';
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/fundraisers/:id" element={<Fundraisers />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/refund" element={<Refund />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
