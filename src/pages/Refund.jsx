@@ -61,7 +61,7 @@ export default function Refund() {
             <li>Your Razorpay payment ID or UPI reference number (optional, speeds up processing)</li>
           </ul>
           <p>
-            We aim to respond within 2 business days. Approved refunds are credited to your original payment method within 5–7 business days after approval, depending on your bank or card issuer.
+            We aim to respond within 2 business days. Our support hours are Monday to Friday, 10 AM–6 PM IST. Approved refunds are credited to your original payment method within 5–7 business days after approval, depending on your bank or card issuer.
           </p>
 
           <h2>6. Refund amounts</h2>
@@ -76,7 +76,7 @@ export default function Refund() {
 
           <h2>8. Contact</h2>
           <p>
-            For any refund queries, write to us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>. We typically respond within 2 business days, Monday to Friday.
+            For any refund queries, write to us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>. We typically respond within 2 business days. Support hours: Monday to Friday, 10 AM–6 PM IST.
           </p>
         </div>
 
