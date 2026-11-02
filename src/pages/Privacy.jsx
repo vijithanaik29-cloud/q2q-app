@@ -25,7 +25,7 @@ export default function Privacy() {
 
           <h2>1. Who we are</h2>
           <p>
-            Q2Q ("we", "us", "our") operates the website at <strong>q2q.co.in</strong> and the Q2Q ticketing platform. For questions about this policy, write to us at <a href="mailto:hello@q2q.in">hello@q2q.in</a>.
+            Q2Q ("we", "us", "our") operates the website at <strong>q2q.co.in</strong> and the Q2Q ticketing platform. For questions about this policy, write to us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>.
           </p>
 
           <h2>2. What data we collect and why</h2>
@@ -81,7 +81,7 @@ export default function Privacy() {
             <li>Request deletion of your data (subject to legal retention requirements)</li>
             <li>Withdraw consent at any time</li>
           </ul>
-          <p>To exercise any of these rights, email us at <a href="mailto:hello@q2q.in">hello@q2q.in</a>. We will respond within 30 days.</p>
+          <p>To exercise any of these rights, email us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>. We will respond within 30 days.</p>
 
           <h2>8. Cookies and tracking</h2>
           <p>
@@ -105,7 +105,7 @@ export default function Privacy() {
 
           <h2>12. Contact</h2>
           <p>
-            For any privacy-related questions or requests, contact us at <a href="mailto:hello@q2q.in">hello@q2q.in</a>.
+            For any privacy-related questions or requests, contact us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>.
           </p>
         </div>
       </div>

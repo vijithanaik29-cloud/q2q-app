@@ -15,7 +15,7 @@ export default function Terms() {
         <div className="legal__header">
           <span className="legal__tag">Legal</span>
           <h1>Terms of Service</h1>
-          <p className="legal__meta">Effective date: 1 November 2026 &nbsp;·&nbsp; Last updated: 30 October 2026</p>
+          <p className="legal__meta">Effective date: 1 November 2026 &nbsp;·&nbsp; Last updated: 2 November 2026</p>
         </div>
 
         <div className="legal__body">
@@ -42,6 +42,7 @@ export default function Terms() {
             <li>Q2Q does not issue refunds for change of mind, inability to attend, or dissatisfaction with the event.</li>
             <li>When a refund is issued, it is returned to your original payment method within 5–7 business days via Razorpay.</li>
           </ul>
+          <p>See our full <Link to="/refund">Refund &amp; Cancellation Policy</Link> for details on how to request a refund.</p>
 
           <p><strong>Ticket transfers</strong></p>
           <p>
@@ -128,7 +129,7 @@ export default function Terms() {
 
           <h2>8. Contact</h2>
           <p>
-            For any questions about these terms, write to <a href="mailto:hello@q2q.in">hello@q2q.in</a>.
+            For any questions about these terms, write to <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>.
           </p>
         </div>
       </div>
