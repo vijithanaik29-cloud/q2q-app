@@ -15,7 +15,7 @@ export default function Privacy() {
         <div className="legal__header">
           <span className="legal__tag">Legal</span>
           <h1>Privacy Policy</h1>
-          <p className="legal__meta">Effective date: 1 November 2026 &nbsp;·&nbsp; Last updated: 30 October 2026</p>
+          <p className="legal__meta">Effective date: 1 November 2026 &nbsp;·&nbsp; Last updated: 2 November 2026</p>
         </div>
 
         <div className="legal__body">
@@ -41,6 +41,15 @@ export default function Privacy() {
             <li><strong>Social media links and website</strong> (optional) — to verify you are a legitimate event organiser</li>
             <li><strong>Event format preferences</strong> (optional) — to understand the kind of events you run</li>
           </ul>
+          <p><strong>When you submit a community story:</strong></p>
+          <ul>
+            <li><strong>Display name and city</strong> (optional) — shown alongside your story if you choose to include them</li>
+            <li><strong>Story text</strong> — published publicly on the Q2Q Stories page after moderation</li>
+          </ul>
+          <p><strong>When you set up payouts (organisers):</strong></p>
+          <ul>
+            <li><strong>Bank account number, IFSC code, and bank name</strong> — used solely to transfer event earnings to you. This data is stored encrypted and is never shared with any party other than your bank.</li>
+          </ul>
           <p><strong>We do not collect:</strong> government IDs, Aadhaar, PAN, bank account details from attendees, or any sensitive personal data beyond what is listed above.</p>
 
           <h2>3. Payment data</h2>
@@ -61,7 +70,7 @@ export default function Privacy() {
           <h2>5. Who we share data with</h2>
           <ul>
             <li><strong>Razorpay</strong> — your name, email, and phone are passed to Razorpay's checkout form to prefill your payment details. Razorpay processes the transaction and sends you a payment receipt.</li>
-            <li><strong>Supabase</strong> — our database provider (hosted in Mumbai, India). Booking records are stored on Supabase's servers under strict access controls.</li>
+            <li><strong>Supabase</strong> — our database provider. Booking records are stored on Supabase's secure servers under strict Row Level Security access controls.</li>
             <li><strong>Event organisers</strong> — organiser accounts can see the name, email, and phone of attendees who booked tickets for their events. They are not permitted to use this data for any purpose other than managing that event.</li>
           </ul>
           <p>We do not sell, rent, or share your personal data with any other third party.</p>
