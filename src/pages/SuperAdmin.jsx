@@ -118,8 +118,11 @@ export default function SuperAdmin() {
   const [analytics,        setAnalytics]        = useState(null);
   const [analyticsRange,   setAnalyticsRange]   = useState('90');
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [analyticsCity,    setAnalyticsCity]    = useState('all');
-  const [analyticsCat,     setAnalyticsCat]     = useState('all');
+  const [analyticsCity,     setAnalyticsCity]     = useState('all');
+  const [analyticsCat,      setAnalyticsCat]      = useState('all');
+  const [analyticsEvent,    setAnalyticsEvent]    = useState('all');
+  const [analyticsDateFrom, setAnalyticsDateFrom] = useState('');
+  const [analyticsDateTo,   setAnalyticsDateTo]   = useState('');
 
   // ── QR Scanner ───────────────────────────────────────────────────────────────
   const [scannerActive, setScannerActive]  = useState(false);
@@ -163,12 +166,12 @@ export default function SuperAdmin() {
     if (activeTab === 'sponsors')     loadAllSponsorSubs();
     if (activeTab === 'fundraisers')  loadAllFundraisers();
     if (activeTab === 'users')        loadUsers();
-    if (activeTab === 'analytics')    { loadApplications(); loadAnalytics(analyticsRange); }
+    if (activeTab === 'analytics')    { loadApplications(); loadAnalytics(analyticsRange, analyticsDateFrom, analyticsDateTo); }
   }, [user, activeTab, totpVerified]);
 
   useEffect(() => {
-    if (totpVerified && activeTab === 'analytics') loadAnalytics(analyticsRange);
-  }, [analyticsRange]);
+    if (totpVerified && activeTab === 'analytics') loadAnalytics(analyticsRange, analyticsDateFrom, analyticsDateTo);
+  }, [analyticsRange, analyticsDateFrom, analyticsDateTo]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────────
   async function loadApplications() {
@@ -249,11 +252,16 @@ export default function SuperAdmin() {
     setUsersLoading(false);
   }
 
-  async function loadAnalytics(rangeDays) {
+  async function loadAnalytics(rangeDays, dateFrom, dateTo) {
     setAnalyticsLoading(true);
-    const fromDate = rangeDays === 'all'
-      ? null
-      : new Date(Date.now() - Number(rangeDays) * 86400000).toISOString();
+    let fromDate = null;
+    let toDate   = null;
+    if (rangeDays === 'custom') {
+      fromDate = dateFrom ? new Date(dateFrom).toISOString() : null;
+      toDate   = dateTo   ? new Date(dateTo + 'T23:59:59').toISOString() : null;
+    } else if (rangeDays !== 'all') {
+      fromDate = new Date(Date.now() - Number(rangeDays) * 86400000).toISOString();
+    }
 
     // Fetch bookings, events, donations, coupons, influencers, fundraisers, sponsors in parallel
     let bq = supabase
@@ -261,6 +269,7 @@ export default function SuperAdmin() {
       .select('id, attendee, total, status, created_at, event_title, event_id, tickets')
       .order('created_at', { ascending: true });
     if (fromDate) bq = bq.gte('created_at', fromDate);
+    if (toDate)   bq = bq.lte('created_at', toDate);
 
     const [{ data: bData }, { data: evData }, { data: donData }, { data: cpData }, { data: infData }, { data: frData }, { data: spData }] = await Promise.all([
       bq,
@@ -1124,10 +1133,11 @@ export default function SuperAdmin() {
             return new Date(Number(y), Number(m) - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
           };
 
-          // Filtered data based on city + category selectors
+          // Filtered data based on city + category + event selectors
           const filteredEvents = analytics?.perEvent?.filter(e =>
-            (analyticsCity === 'all' || e.city === analyticsCity) &&
-            (analyticsCat  === 'all' || e.category === analyticsCat)
+            (analyticsCity  === 'all' || e.city     === analyticsCity) &&
+            (analyticsCat   === 'all' || e.category === analyticsCat) &&
+            (analyticsEvent === 'all' || e.event_id === analyticsEvent)
           ) || [];
 
           const filteredRevenue = filteredEvents.reduce((s, e) => s + e.revenue, 0);
@@ -1139,44 +1149,95 @@ export default function SuperAdmin() {
 
           const maxRev = analytics?.months?.length ? Math.max(...analytics.months.map(m => m.revenue), 1) : 1;
 
-          const filterActive = analyticsCity !== 'all' || analyticsCat !== 'all';
+          const filterActive = analyticsCity !== 'all' || analyticsCat !== 'all' || analyticsEvent !== 'all';
           const displayRevenue = filterActive ? filteredRevenue : (analytics?.revenue ?? 0);
           const displayProfit  = filterActive ? filteredProfit  : (analytics?.profit  ?? 0);
           const displayTickets = filterActive ? filteredTickets : (analytics?.ticketsSold ?? 0);
 
-          const pillBtn = (active, onClick, label) => (
-            <button onClick={onClick} style={{
-              padding: '5px 13px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-              border: active ? '1px solid #8B5CF6' : '1px solid var(--border-2)',
-              background: active ? '#8B5CF6' : 'transparent',
-              color: active ? '#fff' : 'var(--text-muted)',
-              transition: 'all 0.15s',
-            }}>{label}</button>
-          );
+          const selStyle = {
+            background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border-2)',
+            borderRadius: 8, padding: '7px 10px', fontSize: 13, cursor: 'pointer', minWidth: 140,
+          };
+          const labelStyle = {
+            fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em',
+            textTransform: 'uppercase', display: 'block', marginBottom: 4,
+          };
+          const anyFilter = analyticsCity !== 'all' || analyticsCat !== 'all' || analyticsEvent !== 'all' || analyticsRange !== '90' || analyticsDateFrom || analyticsDateTo;
 
           return (
             <div style={{ maxWidth: 900 }}>
 
-              {/* ── Filter row ── */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 2 }}>Range</span>
-                {RANGES.map(r => pillBtn(analyticsRange === r.value, () => setAnalyticsRange(r.value), r.label))}
-                {analyticsLoading && <div className="spinner" style={{ width: 14, height: 14, marginLeft: 4 }} />}
+              {/* ── Filter bar ── */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  {/* Range */}
+                  <div>
+                    <label style={labelStyle}>Date Range</label>
+                    <select value={analyticsRange} onChange={e => setAnalyticsRange(e.target.value)} style={selStyle}>
+                      {RANGES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      <option value="custom">Custom range…</option>
+                    </select>
+                  </div>
+
+                  {/* Custom from/to */}
+                  {analyticsRange === 'custom' && (<>
+                    <div>
+                      <label style={labelStyle}>From</label>
+                      <input type="date" value={analyticsDateFrom} onChange={e => setAnalyticsDateFrom(e.target.value)}
+                        style={{ ...selStyle, minWidth: 0 }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>To</label>
+                      <input type="date" value={analyticsDateTo} onChange={e => setAnalyticsDateTo(e.target.value)}
+                        style={{ ...selStyle, minWidth: 0 }} />
+                    </div>
+                  </>)}
+
+                  {/* City */}
+                  {activeCities.length > 0 && (
+                    <div>
+                      <label style={labelStyle}>City</label>
+                      <select value={analyticsCity} onChange={e => setAnalyticsCity(e.target.value)} style={selStyle}>
+                        <option value="all">All cities</option>
+                        {activeCities.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Type */}
+                  {activeCats.length > 0 && (
+                    <div>
+                      <label style={labelStyle}>Type</label>
+                      <select value={analyticsCat} onChange={e => setAnalyticsCat(e.target.value)} style={selStyle}>
+                        <option value="all">All types</option>
+                        {activeCats.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Event */}
+                  {analytics?.perEvent?.length > 0 && (
+                    <div>
+                      <label style={labelStyle}>Event</label>
+                      <select value={analyticsEvent} onChange={e => setAnalyticsEvent(e.target.value)} style={{ ...selStyle, minWidth: 180 }}>
+                        <option value="all">All events</option>
+                        {analytics.perEvent.map(e => <option key={e.event_id} value={e.event_id}>{e.title}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Right side: spinner + clear */}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginLeft: 'auto' }}>
+                    {analyticsLoading && <div className="spinner" style={{ width: 16, height: 16 }} />}
+                    {anyFilter && (
+                      <button onClick={() => { setAnalyticsCity('all'); setAnalyticsCat('all'); setAnalyticsEvent('all'); setAnalyticsRange('90'); setAnalyticsDateFrom(''); setAnalyticsDateTo(''); }}
+                        style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--text-muted)' }}>
+                        ✕ Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              {activeCities.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 2 }}>City</span>
-                  {pillBtn(analyticsCity === 'all', () => setAnalyticsCity('all'), 'All')}
-                  {activeCities.map(c => pillBtn(analyticsCity === c, () => setAnalyticsCity(c), c))}
-                </div>
-              )}
-              {activeCats.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 2 }}>Type</span>
-                  {pillBtn(analyticsCat === 'all', () => setAnalyticsCat('all'), 'All')}
-                  {activeCats.map(c => pillBtn(analyticsCat === c, () => setAnalyticsCat(c), c))}
-                </div>
-              )}
 
               {/* ── Revenue & Profit KPIs ── */}
               <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Revenue & Profit</h3>
