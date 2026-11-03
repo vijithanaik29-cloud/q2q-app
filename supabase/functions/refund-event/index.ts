@@ -1,25 +1,36 @@
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const RAZORPAY_KEY_ID     = Deno.env.get('RAZORPAY_KEY_ID')!;
-const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET')!;
-const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const SUPERADMIN_EMAIL    = 'vijithanaik29@gmail.com';
+const CF_APP_ID  = Deno.env.get('CASHFREE_APP_ID')!;
+const CF_SECRET  = Deno.env.get('CASHFREE_SECRET_KEY')!;
+const CF_ENV     = Deno.env.get('CASHFREE_ENV') ?? 'production';
+const CF_BASE    = CF_ENV === 'sandbox'
+  ? 'https://sandbox.cashfree.com/pg'
+  : 'https://api.cashfree.com/pg';
+const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPERADMIN_EMAIL = 'vijithanaik29@gmail.com';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function razorpayRefund(paymentId: string, amountPaise: number) {
-  const res = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/refund`, {
+async function cashfreeRefund(cfOrderId: string, amount: number, bookingId: string) {
+  const refundId = `ref_${bookingId.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40)}`;
+  const res = await fetch(`${CF_BASE}/orders/${cfOrderId}/refunds`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`)}`,
-      'Content-Type': 'application/json',
+      'x-api-version':   '2023-08-01',
+      'x-client-id':     CF_APP_ID,
+      'x-client-secret': CF_SECRET,
+      'Content-Type':    'application/json',
     },
-    body: JSON.stringify({ amount: amountPaise }),
+    body: JSON.stringify({
+      refund_amount: amount,
+      refund_id:     refundId,
+      refund_note:   'Event cancelled by organiser',
+    }),
   });
   return res.json();
 }
@@ -49,10 +60,10 @@ serve(async (req) => {
   // Fetch all active paid bookings for this event
   const { data: bookings, error: fetchErr } = await supabase
     .from('bookings')
-    .select('id, payment_id, total')
+    .select('id, cf_order_id, total')
     .eq('event_id', event_id)
     .eq('status', 'active')
-    .not('payment_id', 'is', null);
+    .not('cf_order_id', 'is', null);
 
   if (fetchErr) {
     return new Response(JSON.stringify({ error: fetchErr.message }), {
@@ -68,17 +79,14 @@ serve(async (req) => {
 
   const results = [];
   for (const booking of bookings) {
-    const amountPaise = Math.round(booking.total * 100);
-    const refund = await razorpayRefund(booking.payment_id, amountPaise);
+    const refund = await cashfreeRefund(booking.cf_order_id, booking.total, booking.id);
 
-    if (refund.id) {
-      // Mark booking as refunded
-      await supabase.from('bookings')
-        .update({ status: 'refunded' })
-        .eq('id', booking.id);
-      results.push({ booking_id: booking.id, refund_id: refund.id, status: 'refunded' });
+    // Cashfree returns refund_status: SUCCESS, PENDING, or an error
+    if (refund.cf_refund_id || refund.refund_status === 'SUCCESS' || refund.refund_status === 'PENDING') {
+      await supabase.from('bookings').update({ status: 'refunded' }).eq('id', booking.id);
+      results.push({ booking_id: booking.id, refund_id: refund.cf_refund_id, status: refund.refund_status ?? 'PENDING' });
     } else {
-      results.push({ booking_id: booking.id, error: refund.error?.description ?? 'Refund failed' });
+      results.push({ booking_id: booking.id, error: refund.message ?? 'Refund failed' });
     }
   }
 
