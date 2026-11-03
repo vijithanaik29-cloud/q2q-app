@@ -156,7 +156,7 @@ export function AppProvider({ children }) {
   }
 
   // Used for FREE tickets only.
-  // Paid bookings are created server-side by the confirm-booking edge function after Razorpay verification.
+  // Paid bookings are created server-side by the confirm-booking edge function after Cashfree verification.
   function genBookingId(category, organizer) {
     const cat  = (category  || 'EVT').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
     const org  = (organizer || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('')

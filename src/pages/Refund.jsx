@@ -58,7 +58,7 @@ export default function Refund() {
           <ul>
             <li>Your Q2Q booking ID (format: Q2Q-XXXXX-XXXXX)</li>
             <li>The reason for the refund request</li>
-            <li>Your Razorpay payment ID or UPI reference number (optional, speeds up processing)</li>
+            <li>Your Cashfree payment ID or UPI reference number (optional, speeds up processing)</li>
           </ul>
           <p>
             We aim to respond within 2 business days. Our support hours are Monday to Friday, 10 AM–6 PM IST. Approved refunds are credited to your original payment method within 5–7 business days after approval, depending on your bank or card issuer.
@@ -69,9 +69,9 @@ export default function Refund() {
             Refunds are issued for the ticket amount paid. Platform convenience fees, if any, are non-refundable.
           </p>
 
-          <h2>7. Razorpay payment processing</h2>
+          <h2>7. Cashfree payment processing</h2>
           <p>
-            All payments on Q2Q are processed securely by Razorpay. Refunds are processed through Razorpay back to your original payment method — credit/debit card, UPI, net banking, or wallet. Q2Q does not store your card or UPI details.
+            All payments on Q2Q are processed securely by Cashfree Payments. Refunds are processed through Cashfree back to your original payment method — credit/debit card, UPI, net banking, or wallet. Q2Q does not store your card or UPI details.
           </p>
 
           <h2>8. Contact</h2>

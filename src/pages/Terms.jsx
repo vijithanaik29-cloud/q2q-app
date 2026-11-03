@@ -40,7 +40,7 @@ export default function Terms() {
             <li>Refunds are only issued if the event is <strong>cancelled by the organiser</strong>.</li>
             <li>If an event is postponed or relocated, the organiser will contact you with updated details. Tickets remain valid for the rescheduled event unless the organiser offers a refund.</li>
             <li>Q2Q does not issue refunds for change of mind, inability to attend, or dissatisfaction with the event.</li>
-            <li>When a refund is issued, it is returned to your original payment method within 5–7 business days via Razorpay.</li>
+            <li>When a refund is issued, it is returned to your original payment method within 5–7 business days via Cashfree Payments.</li>
           </ul>
           <p>See our full <Link to="/refund">Refund &amp; Cancellation Policy</Link> for details on how to request a refund.</p>
 
