@@ -71,9 +71,11 @@ export default function SuperAdmin() {
   // ── Bookings & refunds ───────────────────────────────────────────────────────
   const [bookings,         setBookings]         = useState([]);
   const [bookingsLoading,  setBookingsLoading]  = useState(false);
-  const [bookingSearch,    setBookingSearch]    = useState('');
-  const [refundingEvent,   setRefundingEvent]   = useState(null);
-  const [refundResults,    setRefundResults]    = useState({});
+  const [bookingSearch,      setBookingSearch]      = useState('');
+  const [bookingStatusFilter,setBookingStatusFilter] = useState('all');
+  const [refundingEvent,     setRefundingEvent]     = useState(null);
+  const [refundResults,      setRefundResults]      = useState({});
+  const [fundraiserStatusFilter, setFundraiserStatusFilter] = useState('all');
 
   // ── Coupons ──────────────────────────────────────────────────────────────────
   const BLANK_COUPON = { code: '', discount_type: 'percent', discount_value: '', max_uses: '100', expires_at: '', event_id: '' };
@@ -1829,6 +1831,26 @@ export default function SuperAdmin() {
                 </div>
               </div>
 
+              {/* Status filter */}
+              {!bookingsLoading && bookings.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'all',      label: 'All',      count: bookings.length },
+                    { value: 'active',   label: 'Active',   count: bookings.filter(b => b.status === 'active').length },
+                    { value: 'refunded', label: 'Refunded', count: bookings.filter(b => b.status === 'refunded').length },
+                  ].map(f => (
+                    <button key={f.value} onClick={() => setBookingStatusFilter(f.value)}
+                      style={{ padding: '5px 13px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        border: bookingStatusFilter === f.value ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+                        background: bookingStatusFilter === f.value ? 'var(--accent)' : 'transparent',
+                        color: bookingStatusFilter === f.value ? '#fff' : 'var(--text-muted)',
+                      }}>
+                      {f.label} <span style={{ opacity: 0.75 }}>({f.count})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {bookingsLoading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><div className="spinner" style={{ width: 28, height: 28 }} /></div>
               ) : bookings.length === 0 ? (
@@ -1872,7 +1894,15 @@ export default function SuperAdmin() {
 
               ) : (
                 /* ── Default grouped-by-event view ── */
-                groupBookingsByEvent(bookings).map(group => {
+                groupBookingsByEvent(bookings)
+                  .map(group => ({
+                    ...group,
+                    bookings: bookingStatusFilter === 'all'
+                      ? group.bookings
+                      : group.bookings.filter(b => b.status === bookingStatusFilter),
+                  }))
+                  .filter(group => group.bookings.length > 0)
+                  .map(group => {
                   const active   = group.bookings.filter(b => b.status === 'active');
                   const refunded = group.bookings.filter(b => b.status === 'refunded');
                   const revenue  = active.reduce((s, b) => s + (b.total || 0), 0);
@@ -2213,10 +2243,37 @@ export default function SuperAdmin() {
         {/* ── Fundraisers ───────────────────────────────────────────────────── */}
         {activeTab === 'fundraisers' && (
           <div className="admin__form-section" style={{ maxWidth: 760 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <h2 style={{ margin: 0 }}>All Fundraisers</h2>
               <button className="btn btn-ghost btn-sm" onClick={loadAllFundraisers}>↻ Refresh</button>
             </div>
+
+            {/* Status filter */}
+            {allFundraisers.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[
+                  { value: 'all',       label: 'All' },
+                  { value: 'active',    label: 'Active' },
+                  { value: 'closed',    label: 'Closed' },
+                  { value: 'draft',     label: 'Draft' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ].map(f => {
+                  const count = f.value === 'all' ? allFundraisers.length : allFundraisers.filter(fr => fr.status === f.value).length;
+                  if (f.value !== 'all' && count === 0) return null;
+                  return (
+                    <button key={f.value} onClick={() => setFundraiserStatusFilter(f.value)}
+                      style={{ padding: '5px 13px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        border: fundraiserStatusFilter === f.value ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+                        background: fundraiserStatusFilter === f.value ? 'var(--accent)' : 'transparent',
+                        color: fundraiserStatusFilter === f.value ? '#fff' : 'var(--text-muted)',
+                      }}>
+                      {f.label} <span style={{ opacity: 0.75 }}>({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {fundraisersLoading ? (
               <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</p>
             ) : allFundraisers.length === 0 ? (
@@ -2227,7 +2284,7 @@ export default function SuperAdmin() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {allFundraisers.map(f => {
+                {allFundraisers.filter(f => fundraiserStatusFilter === 'all' || f.status === fundraiserStatusFilter).map(f => {
                   const pct = Math.min(100, Math.round((f.collected_amount / f.target_amount) * 100));
                   const daysLeft = f.end_date ? Math.max(0, Math.ceil((new Date(f.end_date) - Date.now()) / 86400000)) : null;
                   return (
