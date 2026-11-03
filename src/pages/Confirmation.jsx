@@ -1,12 +1,56 @@
-import { useState } from 'react';
-import { useLocation, Link, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate, Link, Navigate } from 'react-router-dom';
 import { formatDate } from '../data/events';
 import RainbowCelebration from '../components/RainbowCelebration';
+import { supabase } from '../lib/supabase';
 import './Confirmation.css';
 
 export default function Confirmation() {
   const { state } = useLocation();
+  const navigate  = useNavigate();
   const [celebrated, setCelebrated] = useState(false);
+  const [verifying,  setVerifying]  = useState(false);
+  const [verifyErr,  setVerifyErr]  = useState('');
+
+  // Handle redirect-based payments (some netbanking / UPI intent flows)
+  useEffect(() => {
+    const params    = new URLSearchParams(window.location.search);
+    const cfOrderId = params.get('cf_order_id');
+    if (!cfOrderId || state?.booking) return;
+
+    let pending;
+    try { pending = JSON.parse(sessionStorage.getItem(`cf_pending_${cfOrderId}`) || 'null'); } catch (_) {}
+    if (!pending) { setVerifyErr('Payment session expired. Check My Bookings to see if it went through.'); return; }
+
+    setVerifying(true);
+    supabase.functions.invoke('confirm-booking', {
+      body: { payment: { cf_order_id: cfOrderId }, booking: pending.bookingData },
+    }).then(({ data, error }) => {
+      try { sessionStorage.removeItem(`cf_pending_${cfOrderId}`); } catch (_) {}
+      if (error || !data?.booking) {
+        setVerifyErr(error?.message || 'Could not confirm booking. Check My Bookings or contact support.');
+        setVerifying(false);
+      } else {
+        navigate('/confirmation', { state: { booking: data.booking, event: pending.event }, replace: true });
+      }
+    });
+  }, []);
+
+  if (verifying) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
+      <div className="spinner" style={{ width: 36, height: 36 }} />
+      <p style={{ color: 'var(--text-muted)' }}>Verifying your payment…</p>
+    </div>
+  );
+
+  if (verifyErr) return (
+    <div style={{ maxWidth: 480, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+      <h2 style={{ marginBottom: 8 }}>Payment verification issue</h2>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>{verifyErr}</p>
+      <Link to="/my-bookings" className="btn btn-primary">Check My Bookings</Link>
+    </div>
+  );
 
   if (!state?.booking) return <Navigate to="/" replace />;
 

@@ -170,39 +170,44 @@ export default function Booking() {
         return;
       }
 
-      // Paid tickets — Razorpay flow
-      // Step 1: create a Razorpay order via edge function
+      // Paid tickets — Cashfree flow
+      const cfOrderId = `Q2Q-${Date.now()}`;
+
       const { data: order, error: orderErr } = await supabase.functions.invoke('create-order', {
-        body: { amount: finalTotal * 100, receipt: `Q2Q-${Date.now()}` },
+        body: {
+          amount:        finalTotal * 100, // paise
+          orderId:       cfOrderId,
+          customerName:  form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+        },
       });
       if (orderErr) throw new Error(orderErr.message);
 
-      // Step 2: open Razorpay checkout; on success call confirm-booking edge function
-      const booking = await new Promise((resolve, reject) => {
-        const options = {
-          key:         order.keyId,
-          order_id:    order.id,
-          amount:      order.amount,
-          currency:    order.currency,
-          name:        'Q2Q',
-          description: event.title,
-          prefill:     { name: form.name, email: form.email, contact: form.phone },
-          theme:       { color: '#E53E7A' },
-          handler: async (response) => {
-            const { data, error } = await supabase.functions.invoke('confirm-booking', {
-              body: { payment: response, booking: bookingData },
-            });
-            if (error) reject(new Error(error.message));
-            else resolve(data.booking);
-          },
-          modal: { ondismiss: () => reject(new Error('cancelled')) },
-        };
-        // Razorpay script is loaded in index.html
-        const rzp = new window.Razorpay(options);
-        rzp.open();
+      // Stash booking data so Confirmation page can retrieve it if user is redirected
+      try { sessionStorage.setItem(`cf_pending_${cfOrderId}`, JSON.stringify({ bookingData, event })); } catch (_) {}
+
+      // Open Cashfree checkout modal; cashfree.js is loaded in index.html
+      const cashfree = window.Cashfree({ mode: order.env });
+      const result = await cashfree.checkout({
+        paymentSessionId: order.paymentSessionId,
+        redirectTarget:   '_modal',
       });
 
-      navigate('/confirmation', { state: { booking, event } });
+      if (result.error) {
+        const msg = result.error.message || '';
+        throw new Error(msg.toLowerCase().includes('cancel') ? 'cancelled' : msg || 'Payment failed');
+      }
+
+      // Modal success — verify server-side and create booking
+      const { data, error: confErr } = await supabase.functions.invoke('confirm-booking', {
+        body: { payment: { cf_order_id: cfOrderId }, booking: bookingData },
+      });
+      if (confErr) throw new Error(confErr.message);
+
+      try { sessionStorage.removeItem(`cf_pending_${cfOrderId}`); } catch (_) {}
+
+      navigate('/confirmation', { state: { booking: data.booking, event } });
     } catch (err) {
       if (err.message !== 'cancelled') {
         setPaymentError('Payment failed or could not be verified. Please try again.');
@@ -442,7 +447,7 @@ export default function Booking() {
                 </button>
 
                 <p className="booking__privacy" style={{ marginTop: 12 }}>
-                  {finalTotal > 0 ? 'Secure payment via Razorpay.' : 'No payment required for free tickets.'}
+                  {finalTotal > 0 ? 'Secure payment via Cashfree.' : 'No payment required for free tickets.'}
                 </p>
               </div>
             )}
