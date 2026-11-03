@@ -67,8 +67,8 @@ function DonateModal({ fundraiser, onClose, onSuccess }) {
 
   async function handleDonate() {
     setError('');
-    if (!name.trim())  { setError('Please enter your name.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email.'); return; }
+    if (!anon && !name.trim())  { setError('Please enter your name, or check "Donate anonymously".'); return; }
+    if (!anon && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email.'); return; }
     if (!finalAmount || finalAmount < 1) { setError('Enter a valid amount.'); return; }
 
     setPaying(true);
@@ -77,9 +77,6 @@ function DonateModal({ fundraiser, onClose, onSuccess }) {
         body: { amount: finalAmount, fundraiserId: fundraiser.id, fundraiserTitle: fundraiser.title },
       });
       if (orderErr) throw new Error(orderErr.message);
-
-      const { data: { key: razorpayKey } = {} } = await supabase
-        .from('app_config').select('key').eq('name', 'razorpay_key_id').single();
 
       const options = {
         key:          orderData.keyId,
@@ -148,8 +145,8 @@ function DonateModal({ fundraiser, onClose, onSuccess }) {
           />
         )}
 
-        <input className="fr-modal__input" type="text"     placeholder="Your name *"  value={name}  onChange={e => setName(e.target.value)} />
-        <input className="fr-modal__input" type="email"    placeholder="Your email *" value={email} onChange={e => setEmail(e.target.value)} />
+        <input className="fr-modal__input" type="text"  placeholder={anon ? 'Your name (optional)' : 'Your name *'}  value={name}  onChange={e => setName(e.target.value)} />
+        <input className="fr-modal__input" type="email" placeholder={anon ? 'Your email (optional)' : 'Your email (for receipt)'} value={email} onChange={e => setEmail(e.target.value)} />
         <textarea className="fr-modal__input fr-modal__textarea" placeholder="Leave a message (optional)" value={message} onChange={e => setMessage(e.target.value)} rows={2} />
 
         <label className="fr-modal__anon">

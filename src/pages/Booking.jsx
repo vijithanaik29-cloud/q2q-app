@@ -180,7 +180,7 @@ export default function Booking() {
       // Step 2: open Razorpay checkout; on success call confirm-booking edge function
       const booking = await new Promise((resolve, reject) => {
         const options = {
-          key:         import.meta.env.VITE_RAZORPAY_KEY_ID,
+          key:         order.keyId,
           order_id:    order.id,
           amount:      order.amount,
           currency:    order.currency,
@@ -188,20 +188,6 @@ export default function Booking() {
           description: event.title,
           prefill:     { name: form.name, email: form.email, contact: form.phone },
           theme:       { color: '#E53E7A' },
-          config: {
-            display: {
-              blocks: {
-                upi: {
-                  name: 'Pay via UPI',
-                  instruments: [
-                    { method: 'upi', flows: ['intent', 'collect', 'qr'] },
-                  ],
-                },
-              },
-              sequence: ['block.upi'],
-              preferences: { show_default_blocks: false },
-            },
-          },
           handler: async (response) => {
             const { data, error } = await supabase.functions.invoke('confirm-booking', {
               body: { payment: response, booking: bookingData },

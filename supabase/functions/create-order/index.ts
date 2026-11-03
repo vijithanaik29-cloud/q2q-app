@@ -32,7 +32,7 @@ serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify(order), {
+  return new Response(JSON.stringify({ ...order, keyId: RAZORPAY_KEY_ID }), {
     headers: { ...cors, 'Content-Type': 'application/json' },
   });
 });

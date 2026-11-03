@@ -118,6 +118,8 @@ export default function SuperAdmin() {
   const [analytics,        setAnalytics]        = useState(null);
   const [analyticsRange,   setAnalyticsRange]   = useState('90');
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsCity,    setAnalyticsCity]    = useState('all');
+  const [analyticsCat,     setAnalyticsCat]     = useState('all');
 
   // ── QR Scanner ───────────────────────────────────────────────────────────────
   const [scannerActive, setScannerActive]  = useState(false);
@@ -253,38 +255,159 @@ export default function SuperAdmin() {
       ? null
       : new Date(Date.now() - Number(rangeDays) * 86400000).toISOString();
 
-    let q = supabase
+    // Fetch bookings, events, donations, coupons, influencers, fundraisers, sponsors in parallel
+    let bq = supabase
       .from('bookings')
-      .select('id, attendee, total, status, created_at, event_title')
+      .select('id, attendee, total, status, created_at, event_title, event_id, tickets')
       .order('created_at', { ascending: true });
-    if (fromDate) q = q.gte('created_at', fromDate);
-    const { data: bData } = await q;
-    const bookings = bData || [];
+    if (fromDate) bq = bq.gte('created_at', fromDate);
 
-    const activeB = bookings.filter(b => b.status === 'active');
+    const [{ data: bData }, { data: evData }, { data: donData }, { data: cpData }, { data: infData }, { data: frData }, { data: spData }] = await Promise.all([
+      bq,
+      supabase.from('events').select('id, city, category, title, boosted'),
+      supabase.from('donations').select('amount, fundraiser_id, fundraiser_title, created_at'),
+      supabase.from('coupons').select('*'),
+      supabase.from('influencers').select('*'),
+      supabase.from('fundraisers').select('id, title, organizer_name, target_amount, collected_amount, donor_count, status, payout_upi, payout_sent'),
+      supabase.from('sponsor_submissions').select('id, status, plan, business_name, city, tagline, active_until'),
+    ]);
+
+    const bookings  = bData  || [];
+    const donations = donData || [];
+    const coupons_  = cpData  || [];
+    const influencers_ = infData || [];
+    const fundraisers_ = frData  || [];
+    const sponsors_    = spData  || [];
+
+    // Build event lookup map
+    const eventMap = {};
+    (evData || []).forEach(e => { eventMap[e.id] = e; });
+
+    const activeB   = bookings.filter(b => b.status === 'active');
+    const refundedB = bookings.filter(b => b.status === 'refunded');
+
+    // Email/repeat counts
     const emailCounts = {};
     bookings.forEach(b => {
       const e = b.attendee?.email;
       if (e) emailCounts[e] = (emailCounts[e] || 0) + 1;
     });
-    const uniqueEmails   = Object.keys(emailCounts);
-    const repeatBookers  = uniqueEmails.filter(e => emailCounts[e] >= 2).length;
-    const revenue        = activeB.reduce((s, b) => s + (b.total || 0), 0);
+    const uniqueEmails  = Object.keys(emailCounts);
+    const repeatBookers = uniqueEmails.filter(e => emailCounts[e] >= 2).length;
 
-    // Month-by-month buckets
+    // Core metrics
+    const ticketQty = (b) => (b.tickets || []).reduce((s, t) => s + (t.qty || 1), 0);
+    const ticketsSold   = activeB.reduce((s, b) => s + ticketQty(b), 0);
+    const revenue       = activeB.reduce((s, b) => s + (b.total || 0), 0);
+    const profit        = Math.round(revenue * 0.10);
+    const refundAmount  = refundedB.reduce((s, b) => s + (b.total || 0), 0);
+
+    // Per-event breakdown
+    const eventGroups = {};
+    bookings.forEach(b => {
+      if (!b.event_id) return;
+      if (!eventGroups[b.event_id]) {
+        const ev = eventMap[b.event_id] || {};
+        eventGroups[b.event_id] = {
+          event_id: b.event_id,
+          title:    b.event_title || ev.title || 'Unknown',
+          city:     ev.city     || '—',
+          category: ev.category || '—',
+          tickets: 0, revenue: 0, profit: 0, refunds: 0,
+        };
+      }
+      if (b.status === 'active') {
+        eventGroups[b.event_id].tickets += ticketQty(b);
+        eventGroups[b.event_id].revenue += (b.total || 0);
+        eventGroups[b.event_id].profit  += Math.round((b.total || 0) * 0.10);
+      }
+      if (b.status === 'refunded') eventGroups[b.event_id].refunds += (b.total || 0);
+    });
+    const perEvent = Object.values(eventGroups).sort((a, b) => b.revenue - a.revenue);
+
+    // City breakdown
+    const cityMap = {};
+    activeB.forEach(b => {
+      const city = eventMap[b.event_id]?.city || 'Other';
+      if (!cityMap[city]) cityMap[city] = { city, tickets: 0, revenue: 0 };
+      cityMap[city].tickets += ticketQty(b);
+      cityMap[city].revenue += (b.total || 0);
+    });
+    const perCity = Object.values(cityMap).sort((a, b) => b.revenue - a.revenue);
+
+    // Category breakdown
+    const catMap = {};
+    activeB.forEach(b => {
+      const cat = eventMap[b.event_id]?.category || 'Other';
+      if (!catMap[cat]) catMap[cat] = { cat, tickets: 0, revenue: 0 };
+      catMap[cat].tickets += ticketQty(b);
+      catMap[cat].revenue += (b.total || 0);
+    });
+    const perCategory = Object.values(catMap).sort((a, b) => b.revenue - a.revenue);
+
+    // Month-by-month
     const buckets = {};
     bookings.forEach(b => {
       const key = b.created_at.slice(0, 7);
-      if (!buckets[key]) buckets[key] = { month: key, count: 0, revenue: 0, emails: new Set() };
+      if (!buckets[key]) buckets[key] = { month: key, count: 0, revenue: 0, profit: 0, emails: new Set() };
       buckets[key].count++;
-      if (b.status === 'active') buckets[key].revenue += (b.total || 0);
+      if (b.status === 'active') {
+        buckets[key].revenue += (b.total || 0);
+        buckets[key].profit  += Math.round((b.total || 0) * 0.10);
+      }
       if (b.attendee?.email) buckets[key].emails.add(b.attendee.email);
     });
     const months = Object.values(buckets)
       .sort((a, b) => a.month.localeCompare(b.month))
-      .map(m => ({ month: m.month, count: m.count, revenue: m.revenue, unique: m.emails.size }));
+      .map(m => ({ month: m.month, count: m.count, revenue: m.revenue, profit: m.profit, unique: m.emails.size }));
 
-    setAnalytics({ total: bookings.length, uniqueBookers: uniqueEmails.length, repeatBookers, revenue, months });
+    // Donation metrics
+    const totalDonations  = donations.reduce((s, d) => s + d.amount, 0);
+    const donationsCount  = donations.length;
+
+    // Coupon metrics
+    const activeCoupons    = coupons_.filter(c => c.active);
+    const totalCouponUses  = coupons_.reduce((s, c) => s + (c.uses_count || 0), 0);
+
+    // Influencer metrics
+    const now30 = new Date(Date.now() + 30 * 86400000).toISOString();
+    const activeInfluencers  = influencers_.filter(i => i.active);
+    const expiringInfluencers = influencers_.filter(i => i.active && i.expires_at && i.expires_at <= now30 && i.expires_at > new Date().toISOString());
+
+    // Boosted event count
+    const boostedCount   = (evData || []).filter(e => e.boosted).length;
+    const perEventFull   = perEvent.map(e => {
+      const evRow = eventMap[e.event_id];
+      return { ...e, boosted: evRow?.boosted ?? false };
+    });
+
+    // Fundraiser payout metrics
+    const activeFundraisers   = fundraisers_.filter(f => f.status === 'active');
+    const payoutPending       = fundraisers_.filter(f => f.status === 'active' && !f.payout_sent && f.payout_upi);
+
+    // Sponsor pipeline
+    const sponsorPending  = sponsors_.filter(s => s.status === 'pending');
+    const sponsorActive   = sponsors_.filter(s => s.status === 'active');
+    const sponsorRejected = sponsors_.filter(s => s.status === 'rejected');
+
+    setAnalytics({
+      total: bookings.length, uniqueBookers: uniqueEmails.length, repeatBookers,
+      ticketsSold, revenue, profit,
+      refundCount: refundedB.length, refundAmount,
+      months, perEvent: perEventFull, perCity, perCategory,
+      totalDonations, donationsCount,
+      rawBookings: bookings, eventMap,
+      // Coupons
+      coupons: coupons_, activeCoupons, totalCouponUses,
+      // Influencers
+      influencers: influencers_, activeInfluencers, expiringInfluencers,
+      // Events
+      boostedCount,
+      // Fundraisers
+      fundraisers: fundraisers_, activeFundraisers, payoutPending,
+      // Sponsors
+      sponsorPending, sponsorActive, sponsorRejected,
+    });
     setAnalyticsLoading(false);
   }
 
@@ -292,6 +415,13 @@ export default function SuperAdmin() {
     setFrActing(id);
     await supabase.from('fundraisers').update({ status }).eq('id', id);
     setAllFundraisers(prev => prev.map(f => f.id === id ? { ...f, status } : f));
+    setFrActing(null);
+  }
+
+  async function markPayoutSent(id) {
+    setFrActing(id);
+    await supabase.from('fundraisers').update({ payout_sent: true, payout_sent_at: new Date().toISOString() }).eq('id', id);
+    setAllFundraisers(prev => prev.map(f => f.id === id ? { ...f, payout_sent: true } : f));
     setFrActing(null);
   }
 
@@ -982,108 +1112,217 @@ export default function SuperAdmin() {
           const pending  = applications.filter(a => a.status === 'pending');
 
           const RANGES = [
+            { value: '7',   label: 'Last 7 days' },
             { value: '30',  label: 'Last 30 days' },
-            { value: '90',  label: 'Last 90 days' },
+            { value: '90',  label: 'Last 3 months' },
             { value: '365', label: 'Last 12 months' },
             { value: 'all', label: 'All time' },
           ];
 
-          const maxCount = analytics ? Math.max(...analytics.months.map(m => m.count), 1) : 1;
           const fmtMonth = (key) => {
             const [y, m] = key.split('-');
             return new Date(Number(y), Number(m) - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
           };
 
+          // Filtered data based on city + category selectors
+          const filteredEvents = analytics?.perEvent?.filter(e =>
+            (analyticsCity === 'all' || e.city === analyticsCity) &&
+            (analyticsCat  === 'all' || e.category === analyticsCat)
+          ) || [];
+
+          const filteredRevenue = filteredEvents.reduce((s, e) => s + e.revenue, 0);
+          const filteredProfit  = filteredEvents.reduce((s, e) => s + e.profit, 0);
+          const filteredTickets = filteredEvents.reduce((s, e) => s + e.tickets, 0);
+
+          const activeCities = analytics ? [...new Set(analytics.perEvent.map(e => e.city).filter(c => c !== '—'))] : [];
+          const activeCats   = analytics ? [...new Set(analytics.perEvent.map(e => e.category).filter(c => c !== '—'))] : [];
+
+          const maxRev = analytics?.months?.length ? Math.max(...analytics.months.map(m => m.revenue), 1) : 1;
+
+          const filterActive = analyticsCity !== 'all' || analyticsCat !== 'all';
+          const displayRevenue = filterActive ? filteredRevenue : (analytics?.revenue ?? 0);
+          const displayProfit  = filterActive ? filteredProfit  : (analytics?.profit  ?? 0);
+          const displayTickets = filterActive ? filteredTickets : (analytics?.ticketsSold ?? 0);
+
+          const pillBtn = (active, onClick, label) => (
+            <button onClick={onClick} style={{
+              padding: '5px 13px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              border: active ? '1px solid #8B5CF6' : '1px solid var(--border-2)',
+              background: active ? '#8B5CF6' : 'transparent',
+              color: active ? '#fff' : 'var(--text-muted)',
+              transition: 'all 0.15s',
+            }}>{label}</button>
+          );
+
           return (
-            <div style={{ maxWidth: 820 }}>
-              {/* Range selector */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 4 }}>Range</span>
-                {RANGES.map(r => (
-                  <button
-                    key={r.value}
-                    onClick={() => setAnalyticsRange(r.value)}
-                    style={{
-                      padding: '6px 16px', borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      border: analyticsRange === r.value ? '1px solid #8B5CF6' : '1px solid var(--border-2)',
-                      background: analyticsRange === r.value ? '#8B5CF6' : 'transparent',
-                      color: analyticsRange === r.value ? '#fff' : 'var(--text-muted)',
-                      transition: 'all 0.15s',
-                    }}
-                  >{r.label}</button>
+            <div style={{ maxWidth: 900 }}>
+
+              {/* ── Filter row ── */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 2 }}>Range</span>
+                {RANGES.map(r => pillBtn(analyticsRange === r.value, () => setAnalyticsRange(r.value), r.label))}
+                {analyticsLoading && <div className="spinner" style={{ width: 14, height: 14, marginLeft: 4 }} />}
+              </div>
+              {activeCities.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 2 }}>City</span>
+                  {pillBtn(analyticsCity === 'all', () => setAnalyticsCity('all'), 'All')}
+                  {activeCities.map(c => pillBtn(analyticsCity === c, () => setAnalyticsCity(c), c))}
+                </div>
+              )}
+              {activeCats.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 2 }}>Type</span>
+                  {pillBtn(analyticsCat === 'all', () => setAnalyticsCat('all'), 'All')}
+                  {activeCats.map(c => pillBtn(analyticsCat === c, () => setAnalyticsCat(c), c))}
+                </div>
+              )}
+
+              {/* ── Revenue & Profit KPIs ── */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Revenue & Profit</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 28 }}>
+                {[
+                  { label: 'Gross Revenue',   value: `₹${displayRevenue.toLocaleString('en-IN')}`,  color: '#10b981', sub: 'total collected' },
+                  { label: "Q2Q Profit (10%)", value: `₹${displayProfit.toLocaleString('en-IN')}`,   color: '#8B5CF6', sub: 'platform cut' },
+                  { label: 'Tickets Sold',     value: displayTickets,                                 color: 'var(--accent)', sub: 'across all events' },
+                  { label: 'Refunds',          value: analytics ? `₹${analytics.refundAmount.toLocaleString('en-IN')}` : '—', color: 'var(--error)', sub: analytics ? `${analytics.refundCount} bookings` : '' },
+                ].map(tile => (
+                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value ?? '—'}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                    {tile.sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, opacity: 0.7 }}>{tile.sub}</div>}
+                  </div>
                 ))}
-                {analyticsLoading && <div className="spinner" style={{ width: 16, height: 16, marginLeft: 8 }} />}
               </div>
 
-              {/* Bookings metrics */}
-              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Bookings</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 36 }}>
+              {/* ── Bookings KPIs ── */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Bookings & Users</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
                 {[
                   { label: 'Total Bookings',   value: analytics?.total         ?? '—', color: '#8B5CF6' },
-                  { label: 'Unique Bookers',   value: analytics?.uniqueBookers ?? '—', color: 'var(--accent)' },
-                  { label: 'Repeat Bookers',   value: analytics?.repeatBookers ?? '—', color: '#F59E0B' },
-                  { label: 'Revenue',
-                    value: analytics ? `₹${analytics.revenue.toLocaleString('en-IN')}` : '—',
-                    color: 'var(--success)', small: true },
+                  { label: 'Unique Buyers',    value: analytics?.uniqueBookers ?? '—', color: 'var(--accent)' },
+                  { label: 'Repeat Buyers',    value: analytics?.repeatBookers ?? '—', color: '#F59E0B' },
+                  { label: 'Pending Review',   value: pending.length, color: pending.length > 0 ? 'var(--error)' : 'var(--text-muted)',
+                    action: pending.length > 0 ? () => setActiveTab('applications') : null, sub: pending.length > 0 ? 'Review now →' : '' },
                 ].map(tile => (
-                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px' }}>
-                    <div style={{ fontSize: tile.small ? 22 : 28, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px' }}>{tile.value}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 6 }}>{tile.label}</div>
+                  <div key={tile.label} onClick={tile.action || undefined}
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', cursor: tile.action ? 'pointer' : 'default' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                    {tile.sub && <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 2 }}>{tile.sub}</div>}
                   </div>
                 ))}
               </div>
 
-              {/* Org metrics */}
-              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Organisations</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 36 }}>
+              {/* ── Fundraisers KPIs ── */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Fundraisers</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
                 {[
-                  { label: 'Verified Orgs',  value: approved.length, color: 'var(--success)' },
-                  { label: 'Declined Orgs',  value: declined.length, color: 'var(--error)' },
-                  { label: 'Pending Review', value: pending.length,  color: 'var(--accent)',
-                    action: pending.length > 0 ? () => setActiveTab('applications') : null },
+                  { label: 'Total Donations',   value: analytics ? `₹${analytics.totalDonations.toLocaleString('en-IN')}` : '—', color: '#10b981' },
+                  { label: 'Donations Count',   value: analytics?.donationsCount ?? '—', color: 'var(--accent)' },
+                  { label: 'Active Campaigns',  value: analytics?.activeFundraisers?.length ?? '—', color: '#F59E0B' },
                 ].map(tile => (
-                  <div key={tile.label}
-                    onClick={tile.action || undefined}
-                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', cursor: tile.action ? 'pointer' : 'default' }}>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px' }}>{tile.value}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 6 }}>{tile.label}</div>
-                    {tile.action && tile.value > 0 && <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 4 }}>Review now →</div>}
+                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Month-by-month */}
+              {/* ── Revenue vs Profit chart ── */}
               {analytics?.months?.length > 0 && (
                 <>
-                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 14 }}>Month-by-Month Bookings</h3>
-                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                    {/* Bar chart */}
-                    <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'flex-end', gap: 6, height: 100 }}>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Revenue vs Profit Over Time</h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 20px 0', marginBottom: 28 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120 }}>
                       {analytics.months.map(m => (
-                        <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                          <div style={{ width: '100%', background: '#8B5CF6', borderRadius: '4px 4px 0 0', opacity: 0.85,
-                            height: `${Math.max(4, Math.round((m.count / maxCount) * 72))}px`,
-                            transition: 'height 0.3s ease' }} title={`${m.count} bookings`} />
+                        <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 0, position: 'relative' }}
+                          title={`${fmtMonth(m.month)}\nRevenue: ₹${m.revenue.toLocaleString('en-IN')}\nProfit: ₹${m.profit.toLocaleString('en-IN')}`}>
+                          <div style={{ width: '100%', display: 'flex', gap: 1, alignItems: 'flex-end', height: 110 }}>
+                            <div style={{ flex: 1, background: '#10b981', borderRadius: '3px 3px 0 0', opacity: 0.75,
+                              height: `${Math.max(3, Math.round((m.revenue / maxRev) * 100))}px` }} />
+                            <div style={{ flex: 1, background: '#8B5CF6', borderRadius: '3px 3px 0 0', opacity: 0.85,
+                              height: `${Math.max(3, Math.round((m.profit / maxRev) * 100))}px` }} />
+                          </div>
                         </div>
                       ))}
                     </div>
-                    {/* Table */}
+                    <div style={{ display: 'flex', gap: 16, padding: '10px 4px 14px', borderTop: '1px solid var(--border)', marginTop: 8 }}>
+                      <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>■ Revenue</span>
+                      <span style={{ fontSize: 11, color: '#8B5CF6', fontWeight: 600 }}>■ Profit (10%)</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── Per-event breakdown ── */}
+              {filteredEvents.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                    Per-Event Breakdown {filterActive && <span style={{ color: 'var(--accent)', fontSize: 10 }}>(filtered)</span>}
+                  </h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                         <thead>
-                          <tr style={{ borderTop: '1px solid var(--border)' }}>
-                            {['Month', 'Bookings', 'Unique Users', 'Revenue'].map(h => (
-                              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                            {['Event', 'City', 'Type', 'Boosted', 'Tickets', 'Revenue', 'Q2Q Cut (10%)', 'Refunds'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {[...analytics.months].reverse().map((m, i) => (
-                            <tr key={m.month} style={{ borderTop: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
-                              <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{fmtMonth(m.month)}</td>
-                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{m.count}</td>
-                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{m.unique}</td>
-                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--success)' }}>₹{m.revenue.toLocaleString('en-IN')}</td>
+                          {filteredEvents.map((e, i) => (
+                            <tr key={e.event_id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined, background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</td>
+                              <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{e.city}</td>
+                              <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{e.category}</td>
+                              <td style={{ padding: '10px 14px' }}>{e.boosted ? <span style={{ background: 'rgba(234,179,8,0.15)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>⚡ Yes</span> : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{e.tickets}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: '#10b981', fontWeight: 600 }}>₹{e.revenue.toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: '#8B5CF6', fontWeight: 600 }}>₹{e.profit.toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: e.refunds > 0 ? 'var(--error)' : 'var(--text-muted)' }}>
+                                {e.refunds > 0 ? `₹${e.refunds.toLocaleString('en-IN')}` : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface-2)' }}>
+                            <td colSpan={3} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{filteredTickets}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#10b981' }}>₹{filteredRevenue.toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#8B5CF6' }}>₹{filteredProfit.toLocaleString('en-IN')}</td>
+                            <td style={{ padding: '10px 14px' }} />
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── City breakdown ── */}
+              {analytics?.perCity?.length > 0 && analyticsCity === 'all' && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Revenue by City</h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                            {['City', 'Tickets', 'Revenue', '% of Total'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.perCity.map((c, i) => (
+                            <tr key={c.city} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined, background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text)' }}>{c.city}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums' }}>{c.tickets}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: '#10b981', fontWeight: 600 }}>₹{c.revenue.toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>
+                                {analytics.revenue > 0 ? `${Math.round((c.revenue / analytics.revenue) * 100)}%` : '—'}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -1093,7 +1332,211 @@ export default function SuperAdmin() {
                 </>
               )}
 
-              {!analyticsLoading && analytics?.months?.length === 0 && (
+              {/* ── Event type breakdown ── */}
+              {analytics?.perCategory?.length > 0 && analyticsCat === 'all' && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Revenue by Event Type</h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                            {['Event Type', 'Tickets', 'Revenue'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.perCategory.map((c, i) => (
+                            <tr key={c.cat} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined, background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text)' }}>{c.cat}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums' }}>{c.tickets}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: '#10b981', fontWeight: 600 }}>₹{c.revenue.toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── Month-by-month table ── */}
+              {analytics?.months?.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Month-by-Month</h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                            {['Month', 'Bookings', 'Unique Buyers', 'Revenue', 'Profit (10%)'].map(h => (
+                              <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...analytics.months].reverse().map((m, i) => (
+                            <tr key={m.month} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined, background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                              <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{fmtMonth(m.month)}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{m.count}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: 'var(--text)' }}>{m.unique}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: '#10b981', fontWeight: 600 }}>₹{m.revenue.toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '10px 16px', fontVariantNumeric: 'tabular-nums', color: '#8B5CF6', fontWeight: 600 }}>₹{m.profit.toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── Coupons section ── */}
+              {analytics?.coupons?.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Coupons</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+                    {[
+                      { label: 'Active Coupons', value: analytics.activeCoupons.length, color: '#10b981' },
+                      { label: 'Total Uses',     value: analytics.totalCouponUses,      color: 'var(--accent)' },
+                      { label: 'Boosted Events', value: analytics.boostedCount,          color: '#F59E0B' },
+                    ].map(tile => (
+                      <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                            {['Code', 'Discount', 'Uses / Max', 'Expires', 'Status'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.coupons.map((c, i) => {
+                            const disc = c.discount_type === 'percent' ? `${c.discount_value}% off` : `₹${c.discount_value} flat`;
+                            const maxLabel = c.max_uses ? `${c.uses_count} / ${c.max_uses}` : `${c.uses_count} / ∞`;
+                            const pct = c.max_uses ? Math.min(100, Math.round((c.uses_count / c.max_uses) * 100)) : 0;
+                            const expired = c.expires_at && new Date(c.expires_at) < new Date();
+                            return (
+                              <tr key={c.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined, background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                                <td style={{ padding: '10px 14px' }}>
+                                  <code style={{ background: 'var(--surface-2)', borderRadius: 4, padding: '2px 6px', fontSize: 11, fontWeight: 700 }}>{c.code}</code>
+                                </td>
+                                <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{disc}</td>
+                                <td style={{ padding: '10px 14px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ background: 'var(--border)', borderRadius: 4, height: 6, width: 60, overflow: 'hidden' }}>
+                                      {c.max_uses && <div style={{ height: '100%', background: pct >= 90 ? 'var(--error)' : '#10b981', width: `${pct}%`, borderRadius: 4 }} />}
+                                    </div>
+                                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{maxLabel}</span>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: expired ? 'var(--error)' : 'var(--text-muted)' }}>
+                                  {c.expires_at ? c.expires_at.slice(0, 10) : '—'}
+                                </td>
+                                <td style={{ padding: '10px 14px' }}>
+                                  {c.active && !expired
+                                    ? <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>Active</span>
+                                    : <span style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--error)', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>Inactive</span>}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ padding: '10px 14px', fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+                      Per-user restriction not yet tracked — only global max_uses is enforced. Add a <code>coupon_uses(user_id, coupon_id)</code> table to enable one-use-per-user.
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ── Influencers section ── */}
+              {analytics?.influencers !== undefined && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Influencers</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
+                    {[
+                      { label: 'Total',          value: analytics.influencers.length,          color: 'var(--text-2)' },
+                      { label: 'Active',          value: analytics.activeInfluencers.length,    color: '#10b981' },
+                      { label: 'Expiring in 30d', value: analytics.expiringInfluencers.length,  color: analytics.expiringInfluencers.length > 0 ? '#F59E0B' : 'var(--text-muted)' },
+                    ].map(tile => (
+                      <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ── Sponsor pipeline ── */}
+              {analytics?.sponsorPending !== undefined && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Sponsor Pipeline</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+                    {[
+                      { label: 'Pending Review', value: analytics.sponsorPending.length,  color: analytics.sponsorPending.length > 0 ? '#F59E0B' : 'var(--text-muted)',
+                        action: analytics.sponsorPending.length > 0 ? () => setActiveTab('sponsors') : null, sub: analytics.sponsorPending.length > 0 ? 'Review now →' : '' },
+                      { label: 'Active Sponsors', value: analytics.sponsorActive.length,   color: '#10b981' },
+                      { label: 'Rejected',         value: analytics.sponsorRejected.length, color: analytics.sponsorRejected.length > 0 ? 'var(--error)' : 'var(--text-muted)' },
+                    ].map(tile => (
+                      <div key={tile.label} onClick={tile.action || undefined}
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', cursor: tile.action ? 'pointer' : 'default' }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                        {tile.sub && <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 2 }}>{tile.sub}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ── Fundraiser payouts ── */}
+              {analytics?.payoutPending?.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                    Fundraiser Payouts <span style={{ color: 'var(--error)', fontSize: 10 }}>({analytics.payoutPending.length} pending)</span>
+                  </h3>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                            {['Campaign', 'Organizer', 'Raised', 'Target', 'Payout UPI'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.payoutPending.map((f, i) => (
+                            <tr key={f.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 600 }}>{f.title}</td>
+                              <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{f.organizer_name}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: '#10b981', fontWeight: 600 }}>₹{(f.collected_amount || 0).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '10px 14px', fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted)' }}>₹{(f.target_amount || 0).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '10px 14px' }}>
+                                <code style={{ fontSize: 11, background: 'var(--surface-2)', borderRadius: 4, padding: '2px 6px' }}>{f.payout_upi}</code>
+                                <button onClick={() => setActiveTab('fundraisers')} style={{ marginLeft: 8, fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Send →</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!analyticsLoading && !analytics?.total && (
                 <div className="empty-state" style={{ paddingBlock: 40 }}>
                   <div className="empty-state__icon">📊</div>
                   <h3>No data yet</h3>
@@ -1718,7 +2161,7 @@ export default function SuperAdmin() {
                           <strong style={{ color: '#10b981' }}>₹{f.collected_amount.toLocaleString('en-IN')}</strong>
                           {' '}of ₹{f.target_amount.toLocaleString('en-IN')} · {pct}% · {f.donor_count} {f.donor_count === 1 ? 'donor' : 'donors'}
                         </p>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {f.status !== 'active' && (
                             <button disabled={frActing === f.id}
                               onClick={() => setConfirmDialog({ title: 'Set Fundraiser Active', action: `Make "${f.title}" live and accepting donations`, confirmLabel: 'Set Active', fn: () => setFundraiserStatus(f.id, 'active') })}
@@ -1740,6 +2183,29 @@ export default function SuperAdmin() {
                               Draft
                             </button>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Payout details */}
+                      <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border-2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                          <div style={{ fontSize: 12 }}>
+                            <span style={{ color: 'var(--text-muted)', marginRight: 6 }}>💳 Payout:</span>
+                            {f.payout_upi
+                              ? <strong style={{ color: 'var(--text)' }}>{f.payout_upi}</strong>
+                              : <em style={{ color: 'var(--text-muted)' }}>No UPI provided</em>}
+                            {f.payout_note && <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>· {f.payout_note}</span>}
+                          </div>
+                          {f.payout_sent
+                            ? <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>✓ Payout sent</span>
+                            : f.collected_amount > 0 && (
+                              <button disabled={frActing === f.id}
+                                onClick={() => setConfirmDialog({ title: 'Mark Payout Sent', action: `Mark payout of ₹${f.collected_amount.toLocaleString('en-IN')} as sent to ${f.organizer_name}`, confirmLabel: 'Mark Sent', fn: () => markPayoutSent(f.id) })}
+                                style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, border: '1px solid #10b981', background: 'rgba(16,185,129,.08)', color: '#10b981', cursor: 'pointer' }}>
+                                Mark Payout Sent
+                              </button>
+                            )
+                          }
                         </div>
                       </div>
                     </div>

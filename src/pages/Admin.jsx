@@ -290,7 +290,7 @@ function FundraisersTab({ user }) {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState('');
   const [saveOk, setSaveOk]           = useState(false);
-  const [form, setForm] = useState({ title: '', cause: '', target: '', end_date: '' });
+  const [form, setForm] = useState({ title: '', cause: '', target: '', end_date: '', payout_upi: '', payout_note: '' });
 
   async function load() {
     setLoading(true);
@@ -318,12 +318,14 @@ function FundraisersTab({ user }) {
       target_amount:  Number(form.target),
       end_date:       form.end_date || null,
       status:         'active',
+      payout_upi:     form.payout_upi.trim() || null,
+      payout_note:    form.payout_note.trim() || null,
     });
     setSaving(false);
     if (error) { setSaveError(error.message); return; }
     setSaveOk(true);
     setShowForm(false);
-    setForm({ title: '', cause: '', target: '', end_date: '' });
+    setForm({ title: '', cause: '', target: '', end_date: '', payout_upi: '', payout_note: '' });
     load();
     setTimeout(() => setSaveOk(false), 4000);
   }
@@ -365,6 +367,21 @@ function FundraisersTab({ user }) {
                 <label>End Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
                 <input type="date" value={form.end_date}
                   onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
+                💳 <strong>Payout details</strong> — Q2Q will transfer collected donations to you. Add your UPI ID so we can send it quickly.
+              </p>
+              <div className="form-group">
+                <label>Your UPI ID <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(for receiving donations)</span></label>
+                <input type="text" placeholder="yourname@upi" value={form.payout_upi}
+                  onChange={e => setForm(f => ({ ...f, payout_upi: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label>Bank transfer note <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional — account no, IFSC, etc.)</span></label>
+                <input type="text" placeholder="e.g. HDFC 1234567890 HDFC0001234" value={form.payout_note}
+                  onChange={e => setForm(f => ({ ...f, payout_note: e.target.value }))} />
               </div>
             </div>
             {saveError && <div className="admin__error" style={{ marginBottom: 12 }}>{saveError}</div>}
