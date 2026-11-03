@@ -72,43 +72,53 @@ function DonateModal({ fundraiser, onClose, onSuccess }) {
     if (!finalAmount || finalAmount < 1) { setError('Enter a valid amount.'); return; }
 
     setPaying(true);
+    const cfOrderId = `Q2Q-DON-${Date.now()}`;
+    const donationData = {
+      fundraiserId:    fundraiser.id,
+      fundraiserTitle: fundraiser.title,
+      amount:          finalAmount,
+      donor:           { name, email },
+      message:         message.trim() || null,
+      anonymous:       anon,
+    };
+
     try {
-      const { data: orderData, error: orderErr } = await supabase.functions.invoke('create-donation-order', {
-        body: { amount: finalAmount, fundraiserId: fundraiser.id, fundraiserTitle: fundraiser.title },
+      const { data: order, error: orderErr } = await supabase.functions.invoke('create-donation-order', {
+        body: {
+          amount:          finalAmount,
+          fundraiserId:    fundraiser.id,
+          fundraiserTitle: fundraiser.title,
+          cfOrderId,
+          donorName:  anon ? 'Anonymous' : name,
+          donorEmail: email,
+        },
       });
       if (orderErr) throw new Error(orderErr.message);
 
-      const options = {
-        key:          orderData.keyId,
-        amount:       finalAmount * 100,
-        currency:     'INR',
-        name:         'Q2Q — Queer Events India',
-        description:  fundraiser.title,
-        order_id:     orderData.orderId,
-        prefill:      { name, email },
-        theme:        { color: '#10b981' },
-        handler: async (response) => {
-          const { data, error: confirmErr } = await supabase.functions.invoke('confirm-donation', {
-            body: {
-              payment:  response,
-              donation: {
-                fundraiserId:    fundraiser.id,
-                fundraiserTitle: fundraiser.title,
-                amount:          finalAmount,
-                donor:           { name, email },
-                message:         message.trim() || null,
-                anonymous:       anon,
-              },
-            },
-          });
-          if (confirmErr) throw new Error(confirmErr.message);
-          onSuccess(finalAmount, data.donationId);
-        },
-        modal: { ondismiss: () => setPaying(false) },
-      };
-      new window.Razorpay(options).open();
+      try { sessionStorage.setItem(`cf_pending_donation_${cfOrderId}`, JSON.stringify(donationData)); } catch (_) {}
+
+      const cashfree = window.Cashfree({ mode: order.env });
+      const result = await cashfree.checkout({
+        paymentSessionId: order.paymentSessionId,
+        redirectTarget:   '_modal',
+      });
+
+      if (result.error) {
+        const msg = result.error.message || '';
+        throw new Error(msg.toLowerCase().includes('cancel') ? 'cancelled' : msg || 'Payment failed');
+      }
+
+      const { data, error: confirmErr } = await supabase.functions.invoke('confirm-donation', {
+        body: { cfOrderId, donation: donationData },
+      });
+      if (confirmErr) throw new Error(confirmErr.message);
+
+      try { sessionStorage.removeItem(`cf_pending_donation_${cfOrderId}`); } catch (_) {}
+      onSuccess(finalAmount, data.donationId);
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      if (err.message !== 'cancelled') {
+        setError('Payment failed or could not be verified. Please try again.');
+      }
       setPaying(false);
     }
   }
@@ -175,6 +185,36 @@ function FundraiserDetail({ id }) {
     supabase.from('fundraisers').select('*').eq('id', id).eq('status', 'active').single()
       .then(({ data }) => { setF(data); setLoading(false); });
   }, [id]);
+
+  // Handle redirect back from Cashfree (3DS / bank redirect path)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cfDonationOrderId = params.get('cf_donation_order_id');
+    if (!cfDonationOrderId) return;
+
+    const pendingKey = `cf_pending_donation_${cfDonationOrderId}`;
+    let donationData;
+    try {
+      const raw = sessionStorage.getItem(pendingKey);
+      if (!raw) return;
+      donationData = JSON.parse(raw);
+      sessionStorage.removeItem(pendingKey);
+    } catch { return; }
+
+    window.history.replaceState({}, '', `/fundraisers/${id}`);
+
+    supabase.functions.invoke('confirm-donation', {
+      body: { cfOrderId: cfDonationOrderId, donation: donationData },
+    }).then(({ data, error: err }) => {
+      if (err || !data?.donationId) return;
+      setDonated({ amount: donationData.amount, id: data.donationId });
+      setF(prev => prev ? {
+        ...prev,
+        collected_amount: prev.collected_amount + donationData.amount,
+        donor_count:      prev.donor_count + 1,
+      } : prev);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <div className="fr-loading">Loading…</div>;
   if (!f) return (

@@ -1,25 +1,34 @@
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const CF_APP_ID  = Deno.env.get('CASHFREE_APP_ID')!;
+const CF_SECRET  = Deno.env.get('CASHFREE_SECRET_KEY')!;
+const CF_ENV     = Deno.env.get('CASHFREE_ENV') ?? 'production';
+const CF_BASE    = CF_ENV === 'sandbox'
+  ? 'https://sandbox.cashfree.com/pg'
+  : 'https://api.cashfree.com/pg';
+const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const RESEND_API_KEY   = Deno.env.get('RESEND_API_KEY');
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET')!;
-const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const RESEND_API_KEY      = Deno.env.get('RESEND_API_KEY');
-
-async function verifySignature(orderId: string, paymentId: string, sig: string) {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw', enc.encode(RAZORPAY_KEY_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const raw = await crypto.subtle.sign('HMAC', key, enc.encode(`${orderId}|${paymentId}`));
-  const hex = Array.from(new Uint8Array(raw)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return hex === sig;
+async function verifyCashfreePayment(cfOrderId: string, expectedAmount: number): Promise<boolean> {
+  const res = await fetch(`${CF_BASE}/orders/${cfOrderId}`, {
+    headers: {
+      'x-api-version':   '2023-08-01',
+      'x-client-id':     CF_APP_ID,
+      'x-client-secret': CF_SECRET,
+    },
+  });
+  if (!res.ok) return false;
+  const order = await res.json();
+  if (order.order_status !== 'PAID') return false;
+  if (Math.abs(order.order_amount - expectedAmount) > 0.5) return false;
+  return true;
 }
 
 function genDonationId() {
@@ -27,7 +36,7 @@ function genDonationId() {
 }
 
 async function sendReceiptEmail(donor: { name: string; email: string }, amount: number, fundraiserTitle: string, donationId: string) {
-  if (!RESEND_API_KEY) return;
+  if (!RESEND_API_KEY || !donor.email) return;
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -82,7 +91,7 @@ async function sendReceiptEmail(donor: { name: string; email: string }, amount: 
 </body>
 </html>`;
 
-  await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -92,15 +101,16 @@ async function sendReceiptEmail(donor: { name: string; email: string }, amount: 
       html,
     }),
   });
+  if (!res.ok) console.error('Resend error:', await res.json());
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
-  const { payment, donation } = await req.json();
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = payment;
+  const { cfOrderId, donation } = await req.json();
+  // donation: { fundraiserId, fundraiserTitle, amount, donor: { name, email }, message, anonymous }
 
-  const valid = await verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+  const valid = await verifyCashfreePayment(cfOrderId, donation.amount);
   if (!valid) {
     return new Response(JSON.stringify({ error: 'Payment verification failed' }), {
       status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
@@ -115,12 +125,11 @@ serve(async (req) => {
     fundraiser_id:    donation.fundraiserId,
     fundraiser_title: donation.fundraiserTitle,
     amount:           donation.amount,
-    donor_name:       donation.donor.name,
-    donor_email:      donation.donor.email,
+    donor_name:       donation.anonymous ? null : (donation.donor.name || null),
+    donor_email:      donation.donor.email || null,
     message:          donation.message || null,
     anonymous:        donation.anonymous || false,
-    payment_id:       razorpay_payment_id,
-    razorpay_order_id,
+    payment_id:       cfOrderId,
   });
 
   if (error) {
@@ -134,8 +143,10 @@ serve(async (req) => {
     p_amount:        donation.amount,
   });
 
-  sendReceiptEmail(donation.donor, donation.amount, donation.fundraiserTitle, id)
-    .catch(err => console.error('Receipt email error:', err));
+  if (!donation.anonymous && donation.donor.email && donation.donor.name) {
+    sendReceiptEmail(donation.donor, donation.amount, donation.fundraiserTitle, id)
+      .catch(err => console.error('Receipt email error:', err));
+  }
 
   return new Response(JSON.stringify({ success: true, donationId: id }), {
     headers: { ...cors, 'Content-Type': 'application/json' },
