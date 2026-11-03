@@ -273,7 +273,7 @@ export default function SuperAdmin() {
 
     const [{ data: bData }, { data: evData }, { data: donData }, { data: cpData }, { data: infData }, { data: frData }, { data: spData }] = await Promise.all([
       bq,
-      supabase.from('events').select('id, city, category, title, boosted'),
+      supabase.from('events').select('id, city, category, title, boosted, date'),
       supabase.from('donations').select('amount, fundraiser_id, fundraiser_title, created_at'),
       supabase.from('coupons').select('*'),
       supabase.from('influencers').select('*'),
@@ -390,9 +390,17 @@ export default function SuperAdmin() {
       return { ...e, boosted: evRow?.boosted ?? false };
     });
 
-    // Fundraiser payout metrics
-    const activeFundraisers   = fundraisers_.filter(f => f.status === 'active');
-    const payoutPending       = fundraisers_.filter(f => f.status === 'active' && !f.payout_sent && f.payout_upi);
+    // Fundraiser status breakdown
+    const activeFundraisers    = fundraisers_.filter(f => f.status === 'active');
+    const closedFundraisers    = fundraisers_.filter(f => f.status === 'closed');
+    const draftFundraisers     = fundraisers_.filter(f => f.status === 'draft');
+    const cancelledFundraisers = fundraisers_.filter(f => f.status === 'cancelled');
+    const payoutPending        = fundraisers_.filter(f => f.status === 'active' && !f.payout_sent && f.payout_upi);
+
+    // Booking status breakdown (active upcoming vs active past vs refunded)
+    const today = new Date().toISOString().slice(0, 10);
+    const activeUpcomingBookings = activeB.filter(b => (eventMap[b.event_id]?.date ?? '9999') >= today);
+    const activePastBookings     = activeB.filter(b => (eventMap[b.event_id]?.date ?? '9999') <  today);
 
     // Sponsor pipeline
     const sponsorPending  = sponsors_.filter(s => s.status === 'pending');
@@ -413,7 +421,9 @@ export default function SuperAdmin() {
       // Events
       boostedCount,
       // Fundraisers
-      fundraisers: fundraisers_, activeFundraisers, payoutPending,
+      fundraisers: fundraisers_, activeFundraisers, closedFundraisers, draftFundraisers, cancelledFundraisers, payoutPending,
+      // Booking status
+      activeUpcomingBookings, activePastBookings,
       // Sponsors
       sponsorPending, sponsorActive, sponsorRejected,
     });
@@ -1144,7 +1154,8 @@ export default function SuperAdmin() {
           const filteredProfit  = filteredEvents.reduce((s, e) => s + e.profit, 0);
           const filteredTickets = filteredEvents.reduce((s, e) => s + e.tickets, 0);
 
-          const activeCities = analytics ? [...new Set(analytics.perEvent.map(e => e.city).filter(c => c !== '—'))] : [];
+          // Cities from ALL events (not just booked ones)
+          const activeCities = analytics ? [...new Set(Object.values(analytics.eventMap).map(e => e.city).filter(c => c && c !== '—').sort())] : [];
           const activeCats   = analytics ? [...new Set(analytics.perEvent.map(e => e.category).filter(c => c !== '—'))] : [];
 
           const maxRev = analytics?.months?.length ? Math.max(...analytics.months.map(m => m.revenue), 1) : 1;
@@ -1229,12 +1240,15 @@ export default function SuperAdmin() {
                   {/* Right side: spinner + clear */}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginLeft: 'auto' }}>
                     {analyticsLoading && <div className="spinner" style={{ width: 16, height: 16 }} />}
-                    {anyFilter && (
-                      <button onClick={() => { setAnalyticsCity('all'); setAnalyticsCat('all'); setAnalyticsEvent('all'); setAnalyticsRange('90'); setAnalyticsDateFrom(''); setAnalyticsDateTo(''); }}
-                        style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--text-muted)' }}>
-                        ✕ Clear
-                      </button>
-                    )}
+                    <button onClick={() => { setAnalyticsCity('all'); setAnalyticsCat('all'); setAnalyticsEvent('all'); setAnalyticsRange('90'); setAnalyticsDateFrom(''); setAnalyticsDateTo(''); }}
+                      style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                        border: anyFilter ? '1px solid var(--accent)' : '1px solid var(--border-2)',
+                        background: anyFilter ? 'var(--accent)' : 'transparent',
+                        color: anyFilter ? '#fff' : 'var(--text-muted)',
+                        opacity: anyFilter ? 1 : 0.5,
+                      }}>
+                      ✕ Clear
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1275,17 +1289,37 @@ export default function SuperAdmin() {
                 ))}
               </div>
 
-              {/* ── Fundraisers KPIs ── */}
-              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Fundraisers</h3>
+              {/* ── Booking Status ── */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Booking Status</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
                 {[
-                  { label: 'Total Donations',   value: analytics ? `₹${analytics.totalDonations.toLocaleString('en-IN')}` : '—', color: '#10b981' },
-                  { label: 'Donations Count',   value: analytics?.donationsCount ?? '—', color: 'var(--accent)' },
-                  { label: 'Active Campaigns',  value: analytics?.activeFundraisers?.length ?? '—', color: '#F59E0B' },
+                  { label: 'Active – Upcoming', value: analytics?.activeUpcomingBookings?.length ?? '—', color: '#10b981', sub: 'confirmed, event not yet held' },
+                  { label: 'Active – Past',     value: analytics?.activePastBookings?.length ?? '—',     color: '#F59E0B', sub: 'confirmed, event already held' },
+                  { label: 'Refunded',          value: analytics?.refundCount ?? '—',                    color: 'var(--error)', sub: `₹${(analytics?.refundAmount ?? 0).toLocaleString('en-IN')} returned` },
                 ].map(tile => (
                   <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
                     <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                    {tile.sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, opacity: 0.7 }}>{tile.sub}</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Fundraisers KPIs ── */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>Fundraisers</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
+                {[
+                  { label: 'Total Donations',  value: analytics ? `₹${analytics.totalDonations.toLocaleString('en-IN')}` : '—', color: '#10b981' },
+                  { label: 'Donations Count',  value: analytics?.donationsCount ?? '—', color: 'var(--accent)' },
+                  { label: 'Active',           value: analytics?.activeFundraisers?.length ?? '—',    color: '#10b981',        sub: 'live & accepting' },
+                  { label: 'Closed / Past',    value: analytics?.closedFundraisers?.length ?? '—',    color: '#F59E0B',        sub: 'ended campaigns' },
+                  { label: 'Draft',            value: analytics?.draftFundraisers?.length ?? '—',     color: 'var(--text-muted)', sub: 'not published' },
+                  { label: 'Cancelled',        value: analytics?.cancelledFundraisers?.length ?? '—', color: 'var(--error)',   sub: 'removed' },
+                ].map(tile => (
+                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                    {tile.sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, opacity: 0.7 }}>{tile.sub}</div>}
                   </div>
                 ))}
               </div>
