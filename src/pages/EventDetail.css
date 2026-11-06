@@ -241,6 +241,29 @@
 
 .ticket-card .btn-primary { margin: 16px 22px 12px; width: calc(100% - 44px); }
 
+.ticket-card__share-row {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.ticket-card__share-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ticket-card__share-btn:hover { background: var(--surface-2); }
+
 .ticket-card__secure {
   display: flex;
   align-items: center;

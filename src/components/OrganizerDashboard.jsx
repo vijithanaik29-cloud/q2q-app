@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../data/events';
 import QRVerifier from './QRVerifier';
+import { PAYMENTS_ENABLED } from '../config';
 import './OrganizerDashboard.css';
 
 const PLATFORM_FEE_RATE = 0.10;
@@ -168,12 +169,14 @@ export default function OrganizerDashboard({ event, onBack }) {
         >
           Verify at Door
         </button>
-        <button
-          className={`od__tab ${activeTab === 'payout' ? 'od__tab--active' : ''}`}
-          onClick={() => setActiveTab('payout')}
-        >
-          Payout
-        </button>
+        {PAYMENTS_ENABLED && (
+          <button
+            className={`od__tab ${activeTab === 'payout' ? 'od__tab--active' : ''}`}
+            onClick={() => setActiveTab('payout')}
+          >
+            Payout
+          </button>
+        )}
       </div>
 
       {/* ── Attendees ── */}
@@ -182,7 +185,7 @@ export default function OrganizerDashboard({ event, onBack }) {
           {eventBookings.length === 0 ? (
             <div className="od__empty">
               <p>No bookings yet.</p>
-              <p className="od__empty-sub">Share your event link to start selling tickets.</p>
+              <p className="od__empty-sub">Share your event link to get RSVPs.</p>
             </div>
           ) : (
             <>
@@ -208,7 +211,7 @@ export default function OrganizerDashboard({ event, onBack }) {
                 <div className="od__table-head">
                   <span>Attendee</span>
                   <span>Ticket</span>
-                  <span>Amount</span>
+                  {PAYMENTS_ENABLED && <span>Amount</span>}
                   <span>Date</span>
                   <span>Status</span>
                 </div>
@@ -231,9 +234,11 @@ export default function OrganizerDashboard({ event, onBack }) {
                         {row.ticketType}
                         {row.qty > 1 && <span className="od__qty"> ×{row.qty}</span>}
                       </div>
-                      <div className="od__attendee-amount">
-                        {row.amount === 0 ? <span className="od__free">Free</span> : `₹${row.amount.toLocaleString('en-IN')}`}
-                      </div>
+                      {PAYMENTS_ENABLED && (
+                        <div className="od__attendee-amount">
+                          {row.amount === 0 ? <span className="od__free">Free</span> : `₹${row.amount.toLocaleString('en-IN')}`}
+                        </div>
+                      )}
                       <div className="od__attendee-date">
                         {new Date(row.bookedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </div>

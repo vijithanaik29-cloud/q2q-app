@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../data/events';
@@ -9,8 +9,35 @@ export default function EventDetail() {
   const { allEvents } = useApp();
   const navigate = useNavigate();
   const [tcOpen, setTcOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const event = allEvents.find(e => e.id === id);
+
+  useEffect(() => {
+    if (!event) return;
+    document.title = `${event.title} — Q2Q`;
+    let desc = document.querySelector('meta[name="description"]');
+    if (!desc) { desc = document.createElement('meta'); desc.name = 'description'; document.head.appendChild(desc); }
+    desc.content = `${event.title} · ${formatDate(event.date)} · ${event.venue}, ${event.city}. Book your spot on Q2Q.`;
+    return () => { document.title = 'Q2Q — Event Ticketing Platform | India'; };
+  }, [event]);
+
+  function handleShare() {
+    const url = `${window.location.origin}/event/${event.id}`;
+    if (navigator.share) {
+      navigator.share({ title: event.title, url }).catch(() => {});
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`${event.title} — ${url}`)}`);
+    }
+  }
+
+  function copyLink() {
+    const url = `${window.location.origin}/event/${event.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   if (!event) {
     return (
@@ -172,6 +199,21 @@ export default function EventDetail() {
               <Link to={`/book/${event.id}`} className="btn btn-primary btn-full btn-lg">
                 Book tickets
               </Link>
+
+              <div className="ticket-card__share-row">
+                <button className="ticket-card__share-btn" onClick={handleShare}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                  </svg>
+                  Share
+                </button>
+                <button className="ticket-card__share-btn" onClick={copyLink}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                  </svg>
+                  {copied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
 
               <p className="ticket-card__secure">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -7,6 +7,7 @@ import { CITIES, CATEGORIES, formatDate } from '../data/events';
 import OrganizerDashboard from '../components/OrganizerDashboard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { supabase } from '../lib/supabase';
+import { PAYMENTS_ENABLED } from '../config';
 import './Admin.css';
 
 const SUPERADMIN = 'vijithanaik29@gmail.com';
@@ -941,8 +942,8 @@ export default function SuperAdmin() {
           <button className={`admin__tab admin__tab--super ${activeTab === 'sponsors'     ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('sponsors')}>
             Sponsor Review {pendingSponsors.length > 0 && <span className="admin__tab-badge">{pendingSponsors.length}</span>}
           </button>
-          <button className={`admin__tab admin__tab--super ${activeTab === 'coupons'      ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('coupons')}>🏷 Coupons</button>
-          <button className={`admin__tab admin__tab--super ${activeTab === 'influencers'  ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('influencers')}>🎟 Influencers</button>
+          {PAYMENTS_ENABLED && <button className={`admin__tab admin__tab--super ${activeTab === 'coupons'      ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('coupons')}>🏷 Coupons</button>}
+          {PAYMENTS_ENABLED && <button className={`admin__tab admin__tab--super ${activeTab === 'influencers'  ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('influencers')}>🎟 Influencers</button>}
           <button className={`admin__tab admin__tab--super ${activeTab === 'stories'      ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('stories')}>
             ✍️ Stories {pendingStories.length > 0 && <span className="admin__tab-badge">{pendingStories.length}</span>}
           </button>

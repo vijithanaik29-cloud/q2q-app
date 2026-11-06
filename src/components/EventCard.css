@@ -153,6 +153,13 @@
   max-width: 140px;
 }
 
+.event-card__strip-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .event-card__price {
   font-size: 13px;
   font-weight: 700;
@@ -160,6 +167,22 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+.event-card__share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.event-card__share:hover { background: var(--surface-2); color: var(--text); }
 
 .event-card__price--free {
   color: var(--success);

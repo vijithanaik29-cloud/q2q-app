@@ -136,27 +136,36 @@ export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
         <div className={`qrv__result ${isValid ? 'qrv__result--valid' : 'qrv__result--invalid'}`}>
           {isValid ? (
             <>
-              <div className="qrv__result-status">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                {isCheckedIn ? 'Already checked in' : 'Valid ticket'}
-              </div>
               <div className="qrv__result-name">{result.booking.attendee.name}</div>
+              <div className="qrv__result-ref-row">
+                <span className="qrv__result-ref-label">Booking ID</span>
+                <code className="qrv__result-ref">{result.booking.id}</code>
+              </div>
               <div className="qrv__result-meta">
-                <span>{result.booking.tickets.map(t => `${t.type} × ${t.qty}`).join(', ')}</span>
-                <span className="qrv__result-sep">·</span>
-                <span className="qrv__result-ref">{result.booking.id}</span>
+                {result.booking.tickets.map(t => `${t.type} × ${t.qty}`).join(', ')}
               </div>
               {isCheckedIn ? (
-                <div className="qrv__already-in">Checked in</div>
+                <div className="qrv__already-in">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Arrived
+                </div>
               ) : (
-                <button
-                  className="btn btn-primary qrv__checkin-btn"
-                  onClick={() => { onCheckIn(result.booking.id); setResult(r => ({ ...r })); }}
-                >
-                  Mark as checked in
-                </button>
+                <div className="qrv__arrive-row">
+                  <button
+                    className="qrv__arrive-btn qrv__arrive-btn--yes"
+                    onClick={() => { onCheckIn(result.booking.id); setResult(r => ({ ...r })); }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Arrived
+                  </button>
+                  <button
+                    className="qrv__arrive-btn qrv__arrive-btn--no"
+                    onClick={() => setResult(null)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Not arrived
+                  </button>
+                </div>
               )}
             </>
           ) : (

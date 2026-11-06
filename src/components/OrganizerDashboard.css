@@ -652,10 +652,47 @@
 
 .qrv__result-sep { color: var(--text-muted); }
 
+.qrv__result-ref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.qrv__result-ref-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 .qrv__result-ref {
   font-family: 'Courier New', monospace;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.qrv__arrive-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.qrv__arrive-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+}
+.qrv__arrive-btn--yes {
+  background: var(--success-dim);
+  color: var(--success);
+}
+.qrv__arrive-btn--no {
+  background: var(--surface-2);
+  color: var(--text-2);
 }
 
 .qrv__result--invalid .qrv__result-meta { margin-bottom: 0; }
