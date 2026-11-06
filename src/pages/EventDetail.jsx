@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../data/events';
+import { PAYMENTS_ENABLED } from '../config';
 import './EventDetail.css';
 
 export default function EventDetail() {
@@ -180,7 +181,11 @@ export default function EventDetail() {
               <div className="ticket-card__header">
                 <span className="ticket-card__label">Tickets</span>
                 <span className="ticket-card__from">
-                  {minTicketPrice === 0 ? 'Free' : `From ₹${minTicketPrice.toLocaleString('en-IN')}`}
+                  {minTicketPrice === 0
+                    ? 'Free'
+                    : !PAYMENTS_ENABLED
+                      ? `From ₹${minTicketPrice.toLocaleString('en-IN')} · Pay at venue`
+                      : `From ₹${minTicketPrice.toLocaleString('en-IN')}`}
                 </span>
               </div>
 
@@ -213,7 +218,9 @@ export default function EventDetail() {
                     <div className="ticket-type__price">
                       {ticket.price === 0
                         ? <span className="ticket-type__price--free">Free</span>
-                        : `₹${ticket.price.toLocaleString('en-IN')}`
+                        : !PAYMENTS_ENABLED
+                          ? <><span>₹{ticket.price.toLocaleString('en-IN')}</span><span className="ticket-type__pay-venue">Pay at venue</span></>
+                          : `₹${ticket.price.toLocaleString('en-IN')}`
                       }
                     </div>
                   </div>
@@ -261,7 +268,11 @@ export default function EventDetail() {
           <div>
             <div className="event-detail__sticky-name">{event.title}</div>
             <div className="event-detail__sticky-price">
-              {minTicketPrice === 0 ? 'Free' : `From ₹${minTicketPrice.toLocaleString('en-IN')}`}
+              {minTicketPrice === 0
+                ? 'Free'
+                : !PAYMENTS_ENABLED
+                  ? `₹${minTicketPrice.toLocaleString('en-IN')} · Pay at venue`
+                  : `From ₹${minTicketPrice.toLocaleString('en-IN')}`}
             </div>
           </div>
           <Link to={`/book/${event.id}`} state={bookingState} className="btn btn-primary">Book</Link>

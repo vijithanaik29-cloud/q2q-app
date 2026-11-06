@@ -250,7 +250,11 @@ export default function Booking() {
                       </div>
                       <div className="booking__ticket-right">
                         <div className="booking__ticket-price">
-                          {ticket.price === 0 ? <span style={{ color: 'var(--success)' }}>Free</span> : `₹${ticket.price.toLocaleString('en-IN')}`}
+                          {ticket.price === 0
+                            ? <span style={{ color: 'var(--success)' }}>Free</span>
+                            : !PAYMENTS_ENABLED
+                              ? <><span>₹{ticket.price.toLocaleString('en-IN')}</span><span className="booking__pay-venue">Pay at venue</span></>
+                              : `₹${ticket.price.toLocaleString('en-IN')}`}
                         </div>
                         <div className="booking__qty">
                           <button className="booking__qty-btn" onClick={() => setQty(ticket.id, -1)} disabled={(quantities[ticket.id] || 0) === 0}>−</button>
@@ -370,7 +374,7 @@ export default function Booking() {
                 )}
 
                 <p className="booking__privacy">
-                  Your details are only used to send your booking confirmation and process payment. See our <Link to="/privacy">Privacy Policy</Link>.
+                  Your details are only used to send your booking confirmation. See our <Link to="/privacy">Privacy Policy</Link>.
                 </p>
 
                 <button type="submit" className="btn btn-primary btn-full btn-lg">
