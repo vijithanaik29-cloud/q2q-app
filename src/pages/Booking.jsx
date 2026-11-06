@@ -169,6 +169,10 @@ export default function Booking() {
       // Free tickets, fully discounted, or payments disabled — save directly
       if (finalTotal === 0 || !PAYMENTS_ENABLED) {
         const booking = await addBooking(bookingData);
+        // Send confirmation email non-blocking
+        supabase.functions.invoke('confirm-booking', {
+          body: { emailOnly: true, bookingId: booking.id },
+        }).catch(() => {});
         navigate('/confirmation', { state: { booking, event } });
         return;
       }

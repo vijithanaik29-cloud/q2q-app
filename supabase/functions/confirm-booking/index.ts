@@ -183,7 +183,30 @@ async function sendConfirmationEmail(booking: {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
-  const { payment, booking } = await req.json();
+  const body = await req.json();
+
+  // Email-only mode: booking already created by client, just send confirmation email
+  if (body.emailOnly && body.bookingId) {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+    const { data, error } = await supabase
+      .from('bookings').select('*').eq('id', body.bookingId).maybeSingle();
+    if (error || !data) {
+      return new Response(JSON.stringify({ error: 'Booking not found' }), {
+        status: 404, headers: { ...cors, 'Content-Type': 'application/json' },
+      });
+    }
+    sendConfirmationEmail({
+      id: data.id, eventTitle: data.event_title, eventDate: data.event_date,
+      eventVenue: data.event_venue, eventCity: data.event_city,
+      gradient: data.gradient, total: data.total,
+      tickets: data.tickets, attendee: data.attendee,
+    }).catch(err => console.error('Email error:', err));
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { payment, booking } = body;
   const { cf_order_id } = payment;
 
   const { valid, paymentId } = await verifyCashfreePayment(cf_order_id, booking.total);
