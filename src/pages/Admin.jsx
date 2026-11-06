@@ -466,7 +466,6 @@ export default function Admin() {
   const isSuperAdmin = user?.email === SUPERADMIN;
 
   useEffect(() => {
-    if (user && activeTab === 'payout')    loadBankDetails();
     if (user && activeTab === 'advertise') loadMySponsorSub();
   }, [user, activeTab]);
 
@@ -811,9 +810,6 @@ export default function Admin() {
           <button className={`admin__tab ${activeTab === 'add'      ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('add')}>
             + Submit New Event
           </button>
-          <button className={`admin__tab ${activeTab === 'payout'   ? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('payout')}>
-            Payout Details
-          </button>
           <button className={`admin__tab ${activeTab === 'advertise'? 'admin__tab--active' : ''}`} onClick={() => setActiveTab('advertise')}>
             ✦ Advertise
           </button>
@@ -900,52 +896,6 @@ export default function Admin() {
                 })}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Payout Details */}
-        {activeTab === 'payout' && (
-          <div style={{ maxWidth: 560 }}>
-            <div className="admin__form-section">
-              <h2>Bank Account for Payouts</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
-                We'll transfer your event earnings to this account after each event settles (typically 3–5 business days). Your details are stored securely and only used for payouts.
-              </p>
-              {bankLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                  <div className="spinner" style={{ width: 24, height: 24 }} />
-                </div>
-              ) : (
-                <form onSubmit={handleBankSave} noValidate>
-                  {bankSaved  && <div className="admin__success">✓ Bank details saved successfully.</div>}
-                  {bankError  && <div className="admin__error" style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(239,68,68,0.08)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)' }}>{bankError}</div>}
-                  <div className="form-group">
-                    <label>Account Holder Name *</label>
-                    <input type="text" placeholder="Name as on bank account" value={bankForm.account_holder_name}
-                      onChange={e => { setBankForm(f => ({ ...f, account_holder_name: e.target.value })); setBankError(''); }} />
-                  </div>
-                  <div className="form-group">
-                    <label>Bank Name *</label>
-                    <input type="text" placeholder="e.g. State Bank of India" value={bankForm.bank_name}
-                      onChange={e => { setBankForm(f => ({ ...f, bank_name: e.target.value })); setBankError(''); }} />
-                  </div>
-                  <div className="form-group">
-                    <label>Account Number *</label>
-                    <input type="text" placeholder="Enter account number" value={bankForm.account_number} inputMode="numeric"
-                      onChange={e => { setBankForm(f => ({ ...f, account_number: e.target.value.replace(/\D/g, '') })); setBankError(''); }} />
-                  </div>
-                  <div className="form-group">
-                    <label>IFSC Code *</label>
-                    <input type="text" placeholder="e.g. SBIN0001234" value={bankForm.ifsc_code} maxLength={11}
-                      style={{ textTransform: 'uppercase', fontFamily: 'monospace', letterSpacing: 1 }}
-                      onChange={e => { setBankForm(f => ({ ...f, ifsc_code: e.target.value.toUpperCase() })); setBankError(''); }} />
-                  </div>
-                  <button type="submit" className="btn btn-primary" disabled={bankSaving}>
-                    {bankSaving ? 'Saving…' : 'Save Bank Details'}
-                  </button>
-                </form>
-              )}
-            </div>
           </div>
         )}
 
