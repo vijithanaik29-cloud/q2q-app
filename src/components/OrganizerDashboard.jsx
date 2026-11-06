@@ -124,7 +124,7 @@ export default function OrganizerDashboard({ event, onBack }) {
         </div>
 
         <div className="od__metric">
-          <div className="od__metric-label">Tickets Sold</div>
+          <div className="od__metric-label">RSVPs</div>
           <div className="od__metric-value">{metrics.totalTickets}</div>
         </div>
 

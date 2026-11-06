@@ -101,7 +101,7 @@ function StatsTab({ myEvents }) {
       {/* Summary tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 28 }}>
         {tile('Events Hosted', myEvents.length)}
-        {tile('Tickets Sold', totalTickets)}
+        {tile('RSVPs', totalTickets)}
         {tile('Checked In', totalCheckedIn)}
         {tile('Cancelled', cancelled.length)}
       </div>
@@ -118,7 +118,7 @@ function StatsTab({ myEvents }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-2)' }}>
-                {['Event', 'Date', 'Tickets', 'Checked In', 'Cancelled'].map(h => (
+                {['Event', 'Date', 'RSVPs', 'Checked In', 'Cancelled'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>

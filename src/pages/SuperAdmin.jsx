@@ -1262,7 +1262,7 @@ export default function SuperAdmin() {
                 {[
                   { label: 'Gross Revenue',   value: `₹${displayRevenue.toLocaleString('en-IN')}`,  color: '#10b981', sub: 'total collected' },
                   { label: "Q2Q Profit (10%)", value: `₹${displayProfit.toLocaleString('en-IN')}`,   color: '#8B5CF6', sub: 'platform cut' },
-                  { label: 'Tickets Sold',     value: displayTickets,                                 color: 'var(--accent)', sub: 'across all events' },
+                  { label: 'RSVPs',            value: displayTickets,                                 color: 'var(--accent)', sub: 'across all events' },
                   { label: 'Refunds',          value: analytics ? `₹${analytics.refundAmount.toLocaleString('en-IN')}` : '—', color: 'var(--error)', sub: analytics ? `${analytics.refundCount} bookings` : '' },
                 ].map(tile => (
                   <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
