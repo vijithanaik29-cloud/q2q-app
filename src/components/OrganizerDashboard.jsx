@@ -2,15 +2,17 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatDate } from '../data/events';
 import QRVerifier from './QRVerifier';
+import ConfirmDialog from './ConfirmDialog';
 import { PAYMENTS_ENABLED } from '../config';
 import { getLoyaltyTier, LOYALTY_META } from '../lib/loyalty';
 import './OrganizerDashboard.css';
 
 const PLATFORM_FEE_RATE = 0.10;
 
-export default function OrganizerDashboard({ event, initialTab = 'attendees', onBack }) {
-  const { bookings, checkedIn, checkIn, noShows, markNoShow } = useApp();
+export default function OrganizerDashboard({ event, initialTab = 'attendees', onBack, onDelete }) {
+  const { bookings, checkedIn, checkIn, noShows, markNoShow, cancelEvent, deleteEvent } = useApp();
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [search, setSearch] = useState('');
 
   const eventBookings = useMemo(
@@ -93,14 +95,55 @@ export default function OrganizerDashboard({ event, initialTab = 'attendees', on
 
   return (
     <div className="od fade-up">
+      <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
+
       {/* Event header */}
       <div className="od__header">
-        <button className="od__back" onClick={onBack}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
-          All Events
-        </button>
+        <div className="od__header-top">
+          <button className="od__back" onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+            All Events
+          </button>
+          <div className="od__event-actions">
+            {!event.isCancelled && (
+              <button
+                className="od__action-btn od__action-btn--cancel"
+                onClick={() => setConfirmDialog({
+                  title: 'Cancel this event?',
+                  action: `mark "${event.title}" as cancelled and cancel all ${metrics.totalBookings} booking(s)`,
+                  confirmLabel: 'Cancel event',
+                  danger: true,
+                  fn: () => cancelEvent(event.id),
+                })}
+              >
+                Cancel event
+              </button>
+            )}
+            {metrics.totalBookings === 0 && (
+              <button
+                className="od__action-btn od__action-btn--delete"
+                onClick={() => setConfirmDialog({
+                  title: 'Delete this event?',
+                  action: `permanently delete "${event.title}" — this cannot be undone`,
+                  confirmLabel: 'Delete',
+                  danger: true,
+                  fn: async () => { await deleteEvent(event.id); onDelete?.(); },
+                })}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        </div>
+
+        {event.isCancelled && (
+          <div className="od__cancelled-banner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            This event has been cancelled. All bookings are marked as cancelled.
+          </div>
+        )}
 
         <div className="od__event-info">
           <div className="od__event-banner" style={{ background: event.gradient }}>
@@ -144,12 +187,14 @@ export default function OrganizerDashboard({ event, initialTab = 'attendees', on
           Attendees
           {attendeeRows.length > 0 && <span className="od__tab-count">{attendeeRows.length}</span>}
         </button>
-        <button
-          className={`od__tab ${activeTab === 'verify' ? 'od__tab--active' : ''}`}
-          onClick={() => setActiveTab('verify')}
-        >
-          Verify at Door
-        </button>
+        {!event.isCancelled && (
+          <button
+            className={`od__tab ${activeTab === 'verify' ? 'od__tab--active' : ''}`}
+            onClick={() => setActiveTab('verify')}
+          >
+            Verify at Door
+          </button>
+        )}
         {PAYMENTS_ENABLED && (
           <button
             className={`od__tab ${activeTab === 'payout' ? 'od__tab--active' : ''}`}
@@ -231,7 +276,9 @@ export default function OrganizerDashboard({ event, initialTab = 'attendees', on
                         {new Date(row.bookedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </div>
                       <div className="od__attendee-status">
-                        {row.checkedIn ? (
+                        {event.isCancelled ? (
+                          <span className="od__badge-cancelled">Cancelled</span>
+                        ) : row.checkedIn ? (
                           <span className="od__badge-in">Arrived</span>
                         ) : row.noShow ? (
                           <span className="od__badge-noshow">No-show</span>

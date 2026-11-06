@@ -770,7 +770,12 @@ export default function Admin() {
           </div>
         </div>
         <div className="container admin__body">
-          <OrganizerDashboard event={selectedEvent} initialTab={dashInitialTab} onBack={() => { setSelectedEvent(null); setDashInitialTab('attendees'); }} />
+          <OrganizerDashboard
+            event={selectedEvent}
+            initialTab={dashInitialTab}
+            onBack={() => { setSelectedEvent(null); setDashInitialTab('attendees'); }}
+            onDelete={() => { setSelectedEvent(null); setDashInitialTab('attendees'); }}
+          />
         </div>
       </div>
     );
@@ -875,13 +880,15 @@ export default function Admin() {
                 {filteredEvents.map(event => {
                   const isPast = event.date && event.date < today;
                   return (
-                    <div key={event.id} className="admin__event-card card" style={isPast ? { opacity: 0.7 } : {}}>
+                    <div key={event.id} className="admin__event-card card" style={isPast || event.isCancelled ? { opacity: 0.7 } : {}}>
                       <div className="admin__event-banner" style={{ background: event.gradient }} />
                       <div className="admin__event-body">
                         <div className="admin__event-badges">
-                          {isPast
-                            ? <span className="badge badge-gray">Past</span>
-                            : <span className="badge badge-green">Live</span>}
+                          {event.isCancelled
+                            ? <span className="badge" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>Cancelled</span>
+                            : isPast
+                              ? <span className="badge badge-gray">Past</span>
+                              : <span className="badge badge-green">Live</span>}
                           <span className="badge badge-gray">{event.city}</span>
                           {event.boosted && <span className="badge" style={{ background: 'rgba(234,179,8,0.15)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.3)' }}>⚡ Boosted</span>}
                         </div>

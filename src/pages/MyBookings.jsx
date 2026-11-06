@@ -6,12 +6,14 @@ import './MyBookings.css';
 
 function BookingCard({ booking }) {
   const isPast = booking.eventDate && booking.eventDate < new Date().toISOString().slice(0, 10);
+  const isCancelled = booking.status === 'cancelled';
 
   return (
-    <div className={`mb-card ${isPast ? 'mb-card--past' : ''}`}>
+    <div className={`mb-card ${isPast ? 'mb-card--past' : ''} ${isCancelled ? 'mb-card--cancelled' : ''}`}>
       {/* Gradient header — event title lives here */}
       <div className="mb-card__header" style={{ background: booking.gradient || 'linear-gradient(135deg,#667eea,#764ba2)' }}>
-        {isPast && <span className="mb-card__past-badge">Past</span>}
+        {isCancelled && <span className="mb-card__cancelled-badge">Cancelled</span>}
+        {!isCancelled && isPast && <span className="mb-card__past-badge">Past</span>}
         <h3 className="mb-card__title">{booking.eventTitle}</h3>
         <div className="mb-card__meta">
           <span>📅 {formatDate(booking.eventDate)}</span>
@@ -63,7 +65,7 @@ export default function MyBookings() {
   const [error, setError]     = useState('');
   const [bookings, setBookings] = useState([]);
   const [userEmail, setUserEmail] = useState('');
-  const [activeSection, setActiveSection] = useState('upcoming'); // 'today' | 'upcoming' | 'past'
+  const [activeSection, setActiveSection] = useState('upcoming'); // 'today' | 'upcoming' | 'past' | 'cancelled'
 
   const loadBookings = useCallback(async (mail) => {
     setStep('loading');
@@ -83,6 +85,7 @@ export default function MyBookings() {
       tickets:    row.tickets,
       attendee:   row.attendee,
       createdAt:  row.created_at,
+      status:     row.status || null,
     }));
     setBookings(mapped);
     setStep('results');
@@ -205,20 +208,26 @@ export default function MyBookings() {
             </Link>
           </div>
         ) : (() => {
-          const today        = new Date().toISOString().slice(0, 10);
-          const todayList    = bookings.filter(b => b.eventDate === today);
-          const upcomingList = bookings.filter(b => b.eventDate >  today);
-          const pastList     = bookings.filter(b => b.eventDate <  today);
+          const today          = new Date().toISOString().slice(0, 10);
+          const cancelledList  = bookings.filter(b => b.status === 'cancelled');
+          const activeBookings = bookings.filter(b => b.status !== 'cancelled');
+          const todayList      = activeBookings.filter(b => b.eventDate === today);
+          const upcomingList   = activeBookings.filter(b => b.eventDate >  today);
+          const pastList       = activeBookings.filter(b => b.eventDate <  today);
 
           const tabs = [
-            { key: 'today',    label: 'Today',    count: todayList.length    },
-            { key: 'upcoming', label: 'Upcoming', count: upcomingList.length },
-            { key: 'past',     label: 'Past',     count: pastList.length     },
+            { key: 'today',     label: 'Today',     count: todayList.length     },
+            { key: 'upcoming',  label: 'Upcoming',  count: upcomingList.length  },
+            { key: 'past',      label: 'Past',      count: pastList.length      },
+            ...(cancelledList.length > 0
+              ? [{ key: 'cancelled', label: 'Cancelled', count: cancelledList.length }]
+              : []),
           ];
 
           const current = activeSection;
-          const shownList = current === 'today' ? todayList
-                          : current === 'past'  ? pastList
+          const shownList = current === 'today'     ? todayList
+                          : current === 'past'      ? pastList
+                          : current === 'cancelled' ? cancelledList
                           : upcomingList;
 
           return (

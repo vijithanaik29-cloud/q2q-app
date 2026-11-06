@@ -125,7 +125,7 @@ export default function Home() {
         dateFilter === 'today' ? d === todayStr :
         dateFilter === 'tomorrow' ? d === tomorrowStr :
         dateFilter === 'weekend' ? (d === satStr || d === sunStr) : true;
-      return matchCity && matchCat && matchSearch && matchPrice && matchDate;
+      return matchCity && matchCat && matchSearch && matchPrice && matchDate && !e.isCancelled;
     });
     // Boosted events rotate to top (round-robin per 5-minute bucket)
     const boosted    = filtered.filter(e => e.boosted);

@@ -22,6 +22,7 @@ function dbToEvent(row) {
     organizer:        row.organizer,
     organizerContact: row.organizer_contact,
     organizerId:      row.organizer_id,
+    isCancelled:      row.is_cancelled || false,
     featured:         row.featured,
     boosted:          row.boosted || false,
     tags:             row.tags,
@@ -44,6 +45,7 @@ function dbToBooking(row) {
     tickets:    row.tickets,
     attendee:   row.attendee,
     createdAt:  row.created_at,
+    status:     row.status || null,
   };
 }
 
@@ -199,6 +201,21 @@ export function AppProvider({ children }) {
     }
   }
 
+  async function cancelEvent(eventId) {
+    const { error: evErr } = await supabase.from('events').update({ is_cancelled: true }).eq('id', eventId);
+    if (evErr) throw evErr;
+    await supabase.from('bookings').update({ status: 'cancelled' }).eq('event_id', eventId);
+    setAllEvents(prev => prev.map(e => e.id === eventId ? { ...e, isCancelled: true } : e));
+    setBookings(prev => prev.map(b => b.eventId === eventId ? { ...b, status: 'cancelled' } : b));
+  }
+
+  async function deleteEvent(eventId) {
+    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    if (error) throw error;
+    setAllEvents(prev => prev.filter(e => e.id !== eventId));
+    setBookings(prev => prev.filter(b => b.eventId !== eventId));
+  }
+
   async function markNoShow(bookingId) {
     setNoShows(prev => new Set([...prev, bookingId]));
     const { error } = await supabase.from('no_shows').insert({ booking_id: bookingId });
@@ -213,6 +230,7 @@ export function AppProvider({ children }) {
       bookings,  addBooking,
       checkedIn, checkIn,
       noShows,   markNoShow,
+      cancelEvent, deleteEvent,
       user, signIn, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut, authLoading,
     }}>
       {children}
