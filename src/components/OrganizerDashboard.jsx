@@ -128,30 +128,6 @@ export default function OrganizerDashboard({ event, onBack }) {
           <div className="od__metric-value">{metrics.totalTickets}</div>
         </div>
 
-        <div className="od__metric od__metric--highlight">
-          <div className="od__metric-label">Gross Revenue</div>
-          <div className="od__metric-value">
-            {metrics.grossRevenue === 0 ? '—' : `₹${metrics.grossRevenue.toLocaleString('en-IN')}`}
-          </div>
-        </div>
-
-        <div className="od__metric od__metric--payout">
-          <div className="od__metric-label">Your Payout</div>
-          <div className="od__metric-value">
-            {metrics.netPayout === 0 ? '—' : `₹${metrics.netPayout.toLocaleString('en-IN')}`}
-          </div>
-          {metrics.grossRevenue > 0 && (
-            <div className="od__metric-sub">after 10% fee</div>
-          )}
-        </div>
-      </div>
-
-      {/* Payout info strip */}
-      <div className="od__payout-strip">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <span>Payout processed <strong>30 minutes after your event ends</strong> — 10% platform fee deducted automatically.</span>
       </div>
 
       {/* Tabs */}

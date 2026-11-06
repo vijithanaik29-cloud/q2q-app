@@ -68,9 +68,6 @@ function StatsTab({ myEvents }) {
   const active    = bookings.filter(b => b.status !== 'cancelled');
   const cancelled = bookings.filter(b => b.status === 'cancelled');
   const totalTickets  = active.reduce((s, b) => s + (b.tickets || []).reduce((a, t) => a + t.qty, 0), 0);
-  const totalRevenue  = active.reduce((s, b) => s + (b.total || 0), 0);
-  const platformFee   = Math.round(totalRevenue * 0.10);
-  const netPayout     = totalRevenue - platformFee;
   const totalCheckedIn= checkins.size;
 
   // per-event breakdown
@@ -78,10 +75,9 @@ function StatsTab({ myEvents }) {
     const evBookings = active.filter(b => b.event_id === ev.id);
     const evCancelled = cancelled.filter(b => b.event_id === ev.id);
     const tickets  = evBookings.reduce((s, b) => s + (b.tickets || []).reduce((a, t) => a + t.qty, 0), 0);
-    const revenue  = evBookings.reduce((s, b) => s + (b.total || 0), 0);
     const ciCount  = evBookings.filter(b => checkins.has(b.id)).length;
     const isPast   = ev.date && ev.date < new Date().toISOString().slice(0, 10);
-    return { ev, tickets, revenue, ciCount, cancelled: evCancelled.length, isPast };
+    return { ev, tickets, ciCount, cancelled: evCancelled.length, isPast };
   });
 
   const tile = (label, value, sub) => (
@@ -108,8 +104,6 @@ function StatsTab({ myEvents }) {
         {tile('Tickets Sold', totalTickets)}
         {tile('Checked In', totalCheckedIn)}
         {tile('Cancelled', cancelled.length)}
-        {tile('Gross Revenue', `₹${totalRevenue.toLocaleString('en-IN')}`)}
-        {tile('Net Payout', `₹${netPayout.toLocaleString('en-IN')}`, '(after 10% fee)')}
       </div>
 
       {/* Per-event table */}
@@ -124,13 +118,13 @@ function StatsTab({ myEvents }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-2)' }}>
-                {['Event', 'Date', 'Tickets', 'Checked In', 'Cancelled', 'Revenue'].map(h => (
+                {['Event', 'Date', 'Tickets', 'Checked In', 'Cancelled'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {perEvent.map(({ ev, tickets, revenue, ciCount, cancelled: evCancelled, isPast }) => (
+              {perEvent.map(({ ev, tickets, ciCount, cancelled: evCancelled, isPast }) => (
                 <tr key={ev.id} style={{ borderBottom: '1px solid var(--border)', opacity: isPast ? 0.6 : 1 }}>
                   <td style={{ padding: '12px 12px', color: 'var(--text)', fontWeight: 600, maxWidth: 200 }}>
                     {ev.title}
@@ -140,9 +134,6 @@ function StatsTab({ myEvents }) {
                   <td style={{ padding: '12px 12px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{tickets}</td>
                   <td style={{ padding: '12px 12px', color: tickets > 0 ? 'var(--success, #34d399)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{ciCount}</td>
                   <td style={{ padding: '12px 12px', color: evCancelled > 0 ? '#f87171' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{evCancelled}</td>
-                  <td style={{ padding: '12px 12px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                    {revenue > 0 ? `₹${revenue.toLocaleString('en-IN')}` : '—'}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -830,10 +821,6 @@ export default function Admin() {
             onClick={() => setActiveTab('stats')}>
             📊 Stats
           </button>
-          <button className={`admin__tab ${activeTab === 'fundraisers' ? 'admin__tab--active' : ''}`}
-            onClick={() => setActiveTab('fundraisers')}>
-            💚 Fundraisers
-          </button>
         </div>
 
         {/* My Events */}
@@ -1064,11 +1051,6 @@ export default function Admin() {
           <div className="admin__form-section">
             <StatsTab myEvents={myEvents} />
           </div>
-        )}
-
-        {/* Fundraisers */}
-        {activeTab === 'fundraisers' && user && (
-          <FundraisersTab user={user} />
         )}
 
         {/* Submit Event */}
