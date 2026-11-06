@@ -427,14 +427,12 @@ function FundraisersTab({ user }) {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const { allEvents, addEvent, user, signInWithPassword, resetPassword, signOut, authLoading } = useApp();
+  const { allEvents, addEvent, user, signIn, signOut, authLoading } = useApp();
 
   const [email,      setEmail]      = useState('');
-  const [password,   setPassword]   = useState('');
   const [loginError, setLoginError] = useState('');
   const [signingIn,  setSigningIn]  = useState(false);
-  const [resetSent,  setResetSent]  = useState(false);
-  const [forgotMode, setForgotMode] = useState(false);
+  const [linkSent,   setLinkSent]   = useState(false);
 
   const [confirmDialog, setConfirmDialog] = useState(null);
 
@@ -554,16 +552,10 @@ export default function Admin() {
   async function handleLogin(e) {
     e.preventDefault();
     setSigningIn(true); setLoginError('');
-    if (forgotMode) {
-      const { error } = await resetPassword(email);
-      setSigningIn(false);
-      if (error) setLoginError(error.message);
-      else setResetSent(true);
-      return;
-    }
-    const { error } = await signInWithPassword(email, password);
+    const { error } = await signIn(email, `${window.location.origin}/admin`);
     setSigningIn(false);
-    if (error) setLoginError('Incorrect email or password.');
+    if (error) setLoginError(error.message);
+    else setLinkSent(true);
   }
 
   function setField(key, val) {
@@ -648,42 +640,29 @@ export default function Admin() {
               <p>Submit and manage queer events on Q2Q</p>
             </div>
 
-            {resetSent ? (
+            {linkSent ? (
               <div className="admin-login__sent">
-                <p><strong>Reset link sent</strong></p>
-                <p className="admin-login__sent-sub">Check <strong>{email}</strong> for a password reset link.</p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setResetSent(false); setForgotMode(false); }}>
-                  Back to sign in
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <p><strong>Check your email</strong></p>
+                <p className="admin-login__sent-sub">Sign-in link sent to <strong>{email}</strong>.</p>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setLinkSent(false); setEmail(''); }}>
+                  Use a different email
                 </button>
               </div>
             ) : (
-              <>
-                <form onSubmit={handleLogin}>
-                  <div className="form-group">
-                    <label htmlFor="adm-email">Email</label>
-                    <input id="adm-email" type="email" placeholder="you@yourorg.in" value={email}
-                      onChange={e => { setEmail(e.target.value); setLoginError(''); }} autoComplete="email" />
-                  </div>
-                  {!forgotMode && (
-                    <div className="form-group">
-                      <label htmlFor="adm-pass">Password</label>
-                      <input id="adm-pass" type="password" placeholder="••••••••" value={password}
-                        onChange={e => { setPassword(e.target.value); setLoginError(''); }} autoComplete="current-password" />
-                    </div>
-                  )}
-                  {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
-                  <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email || (!forgotMode && !password)}>
-                    {signingIn ? 'Please wait…' : forgotMode ? 'Send reset link' : 'Sign in'}
-                  </button>
-                </form>
-
-                <div className="admin-login__switch">
-                  {!forgotMode
-                    ? <button type="button" onClick={() => { setForgotMode(true); setLoginError(''); }}>Forgot password?</button>
-                    : <button type="button" onClick={() => { setForgotMode(false); setLoginError(''); }}>Back to sign in</button>
-                  }
+              <form onSubmit={handleLogin}>
+                <div className="form-group">
+                  <label htmlFor="adm-email">Email</label>
+                  <input id="adm-email" type="email" placeholder="you@yourorg.in" value={email}
+                    onChange={e => { setEmail(e.target.value); setLoginError(''); }} autoComplete="email" />
                 </div>
-              </>
+                {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
+                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email}>
+                  {signingIn ? 'Sending…' : 'Send sign-in link'}
+                </button>
+              </form>
             )}
 
             <p className="admin-login__note">
