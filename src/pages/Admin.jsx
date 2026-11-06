@@ -427,16 +427,14 @@ function FundraisersTab({ user }) {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const { allEvents, addEvent, user, signIn, signInWithPassword, signUpWithPassword, resetPassword, signOut, authLoading } = useApp();
+  const { allEvents, addEvent, user, signInWithPassword, resetPassword, signOut, authLoading } = useApp();
 
-  const [email,         setEmail]         = useState('');
-  const [password,      setPassword]      = useState('');
-  const [loginError,    setLoginError]    = useState('');
-  const [signingIn,     setSigningIn]     = useState(false);
-  const [linkSent,      setLinkSent]      = useState(false);
-  const [resetSent,     setResetSent]     = useState(false);
-  const [authMode,      setAuthMode]      = useState('login'); // 'login' | 'signup' | 'forgot'
-  const [resendCooldown,setResendCooldown]= useState(0);
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [signingIn,  setSigningIn]  = useState(false);
+  const [resetSent,  setResetSent]  = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
 
   const [confirmDialog, setConfirmDialog] = useState(null);
 
@@ -556,42 +554,16 @@ export default function Admin() {
   async function handleLogin(e) {
     e.preventDefault();
     setSigningIn(true); setLoginError('');
-    if (authMode === 'forgot') {
+    if (forgotMode) {
       const { error } = await resetPassword(email);
       setSigningIn(false);
       if (error) setLoginError(error.message);
       else setResetSent(true);
       return;
     }
-    if (authMode === 'signup') {
-      const { error } = await signUpWithPassword(email, password);
-      setSigningIn(false);
-      if (error) setLoginError(error.message);
-      else setLinkSent(true);
-      return;
-    }
-    // login mode — try password first
     const { error } = await signInWithPassword(email, password);
     setSigningIn(false);
     if (error) setLoginError('Incorrect email or password.');
-  }
-
-  function startResendCooldown() {
-    setResendCooldown(30);
-    const interval = setInterval(() => {
-      setResendCooldown(c => {
-        if (c <= 1) { clearInterval(interval); return 0; }
-        return c - 1;
-      });
-    }, 1000);
-  }
-
-  async function resendLink() {
-    setSigningIn(true); setLoginError('');
-    const { error } = await signIn(email);
-    setSigningIn(false);
-    if (error) setLoginError(error.message);
-    else startResendCooldown();
   }
 
   function setField(key, val) {
@@ -676,27 +648,12 @@ export default function Admin() {
               <p>Submit and manage queer events on Q2Q</p>
             </div>
 
-            {linkSent ? (
-              <div className="admin-login__sent">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                </svg>
-                <p><strong>Check your email</strong></p>
-                <p className="admin-login__sent-sub">
-                  {authMode === 'signup'
-                    ? <>We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.</>
-                    : <>We sent a password-reset link to <strong>{email}</strong>.</>}
-                </p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setLinkSent(false); setResetSent(false); setAuthMode('login'); }}>
-                  Back to login
-                </button>
-              </div>
-            ) : resetSent ? (
+            {resetSent ? (
               <div className="admin-login__sent">
                 <p><strong>Reset link sent</strong></p>
                 <p className="admin-login__sent-sub">Check <strong>{email}</strong> for a password reset link.</p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setResetSent(false); setAuthMode('login'); }}>
-                  Back to login
+                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setResetSent(false); setForgotMode(false); }}>
+                  Back to sign in
                 </button>
               </div>
             ) : (
@@ -707,27 +664,24 @@ export default function Admin() {
                     <input id="adm-email" type="email" placeholder="you@yourorg.in" value={email}
                       onChange={e => { setEmail(e.target.value); setLoginError(''); }} autoComplete="email" />
                   </div>
-                  {authMode !== 'forgot' && (
+                  {!forgotMode && (
                     <div className="form-group">
                       <label htmlFor="adm-pass">Password</label>
                       <input id="adm-pass" type="password" placeholder="••••••••" value={password}
-                        onChange={e => { setPassword(e.target.value); setLoginError(''); }} autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} />
+                        onChange={e => { setPassword(e.target.value); setLoginError(''); }} autoComplete="current-password" />
                     </div>
                   )}
                   {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
-                  <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email || (authMode !== 'forgot' && !password)}>
-                    {signingIn ? 'Please wait…' : authMode === 'signup' ? 'Create account' : authMode === 'forgot' ? 'Send reset link' : 'Sign in'}
+                  <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email || (!forgotMode && !password)}>
+                    {signingIn ? 'Please wait…' : forgotMode ? 'Send reset link' : 'Sign in'}
                   </button>
                 </form>
 
                 <div className="admin-login__switch">
-                  {authMode === 'login' && <>
-                    <button type="button" onClick={() => { setAuthMode('signup'); setLoginError(''); }}>Create an account</button>
-                    <span>·</span>
-                    <button type="button" onClick={() => { setAuthMode('forgot'); setLoginError(''); }}>Forgot password?</button>
-                  </>}
-                  {authMode === 'signup' && <button type="button" onClick={() => { setAuthMode('login'); setLoginError(''); }}>Already have an account? Sign in</button>}
-                  {authMode === 'forgot' && <button type="button" onClick={() => { setAuthMode('login'); setLoginError(''); }}>Back to sign in</button>}
+                  {!forgotMode
+                    ? <button type="button" onClick={() => { setForgotMode(true); setLoginError(''); }}>Forgot password?</button>
+                    : <button type="button" onClick={() => { setForgotMode(false); setLoginError(''); }}>Back to sign in</button>
+                  }
                 </div>
               </>
             )}
