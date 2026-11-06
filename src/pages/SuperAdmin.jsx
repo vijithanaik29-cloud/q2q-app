@@ -36,14 +36,15 @@ const BLANK_EVENT = {
 
 export default function SuperAdmin() {
   const navigate = useNavigate();
-  const { allEvents, addEvent, user, signIn, signOut, authLoading } = useApp();
+  const { allEvents, addEvent, user, signInWithPassword, resetPassword, signOut, authLoading } = useApp();
 
   // ── Login state ──────────────────────────────────────────────────────────────
-  const [email,         setEmail]         = useState('');
-  const [loginError,    setLoginError]    = useState('');
-  const [signingIn,     setSigningIn]     = useState(false);
-  const [linkSent,      setLinkSent]      = useState(false);
-  const [resendCooldown,setResendCooldown]= useState(0);
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [signingIn,  setSigningIn]  = useState(false);
+  const [resetSent,  setResetSent]  = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
 
   // ── TOTP 2FA gate ────────────────────────────────────────────────────────────
   const [totpVerified,   setTotpVerified]   = useState(false);
@@ -644,25 +645,16 @@ export default function SuperAdmin() {
   async function handleLogin(e) {
     e.preventDefault();
     setSigningIn(true); setLoginError('');
-    const { error } = await signIn(email, `${window.location.origin}/superadmin`);
+    if (forgotMode) {
+      const { error } = await resetPassword(email);
+      setSigningIn(false);
+      if (error) setLoginError(error.message);
+      else setResetSent(true);
+      return;
+    }
+    const { error } = await signInWithPassword(email, password);
     setSigningIn(false);
-    if (error) setLoginError(error.message);
-    else { setLinkSent(true); startResendCooldown(); }
-  }
-
-  function startResendCooldown() {
-    setResendCooldown(30);
-    const interval = setInterval(() => {
-      setResendCooldown(c => { if (c <= 1) { clearInterval(interval); return 0; } return c - 1; });
-    }, 1000);
-  }
-
-  async function resendLink() {
-    setSigningIn(true); setLoginError('');
-    const { error } = await signIn(email, `${window.location.origin}/superadmin`);
-    setSigningIn(false);
-    if (error) setLoginError(error.message);
-    else startResendCooldown();
+    if (error) setLoginError('Incorrect email or password.');
   }
 
   async function startTotpSetup() {
@@ -717,18 +709,12 @@ export default function SuperAdmin() {
               <p>Platform administration</p>
             </div>
 
-            {linkSent ? (
+            {resetSent ? (
               <div className="admin-login__sent">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                </svg>
-                <p><strong>Check your email</strong></p>
-                <p className="admin-login__sent-sub">Sign-in link sent to <strong>{email}</strong>.</p>
-                <button className="btn btn-rainbow btn-sm" style={{ marginTop: 16 }} onClick={resendLink} disabled={signingIn || resendCooldown > 0}>
-                  {signingIn ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend link'}
-                </button>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: 8 }} onClick={() => { setLinkSent(false); setEmail(''); setResendCooldown(0); }}>
-                  Use a different email
+                <p><strong>Reset link sent</strong></p>
+                <p className="admin-login__sent-sub">Check <strong>{email}</strong> for a password reset link.</p>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setResetSent(false); setForgotMode(false); }}>
+                  Back to sign in
                 </button>
               </div>
             ) : (
@@ -737,11 +723,24 @@ export default function SuperAdmin() {
                   <label htmlFor="sa-email">Email</label>
                   <input id="sa-email" type="email" placeholder="your email" value={email}
                     onChange={e => { setEmail(e.target.value); setLoginError(''); }} autoComplete="email" />
-                  {loginError && <span className="admin__error">{loginError}</span>}
                 </div>
-                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email}>
-                  {signingIn ? 'Sending…' : 'Send sign-in link'}
+                {!forgotMode && (
+                  <div className="form-group">
+                    <label htmlFor="sa-pass">Password</label>
+                    <input id="sa-pass" type="password" placeholder="••••••••" value={password}
+                      onChange={e => { setPassword(e.target.value); setLoginError(''); }} autoComplete="current-password" />
+                  </div>
+                )}
+                {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
+                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email || (!forgotMode && !password)}>
+                  {signingIn ? 'Please wait…' : forgotMode ? 'Send reset link' : 'Sign in'}
                 </button>
+                <div className="admin-login__switch" style={{ marginTop: 16 }}>
+                  {!forgotMode
+                    ? <button type="button" onClick={() => { setForgotMode(true); setLoginError(''); }}>Forgot password?</button>
+                    : <button type="button" onClick={() => { setForgotMode(false); setLoginError(''); }}>Back to sign in</button>
+                  }
+                </div>
               </form>
             )}
           </div>
