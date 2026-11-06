@@ -3,12 +3,13 @@ import { useApp } from '../context/AppContext';
 import { formatDate } from '../data/events';
 import QRVerifier from './QRVerifier';
 import { PAYMENTS_ENABLED } from '../config';
+import { getLoyaltyTier, LOYALTY_META } from '../lib/loyalty';
 import './OrganizerDashboard.css';
 
 const PLATFORM_FEE_RATE = 0.10;
 
 export default function OrganizerDashboard({ event, onBack }) {
-  const { bookings, checkedIn, checkIn } = useApp();
+  const { bookings, checkedIn, checkIn, noShows, markNoShow } = useApp();
   const [activeTab, setActiveTab] = useState('attendees');
   const [search, setSearch] = useState('');
 
@@ -29,6 +30,8 @@ export default function OrganizerDashboard({ event, onBack }) {
     return { totalBookings, totalTickets, grossRevenue, platformFee, netPayout, checkedInCount };
   }, [eventBookings, checkedIn]);
 
+  const getLoyalty = (email) => getLoyaltyTier(email, bookings, checkedIn, noShows);
+
   // Flat list: one row per ticket type per booking
   const attendeeRows = useMemo(() =>
     eventBookings.flatMap(b =>
@@ -42,9 +45,11 @@ export default function OrganizerDashboard({ event, onBack }) {
         amount: t.price * t.qty,
         bookedAt: b.createdAt,
         checkedIn: checkedIn.has(b.id),
+        noShow: noShows.has(b.id),
+        loyalty: getLoyaltyTier(b.attendee.email, bookings, checkedIn, noShows),
       }))
     ),
-    [eventBookings, checkedIn]
+    [eventBookings, checkedIn, noShows, bookings]
   );
 
   const filteredRows = useMemo(() => {
@@ -203,7 +208,14 @@ export default function OrganizerDashboard({ event, onBack }) {
                       className={`od__table-row ${row.checkedIn ? 'od__table-row--in' : ''}`}
                     >
                       <div className="od__attendee-info">
-                        <div className="od__attendee-name">{row.name}</div>
+                        <div className="od__attendee-name">
+                          {row.name}
+                          {row.loyalty && (
+                            <span className="od__loyalty-badge" style={{ color: LOYALTY_META[row.loyalty].color }}>
+                              {LOYALTY_META[row.loyalty].dot}
+                            </span>
+                          )}
+                        </div>
                         <div className="od__attendee-email">{row.email}</div>
                       </div>
                       <div className="od__attendee-ticket">
@@ -220,7 +232,9 @@ export default function OrganizerDashboard({ event, onBack }) {
                       </div>
                       <div className="od__attendee-status">
                         {row.checkedIn ? (
-                          <span className="od__badge-in">Checked in</span>
+                          <span className="od__badge-in">Arrived</span>
+                        ) : row.noShow ? (
+                          <span className="od__badge-noshow">No-show</span>
                         ) : (
                           <button
                             className="od__checkin-btn"
@@ -245,7 +259,10 @@ export default function OrganizerDashboard({ event, onBack }) {
           <QRVerifier
             bookings={eventBookings}
             checkedIn={checkedIn}
+            noShows={noShows}
             onCheckIn={checkIn}
+            onNoShow={markNoShow}
+            getLoyalty={getLoyalty}
           />
         </div>
       )}

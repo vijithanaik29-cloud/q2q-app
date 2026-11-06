@@ -652,6 +652,40 @@
 
 .qrv__result-sep { color: var(--text-muted); }
 
+.qrv__loyalty-badge {
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.01em;
+}
+
+.qrv__already-noshow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f87171;
+  padding: 8px 0 4px;
+}
+
+.od__loyalty-badge {
+  font-size: 12px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.od__badge-noshow {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f87171;
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
 .qrv__result-ref-row {
   display: flex;
   align-items: center;

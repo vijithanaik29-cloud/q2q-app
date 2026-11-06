@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { LOYALTY_META } from '../lib/loyalty';
 
-export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
+export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, onNoShow, getLoyalty }) {
   const [manualCode, setManualCode] = useState('');
   const [result, setResult] = useState(null);
   const [cameraState, setCameraState] = useState('idle'); // idle | requesting | active | error
@@ -64,8 +65,10 @@ export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
 
   useEffect(() => () => stopCamera(), []);
 
-  const isValid = result?.booking != null;
+  const isValid     = result?.booking != null;
   const isCheckedIn = result?.booking && checkedIn.has(result.booking.id);
+  const isNoShow    = result?.booking && noShows?.has(result.booking.id);
+  const loyalty     = isValid && getLoyalty ? getLoyalty(result.booking.attendee?.email) : null;
 
   return (
     <div className="qrv">
@@ -136,7 +139,14 @@ export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
         <div className={`qrv__result ${isValid ? 'qrv__result--valid' : 'qrv__result--invalid'}`}>
           {isValid ? (
             <>
-              <div className="qrv__result-name">{result.booking.attendee.name}</div>
+              <div className="qrv__result-name">
+                {result.booking.attendee.name}
+                {loyalty && (
+                  <span className="qrv__loyalty-badge" style={{ color: LOYALTY_META[loyalty].color }}>
+                    {LOYALTY_META[loyalty].dot} {LOYALTY_META[loyalty].label}
+                  </span>
+                )}
+              </div>
               <div className="qrv__result-ref-row">
                 <span className="qrv__result-ref-label">Booking ID</span>
                 <code className="qrv__result-ref">{result.booking.id}</code>
@@ -149,6 +159,11 @@ export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Arrived
                 </div>
+              ) : isNoShow ? (
+                <div className="qrv__already-noshow">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Marked as no-show
+                </div>
               ) : (
                 <div className="qrv__arrive-row">
                   <button
@@ -160,7 +175,7 @@ export default function QRVerifier({ bookings, checkedIn, onCheckIn }) {
                   </button>
                   <button
                     className="qrv__arrive-btn qrv__arrive-btn--no"
-                    onClick={() => setResult(null)}
+                    onClick={() => { onNoShow?.(result.booking.id); setResult(r => ({ ...r })); }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     Not arrived

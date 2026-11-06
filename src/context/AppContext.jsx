@@ -51,6 +51,7 @@ export function AppProvider({ children }) {
   const [allEvents, setAllEvents] = useState(seedEvents);
   const [bookings,  setBookings]  = useState([]);
   const [checkedIn, setCheckedIn] = useState(new Set());
+  const [noShows,   setNoShows]   = useState(new Set());
   const [user,      setUser]      = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -75,13 +76,15 @@ export function AppProvider({ children }) {
 
   // Load bookings + checkins when organizer authenticates
   useEffect(() => {
-    if (!user) { setBookings([]); setCheckedIn(new Set()); return; }
+    if (!user) { setBookings([]); setCheckedIn(new Set()); setNoShows(new Set()); return; }
     Promise.all([
       supabase.from('bookings').select('*'),
       supabase.from('checkins').select('booking_id'),
-    ]).then(([{ data: bData }, { data: cData }]) => {
+      supabase.from('no_shows').select('booking_id'),
+    ]).then(([{ data: bData }, { data: cData }, { data: nData }]) => {
       if (bData) setBookings(bData.map(dbToBooking));
       if (cData) setCheckedIn(new Set(cData.map(c => c.booking_id)));
+      if (nData) setNoShows(new Set(nData.map(n => n.booking_id)));
     });
   }, [user]);
 
@@ -188,9 +191,19 @@ export function AppProvider({ children }) {
 
   async function checkIn(bookingId) {
     setCheckedIn(prev => new Set([...prev, bookingId]));
+    // remove from no_shows if previously marked
+    setNoShows(prev => { const n = new Set(prev); n.delete(bookingId); return n; });
     const { error } = await supabase.from('checkins').insert({ booking_id: bookingId });
     if (error) {
       setCheckedIn(prev => { const n = new Set(prev); n.delete(bookingId); return n; });
+    }
+  }
+
+  async function markNoShow(bookingId) {
+    setNoShows(prev => new Set([...prev, bookingId]));
+    const { error } = await supabase.from('no_shows').insert({ booking_id: bookingId });
+    if (error) {
+      setNoShows(prev => { const n = new Set(prev); n.delete(bookingId); return n; });
     }
   }
 
@@ -199,6 +212,7 @@ export function AppProvider({ children }) {
       allEvents, addEvent,
       bookings,  addBooking,
       checkedIn, checkIn,
+      noShows,   markNoShow,
       user, signIn, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut, authLoading,
     }}>
       {children}
