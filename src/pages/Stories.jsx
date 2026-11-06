@@ -318,7 +318,7 @@ export default function Stories() {
               {showForm ? 'Close' : 'Share your story'}
             </button>
             {total > 0 && (
-              <span className="stories__total-count">{total} {total === 1 ? 'person' : 'people'} shared — you could be next.</span>
+              <span className="stories__total-count">A trusted space where {total} {total === 1 ? 'person has' : 'people have'} opened up — you're safe here too.</span>
             )}
           </div>
         </div>
