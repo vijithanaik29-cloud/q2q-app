@@ -223,6 +223,7 @@ export default function Stories() {
   async function postComment(storyId) {
     const text = (commentInput[storyId] || '').trim();
     if (!text || !user || !profile) return;
+    if (profile.is_blocked) return;
 
     if (containsHate(text)) {
       setCommentInput(prev => ({ ...prev, [storyId]: '' }));
@@ -255,6 +256,7 @@ export default function Stories() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    if (profile?.is_blocked) { setError('Your account has been blocked. You cannot submit stories.'); return; }
     if (content.trim().length < 10) { setError('Story must be at least 10 characters.'); return; }
     setSaving(true);
 

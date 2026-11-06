@@ -209,11 +209,13 @@ export default function SuperAdmin() {
 
   async function loadStories() {
     setStoriesLoading(true);
-    const [{ data: storyData }, { count: profileCount }] = await Promise.all([
+    const [{ data: storyData }, { data: profileData }, { count: profileCount }] = await Promise.all([
       supabase.from('stories').select('*').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, is_blocked'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
     ]);
-    const stories = storyData || [];
+    const profileMap = Object.fromEntries((profileData || []).map(p => [p.id, p]));
+    const stories = (storyData || []).map(s => ({ ...s, author_blocked: profileMap[s.user_id]?.is_blocked ?? false }));
     setStories(stories);
     const uniquePosters = new Set(stories.filter(s => s.user_id).map(s => s.user_id)).size;
     const totalLikes = stories.reduce((sum, s) => sum + (s.like_count || 0), 0);
@@ -548,6 +550,11 @@ export default function SuperAdmin() {
 
   async function moderateStory(id, status) {
     await supabase.from('stories').update({ status }).eq('id', id);
+    await loadStories();
+  }
+
+  async function blockUser(userId, block = true) {
+    await supabase.rpc('block_user', { target_user_id: userId, block_state: block });
     await loadStories();
   }
 
@@ -2264,7 +2271,7 @@ export default function SuperAdmin() {
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{new Date(s.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 14, fontStyle: 'italic' }}>"{s.content}"</p>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                         {s.status !== 'approved' && (
                           <button
                             onClick={() => setConfirmDialog({ title: 'Approve Story', action: 'Publish this story on the public Stories page', confirmLabel: 'Approve & Publish', fn: () => moderateStory(s.id, 'approved') })}
@@ -2275,7 +2282,25 @@ export default function SuperAdmin() {
                             onClick={() => setConfirmDialog({ title: 'Reject Story', action: 'Reject and hide this story from the public page', confirmLabel: 'Yes, Reject', danger: true, fn: () => moderateStory(s.id, 'rejected') })}
                             style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Reject</button>
                         )}
+                        {s.user_id && (
+                          s.author_blocked ? (
+                            <button
+                              onClick={() => setConfirmDialog({ title: 'Unblock User', action: 'Allow this user to post stories and comments again', confirmLabel: 'Unblock', fn: () => blockUser(s.user_id, false) })}
+                              style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid rgba(52,211,153,0.5)', background: 'rgba(52,211,153,0.06)', color: 'var(--success)', cursor: 'pointer', marginLeft: 'auto' }}>
+                              ✓ Unblock user
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDialog({ title: 'Block User', action: 'Permanently block this user. They won\'t be able to post or comment — no warning sent.', confirmLabel: 'Block permanently', danger: true, fn: () => blockUser(s.user_id, true) })}
+                              style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.06)', color: 'var(--error, #f87171)', cursor: 'pointer', marginLeft: 'auto' }}>
+                              🚫 Block user
+                            </button>
+                          )
+                        )}
                       </div>
+                      {s.author_blocked && s.user_id && (
+                        <p style={{ fontSize: 11, color: 'var(--error, #f87171)', marginTop: 8 }}>⚠️ This user is currently blocked.</p>
+                      )}
                     </div>
                   ))}
                 </div>
