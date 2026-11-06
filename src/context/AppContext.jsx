@@ -54,8 +54,10 @@ export function AppProvider({ children }) {
   const [bookings,  setBookings]  = useState([]);
   const [checkedIn, setCheckedIn] = useState(new Set());
   const [noShows,   setNoShows]   = useState(new Set());
-  const [user,      setUser]      = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user,          setUser]          = useState(null);
+  const [profile,       setProfile]       = useState(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [authLoading,   setAuthLoading]   = useState(true);
 
   // Auth state
   useEffect(() => {
@@ -65,9 +67,18 @@ export function AppProvider({ children }) {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
+      if (!session?.user) setProfile(null);
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load community profile when user logs in
+  useEffect(() => {
+    if (!user) { setProfileLoaded(false); return; }
+    setProfileLoaded(false);
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+      .then(({ data }) => { setProfile(data ?? null); setProfileLoaded(true); });
+  }, [user]);
 
   // Load admin-created events (public — no auth required)
   useEffect(() => {
@@ -115,7 +126,7 @@ export function AppProvider({ children }) {
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/admin` },
+      options: { redirectTo: window.location.href },
     });
     return { error };
   }
@@ -129,6 +140,24 @@ export function AppProvider({ children }) {
 
   async function signOut() {
     await supabase.auth.signOut();
+    setProfile(null);
+  }
+
+  async function createProfile({ displayName, city }) {
+    const { data, error } = await supabase.from('profiles').insert({
+      id: user.id,
+      display_name: displayName,
+      city: city || null,
+    }).select().single();
+    if (!error) setProfile(data);
+    return { error };
+  }
+
+  async function updateProfile(updates) {
+    const { data, error } = await supabase.from('profiles')
+      .update(updates).eq('id', user.id).select().single();
+    if (!error) setProfile(data);
+    return { error };
   }
 
   async function addEvent(event) {
@@ -231,7 +260,8 @@ export function AppProvider({ children }) {
       checkedIn, checkIn,
       noShows,   markNoShow,
       cancelEvent, deleteEvent,
-      user, signIn, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut, authLoading,
+      user, profile, profileLoaded, signIn, signInWithPassword, signUpWithPassword, signInWithGoogle, resetPassword, signOut, authLoading,
+      createProfile, updateProfile,
     }}>
       {children}
     </AppContext.Provider>

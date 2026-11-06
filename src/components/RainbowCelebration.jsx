@@ -43,17 +43,18 @@ function rain(canvas) {
   };
 }
 
-export default function RainbowCelebration({ onDone }) {
+export default function RainbowCelebration({ onDone, quick = false }) {
   const canvasRef   = useRef(null);
   const particles   = useRef([]);
   const rafRef      = useRef(null);
-  const [phase, setPhase] = useState('drumroll');
+  const [phase, setPhase] = useState(quick ? 'burst' : 'drumroll');
 
-  // Advance from drum-roll → burst after 1.8 s
+  // Advance from drum-roll → burst after 1.8 s (skipped in quick mode)
   useEffect(() => {
+    if (quick) return;
     const t = setTimeout(() => setPhase('burst'), 1800);
     return () => clearTimeout(t);
-  }, []);
+  }, [quick]);
 
   // Run canvas when burst starts
   useEffect(() => {

@@ -341,3 +341,42 @@
   align-items: center;
   gap: 10px;
 }
+
+/* Profile pill */
+.navbar__profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  text-decoration: none;
+  transition: border-color var(--transition), background var(--transition);
+}
+.navbar__profile-pill:hover { border-color: var(--accent); background: var(--surface-3); }
+
+.navbar__profile-initials {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E40303, #750787);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -.3px;
+}
+
+.navbar__profile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

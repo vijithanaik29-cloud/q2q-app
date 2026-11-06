@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { useApp } from './context/AppContext';
 import Navbar from './components/Navbar';
+import CommunityAuth from './components/CommunityAuth';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import EventDetail from './pages/EventDetail';
@@ -16,12 +18,27 @@ import Stories from './pages/Stories';
 import Fundraisers from './pages/Fundraisers';
 import MyBookings from './pages/MyBookings';
 import About from './pages/About';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+
+function AppShell({ children }) {
+  const { user, profile, profileLoaded } = useApp();
+  const needsOnboarding = user && profileLoaded && !profile;
+  return (
+    <>
+      {needsOnboarding && (
+        <CommunityAuth initialStep="onboard" onClose={() => {}} onSuccess={() => {}} />
+      )}
+      {children}
+    </>
+  );
+}
 
 export default function App() {
   return (
     <AppProvider>
       <BrowserRouter>
+        <AppShell>
         <div className="rainbow-stripe" />
         <Navbar />
         <main>
@@ -38,6 +55,7 @@ export default function App() {
             <Route path="/fundraisers" element={<Fundraisers />} />
             <Route path="/fundraisers/:id" element={<Fundraisers />} />
             <Route path="/about" element={<About />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/refund" element={<Refund />} />
@@ -45,6 +63,7 @@ export default function App() {
           </Routes>
         </main>
         <Footer />
+        </AppShell>
       </BrowserRouter>
     </AppProvider>
   );
