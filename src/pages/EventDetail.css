@@ -241,6 +241,43 @@
 
 .ticket-card .btn-primary { margin: 16px 22px 12px; width: calc(100% - 44px); }
 
+.ticket-card__dates {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ticket-card__dates-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.ticket-card__dates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ticket-card__date-opt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ticket-card__date-opt:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.ticket-card__date-opt--active { border-color: var(--accent); background: var(--accent-dim); }
+.ticket-card__date-opt-date { font-size: 13px; font-weight: 500; color: var(--text); }
+.ticket-card__date-opt-time { font-size: 12px; color: var(--text-muted); }
+
+.btn-disabled { opacity: 0.5; cursor: not-allowed; }
+
 .ticket-card__share-row {
   display: flex;
   gap: 8px;

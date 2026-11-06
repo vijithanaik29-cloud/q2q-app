@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate, NavLink } from 'react-router-dom';
+import { useParams, Link, useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { formatDate } from '../data/events';
@@ -10,6 +10,8 @@ export default function Booking() {
   const { id } = useParams();
   const { allEvents, addBooking } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedDateState = location.state?.selectedDate || null;
 
   const event = allEvents.find(e => e.id === id);
 
@@ -151,7 +153,7 @@ export default function Booking() {
     const bookingData = {
       eventId:       event.id,
       eventTitle:    event.title,
-      eventDate:     event.date,
+      eventDate:     selectedDateState || event.date,
       eventVenue:    event.venue,
       eventCity:     event.city,
       gradient:      event.gradient,

@@ -639,6 +639,9 @@ export default function Admin() {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    const dateOptions = form.dateOptionsRaw
+      ? form.dateOptionsRaw.split('\n').map(s => s.trim()).filter(Boolean).map(date => ({ date, time: form.time, endTime: form.endTime }))
+      : null;
     const eventData = {
       ...form,
       tickets: form.tickets.map((t, i) => ({
@@ -647,6 +650,7 @@ export default function Admin() {
       })),
       tags: [form.category.toLowerCase()],
       attendees: 0,
+      dateOptions: dateOptions && dateOptions.length > 1 ? dateOptions : null,
     };
     try {
       await addEvent(eventData);
@@ -1118,6 +1122,16 @@ export default function Admin() {
               <div className="form-group">
                 <label>End Time</label>
                 <input type="time" value={form.endTime} onChange={e => setField('endTime', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Recurring dates <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional — for weekly/monthly events)</span></label>
+                <textarea
+                  rows={3}
+                  placeholder={'One date per line, e.g.:\n2026-12-05\n2026-12-12\n2026-12-19'}
+                  value={form.dateOptionsRaw || ''}
+                  onChange={e => setField('dateOptionsRaw', e.target.value)}
+                />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Leave blank for a one-time event. Add dates to let guests pick which one to attend.</span>
               </div>
               <div className="form-group">
                 <label>Description *</label>

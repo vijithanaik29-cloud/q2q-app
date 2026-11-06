@@ -5,3 +5,7 @@ dist
 .DS_Store
 .vercel
 .env*
+brownhouse/
+marketing/
+supabase/.temp/
+.claude/launch.json

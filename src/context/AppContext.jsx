@@ -27,6 +27,7 @@ function dbToEvent(row) {
     tags:             row.tags,
     attendees:        row.attendees,
     tickets:          row.tickets,
+    dateOptions:      row.date_options || null,
   };
 }
 
@@ -147,6 +148,7 @@ export function AppProvider({ children }) {
       tags:             event.tags || [event.category.toLowerCase()],
       attendees:        0,
       tickets:          event.tickets || [],
+      date_options:     event.dateOptions || null,
     };
     const { data, error } = await supabase.from('events').insert(row).select().single();
     if (error) throw error;

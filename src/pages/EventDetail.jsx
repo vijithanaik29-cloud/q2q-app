@@ -10,6 +10,7 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const [tcOpen, setTcOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const event = allEvents.find(e => e.id === id);
 
@@ -52,6 +53,11 @@ export default function EventDetail() {
   }
 
   const minTicketPrice = Math.min(...event.tickets.map(t => t.price));
+  const hasMultipleDates = event.dateOptions && event.dateOptions.length > 1;
+  const activeDateOption = hasMultipleDates
+    ? (selectedDate ? event.dateOptions.find(d => d.date === selectedDate) : null)
+    : null;
+  const bookingState = hasMultipleDates && selectedDate ? { selectedDate, selectedTime: activeDateOption?.time, selectedEndTime: activeDateOption?.endTime } : {};
 
   return (
     <div className="event-detail fade-up">
@@ -178,6 +184,24 @@ export default function EventDetail() {
                 </span>
               </div>
 
+              {hasMultipleDates && (
+                <div className="ticket-card__dates">
+                  <div className="ticket-card__dates-label">Pick a date</div>
+                  <div className="ticket-card__dates-list">
+                    {event.dateOptions.map(opt => (
+                      <button
+                        key={opt.date}
+                        className={`ticket-card__date-opt ${selectedDate === opt.date ? 'ticket-card__date-opt--active' : ''}`}
+                        onClick={() => setSelectedDate(opt.date)}
+                      >
+                        <span className="ticket-card__date-opt-date">{formatDate(opt.date)}</span>
+                        {opt.time && <span className="ticket-card__date-opt-time">{opt.time}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="ticket-card__list">
                 {event.tickets.map(ticket => (
                   <div key={ticket.id} className="ticket-type">
@@ -196,8 +220,13 @@ export default function EventDetail() {
                 ))}
               </div>
 
-              <Link to={`/book/${event.id}`} className="btn btn-primary btn-full btn-lg">
-                Book tickets
+              <Link
+                to={`/book/${event.id}`}
+                state={bookingState}
+                className={`btn btn-primary btn-full btn-lg${hasMultipleDates && !selectedDate ? ' btn-disabled' : ''}`}
+                onClick={e => { if (hasMultipleDates && !selectedDate) e.preventDefault(); }}
+              >
+                {hasMultipleDates && !selectedDate ? 'Select a date first' : 'Book tickets'}
               </Link>
 
               <div className="ticket-card__share-row">
@@ -235,7 +264,7 @@ export default function EventDetail() {
               {minTicketPrice === 0 ? 'Free' : `From ₹${minTicketPrice.toLocaleString('en-IN')}`}
             </div>
           </div>
-          <Link to={`/book/${event.id}`} className="btn btn-primary">Book</Link>
+          <Link to={`/book/${event.id}`} state={bookingState} className="btn btn-primary">Book</Link>
         </div>
       </div>
     </div>
