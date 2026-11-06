@@ -403,7 +403,7 @@ export default function Booking() {
                   {selectedTickets.map(t => (
                     <div key={t.id} className="booking__confirm-ticket">
                       <span>{t.type} × {t.qty}</span>
-                      {PAYMENTS_ENABLED && <strong>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</strong>}
+                      <strong>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</strong>
                     </div>
                   ))}
                   {PAYMENTS_ENABLED && discount > 0 && (
@@ -414,12 +414,10 @@ export default function Booking() {
                   )}
                 </div>
 
-                {PAYMENTS_ENABLED && (
-                  <div className="booking__confirm-total">
-                    <span>Total</span>
-                    <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
-                  </div>
-                )}
+                <div className="booking__confirm-total">
+                  <span>Total</span>
+                  <strong>{(finalTotal === 0 || !PAYMENTS_ENABLED) ? (finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`) : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
+                </div>
 
                 <label className="booking__consent">
                   <input
@@ -450,7 +448,9 @@ export default function Booking() {
                 </button>
 
                 <p className="booking__privacy" style={{ marginTop: 12 }}>
-                  {finalTotal > 0 && PAYMENTS_ENABLED ? 'Secure payment via Cashfree.' : 'No payment required — RSVP is free.'}
+                  {!PAYMENTS_ENABLED && finalTotal > 0
+                    ? 'Reserve your spot now — pay at the venue.'
+                    : finalTotal > 0 ? 'Secure payment via Cashfree.' : 'No payment required for free tickets.'}
                 </p>
               </div>
             )}
@@ -481,7 +481,7 @@ export default function Booking() {
                     {selectedTickets.map(t => (
                       <div key={t.id} className="booking__summary-line">
                         <span>{t.type} × {t.qty}</span>
-                        {PAYMENTS_ENABLED && <span>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</span>}
+                        <span>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</span>
                       </div>
                     ))}
                     {PAYMENTS_ENABLED && discount > 0 && (
@@ -490,12 +490,10 @@ export default function Booking() {
                         <span>− ₹{discount.toLocaleString('en-IN')}</span>
                       </div>
                     )}
-                    {PAYMENTS_ENABLED && (
-                      <div className="booking__summary-total">
-                        <span>Total</span>
-                        <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
-                      </div>
-                    )}
+                    <div className="booking__summary-total">
+                      <span>Total</span>
+                      <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
+                    </div>
                   </>
                 )}
               </div>
