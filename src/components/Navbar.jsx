@@ -7,7 +7,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const { user, allEvents } = useApp();
+  const { user, profile, allEvents } = useApp();
 
   const isVerifiedOrganizer = user && allEvents.some(e => e.organizerId === user.id);
   const hostLink = isVerifiedOrganizer ? '/admin' : '/apply';
@@ -38,11 +38,11 @@ export default function Navbar() {
           </Link>
 
           <div className="navbar__links">
+            <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
+              Coming Out Stories
+            </NavLink>
             <NavLink to="/" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} end>
               Events
-            </NavLink>
-            <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
-              Coming Out
             </NavLink>
             <NavLink to="/my-bookings" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
               My Tickets
@@ -58,7 +58,16 @@ export default function Navbar() {
                 </span>
               </span>
             </NavLink>
-            <Link to={hostLink} className="navbar__cta">{hostLabel}</Link>
+            {profile ? (
+              <Link to="/profile" className="navbar__profile-pill">
+                <span className="navbar__profile-initials">
+                  {profile.display_name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}
+                </span>
+                <span className="navbar__profile-name">{profile.display_name.split(' ')[0]}</span>
+              </Link>
+            ) : (
+              <Link to={hostLink} className="navbar__cta">{hostLabel}</Link>
+            )}
           </div>
 
           <button
@@ -76,6 +85,13 @@ export default function Navbar() {
       <div className={`navbar__drawer ${open ? 'navbar__drawer--open' : ''}`}>
         <div className="navbar__drawer-section">
           <p className="navbar__drawer-label">Explore</p>
+          <NavLink to="/stories" className="navbar__mobile-link">
+            <span className="navbar__mobile-icon">✍️</span>
+            <span className="navbar__mobile-link-content">
+              <span className="navbar__mobile-link-title">Coming Out Stories</span>
+              <span className="navbar__mobile-link-sub">Real stories from the community</span>
+            </span>
+          </NavLink>
           <NavLink to="/" className="navbar__mobile-link" end>
             <span className="navbar__mobile-icon">🏳️‍🌈</span>
             <span className="navbar__mobile-link-content">
@@ -83,13 +99,15 @@ export default function Navbar() {
               <span className="navbar__mobile-link-sub">Browse queer events near you</span>
             </span>
           </NavLink>
-          <NavLink to="/stories" className="navbar__mobile-link">
-            <span className="navbar__mobile-icon">✍️</span>
-            <span className="navbar__mobile-link-content">
-              <span className="navbar__mobile-link-title">Coming Out Stories</span>
-              <span className="navbar__mobile-link-sub">Coming out stories from across India</span>
-            </span>
-          </NavLink>
+          {profile && (
+            <NavLink to="/profile" className="navbar__mobile-link">
+              <span className="navbar__mobile-icon">👤</span>
+              <span className="navbar__mobile-link-content">
+                <span className="navbar__mobile-link-title">{profile.display_name}</span>
+                <span className="navbar__mobile-link-sub">Your community profile</span>
+              </span>
+            </NavLink>
+          )}
           <NavLink to="/my-bookings" className="navbar__mobile-link">
             <span className="navbar__mobile-icon">🎟️</span>
             <span className="navbar__mobile-link-content">
