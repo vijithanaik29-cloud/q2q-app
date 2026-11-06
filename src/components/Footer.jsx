@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="container footer__inner">
         <div className="footer__brand">
           <span className="footer__logo rainbow-text">Q2Q</span>
-          <p className="footer__tagline">Connecting queer communities across India, one event at a time.</p>
+          <p className="footer__tagline">India's event ticketing platform for the LGBTQ+ community.</p>
         </div>
 
         <div className="footer__links">
@@ -31,7 +31,8 @@ export default function Footer() {
           </div>
           <div className="footer__col">
             <h4>Support</h4>
-            <a href="mailto:hello@q2q.in">Contact Us</a>
+            <Link to="/about">About Q2Q</Link>
+            <a href="mailto:hello@q2q.co.in">Contact Us</a>
             <Link to="/privacy">Privacy Policy</Link>
             <Link to="/terms">Terms of Service</Link>
             <Link to="/refund">Refund Policy</Link>

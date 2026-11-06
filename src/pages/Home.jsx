@@ -144,7 +144,7 @@ export default function Home() {
       {/* Hero */}
       <section className="hero">
         <div className="container hero__inner">
-          <p className="hero__eyebrow">India's Queer Events</p>
+          <p className="hero__eyebrow">Event Ticketing · India</p>
           <h1 className="hero__title">
             Find your<br />
             <em className="rainbow-text">queer community</em>

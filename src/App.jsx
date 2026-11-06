@@ -15,6 +15,7 @@ import Refund from './pages/Refund';
 import Stories from './pages/Stories';
 import Fundraisers from './pages/Fundraisers';
 import MyBookings from './pages/MyBookings';
+import About from './pages/About';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/stories" element={<Stories />} />
             <Route path="/fundraisers" element={<Fundraisers />} />
             <Route path="/fundraisers/:id" element={<Fundraisers />} />
+            <Route path="/about" element={<About />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/refund" element={<Refund />} />
