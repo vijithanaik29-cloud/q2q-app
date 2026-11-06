@@ -175,7 +175,7 @@ export function AppProvider({ children }) {
       event_venue: booking.eventVenue,
       event_city:  booking.eventCity,
       gradient:    booking.gradient,
-      total:       0,
+      total:       booking.total ?? 0,
       tickets:     booking.tickets,
       attendee:    booking.attendee,
     };
