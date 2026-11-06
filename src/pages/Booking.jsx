@@ -403,10 +403,10 @@ export default function Booking() {
                   {selectedTickets.map(t => (
                     <div key={t.id} className="booking__confirm-ticket">
                       <span>{t.type} × {t.qty}</span>
-                      <strong>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</strong>
+                      {PAYMENTS_ENABLED && <strong>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</strong>}
                     </div>
                   ))}
-                  {discount > 0 && (
+                  {PAYMENTS_ENABLED && discount > 0 && (
                     <div className="booking__confirm-ticket booking__confirm-discount">
                       <span>Promo ({couponResult.label})</span>
                       <strong>− ₹{discount.toLocaleString('en-IN')}</strong>
@@ -414,10 +414,12 @@ export default function Booking() {
                   )}
                 </div>
 
-                <div className="booking__confirm-total">
-                  <span>Total</span>
-                  <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
-                </div>
+                {PAYMENTS_ENABLED && (
+                  <div className="booking__confirm-total">
+                    <span>Total</span>
+                    <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
+                  </div>
+                )}
 
                 <label className="booking__consent">
                   <input
@@ -479,19 +481,21 @@ export default function Booking() {
                     {selectedTickets.map(t => (
                       <div key={t.id} className="booking__summary-line">
                         <span>{t.type} × {t.qty}</span>
-                        <span>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</span>
+                        {PAYMENTS_ENABLED && <span>{t.price === 0 ? 'Free' : `₹${(t.price * t.qty).toLocaleString('en-IN')}`}</span>}
                       </div>
                     ))}
-                    {discount > 0 && (
+                    {PAYMENTS_ENABLED && discount > 0 && (
                       <div className="booking__summary-line booking__summary-discount">
                         <span>Promo ({couponResult.label})</span>
                         <span>− ₹{discount.toLocaleString('en-IN')}</span>
                       </div>
                     )}
-                    <div className="booking__summary-total">
-                      <span>Total</span>
-                      <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
-                    </div>
+                    {PAYMENTS_ENABLED && (
+                      <div className="booking__summary-total">
+                        <span>Total</span>
+                        <strong>{finalTotal === 0 ? 'Free' : `₹${finalTotal.toLocaleString('en-IN')}`}</strong>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
