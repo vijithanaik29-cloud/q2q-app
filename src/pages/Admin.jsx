@@ -658,7 +658,9 @@ export default function Admin() {
   }
 
   // ── Login ────────────────────────────────────────────────────────────────────
-  if (!user) {
+  // Organiser portal requires email/password login — Google OAuth = community user
+  const isOrganiserAccount = user?.app_metadata?.provider === 'email';
+  if (!user || !isOrganiserAccount) {
     return (
       <div className="admin-login fade-up">
         <div className="container admin-login__inner">

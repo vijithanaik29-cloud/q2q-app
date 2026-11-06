@@ -13,7 +13,6 @@ export default function Profile() {
   const [displayName, setDisplayName] = useState('');
   const [city,        setCity]        = useState('');
   const [bio,         setBio]         = useState('');
-  const [isMentor,    setIsMentor]    = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState('');
   const [success,     setSuccess]     = useState(false);
@@ -65,7 +64,6 @@ export default function Profile() {
     setDisplayName(profile.display_name);
     setCity(profile.city || '');
     setBio(profile.bio || '');
-    setIsMentor(profile.is_mentor);
     setError('');
     setSuccess(false);
     setEditing(true);
@@ -80,7 +78,6 @@ export default function Profile() {
       display_name: displayName.trim(),
       city:         city || null,
       bio:          bio.trim() || null,
-      is_mentor:    isMentor,
     });
     setSaving(false);
     if (err) { setError('Could not save changes. Please try again.'); return; }
@@ -108,9 +105,6 @@ export default function Profile() {
               <h1 className="profile__name">{profile.display_name}</h1>
               <div className="profile__meta">
                 {profile.city && <span className="profile__city">📍 {profile.city}</span>}
-                {profile.is_mentor && (
-                  <span className="profile__mentor-badge">✦ Mentor</span>
-                )}
               </div>
             </div>
           </div>
@@ -156,18 +150,6 @@ export default function Profile() {
                 />
                 <p className="profile__hint" style={{ textAlign: 'right' }}>{bio.length}/200</p>
               </div>
-
-              <label className="profile__mentor-toggle">
-                <input
-                  type="checkbox"
-                  checked={isMentor}
-                  onChange={e => setIsMentor(e.target.checked)}
-                />
-                <span className="profile__mentor-label">
-                  <strong>I want to be a mentor</strong>
-                  <small>Others can find and reach out to you for support</small>
-                </span>
-              </label>
 
               {error && <p className="profile__error">{error}</p>}
 
