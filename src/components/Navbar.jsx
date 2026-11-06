@@ -36,12 +36,12 @@ export default function Navbar() {
         <div className="container navbar__inner">
           <Link to="/" className="navbar__logo">
             <span className="navbar__logo-q rainbow-text">Q2Q</span>
-            <span className="navbar__logo-tag">queer events india</span>
+            <span className="navbar__logo-tag">queer to queer</span>
           </Link>
 
           <div className="navbar__links">
             <NavLink to="/stories" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}>
-              Coming Out Stories
+              Queer Stories
             </NavLink>
             <NavLink to="/" className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} end>
               Events
@@ -90,7 +90,7 @@ export default function Navbar() {
           <NavLink to="/stories" className="navbar__mobile-link">
             <span className="navbar__mobile-icon">✍️</span>
             <span className="navbar__mobile-link-content">
-              <span className="navbar__mobile-link-title">Coming Out Stories</span>
+              <span className="navbar__mobile-link-title">Queer Stories</span>
               <span className="navbar__mobile-link-sub">Real stories from the community</span>
             </span>
           </NavLink>
@@ -138,7 +138,7 @@ export default function Navbar() {
 
         <div className="navbar__drawer-footer">
           <span className="rainbow-text" style={{ fontWeight: 800, fontSize: 18 }}>Q2Q</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Queer Events India</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Queer to Queer</span>
         </div>
       </div>
     </>

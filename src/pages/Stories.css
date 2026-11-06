@@ -218,6 +218,22 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+.stories__tag-chip--type {
+  border-color: var(--border-2);
+  background: var(--surface);
+}
+.stories__tag-chip--type:hover {
+  border-color: #9b5de5;
+  color: #9b5de5;
+}
+.stories__tag-chip--type.stories__tag-chip--active {
+  background: rgba(155, 93, 229, 0.12);
+  border-color: #9b5de5;
+  color: #9b5de5;
+}
+.stories__type-picker {
+  margin-bottom: 20px;
+}
 
 /* ─── Filter bar ─── */
 .stories__filter-bar {
@@ -370,6 +386,11 @@
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-dim);
+}
+.stories__post-tag--type {
+  border-color: rgba(155, 93, 229, 0.4);
+  color: #9b5de5;
+  background: rgba(155, 93, 229, 0.08);
 }
 
 /* ─── Blog feed ─── */

@@ -10,6 +10,17 @@ const MAX       = 1200;
 const PAGE_SIZE = 6;
 const PREVIEW   = 280;
 
+const STORY_TYPES = [
+  { id: 'coming-out',       label: '🗣️ Coming Out' },
+  { id: 'came-out-myself',  label: '💭 Came Out to Myself' },
+  { id: 'love-story',       label: '❤️ Love Story' },
+  { id: 'my-journey',       label: '🌈 My Queer Journey' },
+  { id: 'finding-identity', label: '🔍 Finding My Identity' },
+  { id: 'first-pride',      label: '🎉 First Pride' },
+  { id: 'married-partner',  label: '💍 Married My Partner' },
+  { id: 'living-openly',    label: '✨ Living Openly' },
+];
+
 const IDENTITY_TAGS = [
   { id: 'gay',        label: '🏳️‍🌈 Gay' },
   { id: 'lesbian',    label: '🏳️‍🌈 Lesbian' },
@@ -21,6 +32,7 @@ const IDENTITY_TAGS = [
   { id: 'asexual',    label: '🖤 Ace' },
   { id: 'questioning',label: 'Questioning' },
   { id: 'intersex',   label: 'Intersex' },
+  { id: 'dont-care',  label: "I don't care 🤍" },
 ];
 const COMMENT_EMOJIS = [
   '🏳️‍🌈','❤️','🧡','💛','💚','💙','💜','🤍','🫂','💪',
@@ -29,7 +41,6 @@ const COMMENT_EMOJIS = [
 ];
 
 const PERSPECTIVE_TAGS = [
-  { id: 'dont-care',   label: "I don't care 🤍" },
   { id: 'my-brother',  label: 'My bro came out' },
   { id: 'my-sister',   label: 'My sis came out' },
   { id: 'my-friend',   label: 'My friend came out' },
@@ -38,7 +49,7 @@ const PERSPECTIVE_TAGS = [
   { id: 'my-husband',  label: 'My husband came out' },
   { id: 'my-wife',     label: 'My wife came out' },
 ];
-const TAGS = [...IDENTITY_TAGS, ...PERSPECTIVE_TAGS];
+const TAGS = [...STORY_TYPES, ...IDENTITY_TAGS, ...PERSPECTIVE_TAGS];
 
 const ADJECTIVES = [
   'Fabulous','Glittery','Sparkling','Dramatic','Iconic','Sassy','Dazzling',
@@ -72,8 +83,9 @@ export default function Stories() {
   const [page,         setPage]         = useState(1);
   const [content,      setContent]      = useState('');
   const [city,         setCity]         = useState('');
+  const [storyType,    setStoryType]    = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
-  const [activeTag,    setActiveTag]    = useState('');
+  const [activeTags,   setActiveTags]   = useState([]);
   const [saving,       setSaving]       = useState(false);
   const [submitted,    setSubmitted]    = useState(false);
   const [error,        setError]        = useState('');
@@ -98,7 +110,7 @@ export default function Stories() {
   const feedRef   = useRef(null);
   const filterRef = useRef(null);
 
-  const loadStories = useCallback(async (pg = 1, tag = '') => {
+  const loadStories = useCallback(async (pg = 1, tags = []) => {
     setLoading(true);
     const from = (pg - 1) * PAGE_SIZE;
     const to   = pg * PAGE_SIZE - 1;
@@ -111,7 +123,7 @@ export default function Stories() {
       .order('created_at', { ascending: false })
       .range(from, to);
 
-    if (tag) q = q.contains('tags', [tag]);
+    if (tags.length > 0) q = q.contains('tags', tags);
 
     const { data, count } = await q;
     const newStories = data || [];
@@ -150,7 +162,7 @@ export default function Stories() {
     setLikes(likeMap);
   }, [user]);
 
-  useEffect(() => { loadStories(page, activeTag); }, [loadStories, page, activeTag]);
+  useEffect(() => { loadStories(page, activeTags); }, [loadStories, page, activeTags]);
 
   useEffect(() => {
     function onClickOutside(e) {
@@ -170,7 +182,7 @@ export default function Stories() {
   }
 
   function handleTagFilter(tag) {
-    setActiveTag(prev => prev === tag ? '' : tag);
+    setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
     setPage(1);
     setExpanded({});
     setCommentOpen({});
@@ -247,11 +259,12 @@ export default function Stories() {
     setSaving(true);
 
     const displayName = profile?.display_name || randomName();
+    const allTags = storyType ? [storyType, ...selectedTags] : selectedTags;
     const { error: err } = await supabase.from('stories').insert({
       content:     content.trim(),
       city:        city || null,
       author_name: displayName,
-      tags:        selectedTags,
+      tags:        allTags,
       user_id:     user?.id ?? null,
       status:      'pending',
     });
@@ -260,6 +273,7 @@ export default function Stories() {
     if (err) { setError('Could not submit your story. Please try again.'); return; }
     setContent('');
     setCity('');
+    setStoryType('');
     setSelectedTags([]);
     setShowForm(false);
     setThankYou(true);
@@ -304,10 +318,10 @@ export default function Stories() {
       {/* ── Hero ── */}
       <div className="stories__banner">
         <div className="container stories__banner-inner">
-          <div className="stories__banner-eyebrow">Coming Out Stories</div>
+          <div className="stories__banner-eyebrow">Queer Stories</div>
           <h1 className="stories__banner-title">Every story matters.</h1>
           <p className="stories__banner-sub">
-            Every coming out is different — an emotion, an experience, a strength.
+            Coming out, finding yourself, falling in love, living openly — every queer journey is different.
             Real people shared theirs so you could find yours.
           </p>
           <div className="stories__banner-actions">
@@ -336,10 +350,21 @@ export default function Stories() {
                       {profile.city && ` · ${profile.city}`}
                     </p>
                   )}
-                  <label className="stories__label">Your coming out story</label>
+                  <div className="stories__type-picker">
+                    <span className="stories__tag-picker-label">What's your story about?</span>
+                    <div className="stories__tag-chips">
+                      {STORY_TYPES.map(t => (
+                        <button key={t.id} type="button"
+                          className={`stories__tag-chip stories__tag-chip--type${storyType === t.id ? ' stories__tag-chip--active' : ''}`}
+                          onClick={() => setStoryType(prev => prev === t.id ? '' : t.id)}
+                        >{t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="stories__label">Your queer story</label>
                   <textarea
                     className="stories__textarea"
-                    placeholder="How did you come out? What happened? How did it feel? There's no right way to tell it…"
+                    placeholder="What happened? How did it feel? A moment, a journey, a realisation — there's no right way to tell it…"
                     value={content}
                     onChange={e => setContent(e.target.value.slice(0, MAX))}
                     rows={7}
@@ -404,27 +429,38 @@ export default function Stories() {
           <div className="stories__filter-row">
             <div className="stories__filter-dropdown" ref={filterRef}>
               <button
-                className={`stories__filter-btn${activeTag ? ' stories__filter-btn--active' : ''}`}
+                className={`stories__filter-btn${activeTags.length > 0 ? ' stories__filter-btn--active' : ''}`}
                 onClick={() => setFilterOpen(v => !v)}
                 aria-expanded={filterOpen}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
                 </svg>
-                {activeTag ? (TAGS.find(t => t.id === activeTag)?.label ?? 'Filter') : 'Filter'}
-                {activeTag && (
-                  <span className="stories__filter-clear" role="button" aria-label="Clear filter"
-                    onClick={e => { e.stopPropagation(); handleTagFilter(''); }}>×</span>
+                {activeTags.length === 0 ? 'Filter'
+                  : activeTags.length === 1 ? (TAGS.find(t => t.id === activeTags[0])?.label ?? 'Filter')
+                  : `${activeTags.length} filters`}
+                {activeTags.length > 0 && (
+                  <span className="stories__filter-clear" role="button" aria-label="Clear filters"
+                    onClick={e => { e.stopPropagation(); setActiveTags([]); setPage(1); }}>×</span>
                 )}
               </button>
               {filterOpen && (
                 <div className="stories__filter-panel">
-                  <p className="stories__filter-group-label">Identity</p>
+                  <p className="stories__filter-group-label">Story type</p>
+                  <div className="stories__filter-options">
+                    {STORY_TYPES.map(t => (
+                      <button key={t.id}
+                        className={`stories__filter-option${activeTags.includes(t.id) ? ' stories__filter-option--active' : ''}`}
+                        onClick={() => handleTagFilter(t.id)}
+                      >{t.label}</button>
+                    ))}
+                  </div>
+                  <p className="stories__filter-group-label" style={{ marginTop: 16 }}>Identity</p>
                   <div className="stories__filter-options">
                     {IDENTITY_TAGS.map(t => (
                       <button key={t.id}
-                        className={`stories__filter-option${activeTag === t.id ? ' stories__filter-option--active' : ''}`}
-                        onClick={() => { handleTagFilter(t.id); setFilterOpen(false); }}
+                        className={`stories__filter-option${activeTags.includes(t.id) ? ' stories__filter-option--active' : ''}`}
+                        onClick={() => handleTagFilter(t.id)}
                       >{t.label}</button>
                     ))}
                   </div>
@@ -432,8 +468,8 @@ export default function Stories() {
                   <div className="stories__filter-options">
                     {PERSPECTIVE_TAGS.map(t => (
                       <button key={t.id}
-                        className={`stories__filter-option${activeTag === t.id ? ' stories__filter-option--active' : ''}`}
-                        onClick={() => { handleTagFilter(t.id); setFilterOpen(false); }}
+                        className={`stories__filter-option${activeTags.includes(t.id) ? ' stories__filter-option--active' : ''}`}
+                        onClick={() => handleTagFilter(t.id)}
                       >{t.label}</button>
                     ))}
                   </div>
@@ -480,6 +516,11 @@ export default function Stories() {
                       <div className="stories__post-meta">
                         <span className="stories__post-author">{s.author_name || 'Anonymous'}</span>
                         {s.city && <span className="stories__post-city">{s.city}</span>}
+                        {s.tags && s.tags.filter(t => STORY_TYPES.some(st => st.id === t)).slice(0, 1).map(t => (
+                          <span key={t} className="stories__post-tag stories__post-tag--type">
+                            {STORY_TYPES.find(st => st.id === t)?.label}
+                          </span>
+                        ))}
                         {s.tags && s.tags.filter(t => IDENTITY_TAGS.some(it => it.id === t)).slice(0, 1).map(t => (
                           <span key={t} className="stories__post-tag">
                             {IDENTITY_TAGS.find(it => it.id === t)?.label}
