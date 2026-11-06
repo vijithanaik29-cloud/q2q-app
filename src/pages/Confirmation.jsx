@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link, Navigate } from 'react-router-dom';
 import { formatDate } from '../data/events';
 import RainbowCelebration from '../components/RainbowCelebration';
 import { supabase } from '../lib/supabase';
+import { PAYMENTS_ENABLED } from '../config';
 import './Confirmation.css';
 
 export default function Confirmation() {
@@ -114,7 +115,7 @@ export default function Confirmation() {
                 </div>
               ))}
               <div className="confirmation__total">
-                <span>Total paid</span>
+                <span>{!PAYMENTS_ENABLED && booking.total > 0 ? 'Amount (pay at venue)' : 'Total paid'}</span>
                 <strong>{booking.total === 0 ? 'Free' : `₹${booking.total.toLocaleString('en-IN')}`}</strong>
               </div>
             </div>
