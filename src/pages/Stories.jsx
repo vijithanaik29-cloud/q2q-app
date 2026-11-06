@@ -22,6 +22,12 @@ const IDENTITY_TAGS = [
   { id: 'questioning',label: 'Questioning' },
   { id: 'intersex',   label: 'Intersex' },
 ];
+const COMMENT_EMOJIS = [
+  '🏳️‍🌈','❤️','🧡','💛','💚','💙','💜','🤍','🫂','💪',
+  '✨','🌈','🌸','🦋','🌟','😊','😭','💕','❤️‍🔥','👏',
+  '🙏','💫','🎉','🤗','💞','🥹','🫶','🌺','🦄','🏅',
+];
+
 const PERSPECTIVE_TAGS = [
   { id: 'dont-care',   label: "I don't care 🤍" },
   { id: 'my-brother',  label: 'My bro came out' },
@@ -82,6 +88,7 @@ export default function Stories() {
   const [commentOpen,  setCommentOpen]  = useState({});
   const [commentInput, setCommentInput] = useState({});
   const [commentSaving,setCommentSaving]= useState({});
+  const [emojiOpen,    setEmojiOpen]    = useState({});
 
   const [authModal,    setAuthModal]    = useState(false);
   const [thankYou,     setThankYou]     = useState(false);
@@ -515,21 +522,44 @@ export default function Stories() {
                           ))}
 
                           {user && profile ? (
-                            <div className="stories__comment-input-row">
-                              <input
-                                className="stories__comment-input"
-                                placeholder="Share a kind word…"
-                                value={commentInput[s.id] || ''}
-                                onChange={e => setCommentInput(prev => ({ ...prev, [s.id]: e.target.value }))}
-                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); postComment(s.id); } }}
-                                maxLength={500}
-                              />
-                              <button
-                                className="stories__comment-send"
-                                onClick={() => postComment(s.id)}
-                                disabled={!commentInput[s.id]?.trim() || commentSaving[s.id]}
-                                aria-label="Post comment"
-                              >→</button>
+                            <div className="stories__comment-input-wrap">
+                              <div className="stories__comment-input-row">
+                                <button
+                                  className="stories__emoji-btn"
+                                  onClick={() => setEmojiOpen(prev => ({ ...prev, [s.id]: !prev[s.id] }))}
+                                  aria-label="Add emoji"
+                                  type="button"
+                                >😊</button>
+                                <input
+                                  className="stories__comment-input"
+                                  placeholder="Share a kind word…"
+                                  value={commentInput[s.id] || ''}
+                                  onChange={e => setCommentInput(prev => ({ ...prev, [s.id]: e.target.value }))}
+                                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); postComment(s.id); } }}
+                                  maxLength={500}
+                                />
+                                <button
+                                  className="stories__comment-send"
+                                  onClick={() => postComment(s.id)}
+                                  disabled={!commentInput[s.id]?.trim() || commentSaving[s.id]}
+                                  aria-label="Post comment"
+                                >→</button>
+                              </div>
+                              {emojiOpen[s.id] && (
+                                <div className="stories__emoji-picker">
+                                  {COMMENT_EMOJIS.map(em => (
+                                    <button
+                                      key={em}
+                                      className="stories__emoji-item"
+                                      onClick={() => {
+                                        setCommentInput(prev => ({ ...prev, [s.id]: (prev[s.id] || '') + em }));
+                                        setEmojiOpen(prev => ({ ...prev, [s.id]: false }));
+                                      }}
+                                      type="button"
+                                    >{em}</button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <button className="stories__comment-login" onClick={() => setAuthModal(true)}>
