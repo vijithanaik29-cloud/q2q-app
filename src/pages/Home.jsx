@@ -5,7 +5,76 @@ import EventCard from '../components/EventCard';
 import SponsorBanner from '../components/SponsorBanner';
 import { CITIES, CATEGORIES, CATEGORY_EMOJI } from '../data/events';
 import { activeSponsor } from '../data/sponsors';
+import { supabase } from '../lib/supabase';
 import './Home.css';
+
+function lsGetPoll(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+function lsSetPoll(key, val) { try { localStorage.setItem(key, val); } catch (_) {} }
+
+function IntentPoll() {
+  const [voted,  setVoted]  = useState(() => lsGetPoll('q2q_poll_vote'));
+  const [counts, setCounts] = useState({ yes: 0, no: 0 });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.from('poll_votes').select('vote').eq('question_id', 'book_intent')
+      .then(({ data }) => {
+        if (!data) return;
+        const yes = data.filter(r => r.vote === 'yes').length;
+        const no  = data.filter(r => r.vote === 'no').length;
+        setCounts({ yes, no });
+      });
+  }, [voted]);
+
+  async function vote(choice) {
+    setLoading(true);
+    await supabase.from('poll_votes').insert({ question_id: 'book_intent', vote: choice });
+    lsSetPoll('q2q_poll_vote', choice);
+    setVoted(choice);
+    setLoading(false);
+  }
+
+  const total = counts.yes + counts.no;
+  const yesPct = total ? Math.round((counts.yes / total) * 100) : 50;
+  const noPct  = 100 - yesPct;
+
+  return (
+    <section className="poll-band">
+      <div className="container poll-band__inner">
+        <p className="poll-band__eyebrow">Quick question</p>
+        <h2 className="poll-band__question">If there was a queer event in your city, would you book a ticket?</h2>
+        {!voted ? (
+          <div className="poll-band__btns">
+            <button className="poll-band__btn poll-band__btn--yes" onClick={() => vote('yes')} disabled={loading}>
+              Yes, definitely!
+            </button>
+            <button className="poll-band__btn poll-band__btn--no" onClick={() => vote('no')} disabled={loading}>
+              Probably not
+            </button>
+          </div>
+        ) : (
+          <div className="poll-band__results">
+            <div className="poll-band__result-row">
+              <span className="poll-band__result-label">Yes</span>
+              <div className="poll-band__bar-wrap">
+                <div className="poll-band__bar poll-band__bar--yes" style={{ width: `${yesPct}%` }} />
+              </div>
+              <span className="poll-band__result-pct">{yesPct}%</span>
+            </div>
+            <div className="poll-band__result-row">
+              <span className="poll-band__result-label">No</span>
+              <div className="poll-band__bar-wrap">
+                <div className="poll-band__bar poll-band__bar--no" style={{ width: `${noPct}%` }} />
+              </div>
+              <span className="poll-band__result-pct">{noPct}%</span>
+            </div>
+            <p className="poll-band__total">{total} {total === 1 ? 'response' : 'responses'} · You said <strong>{voted === 'yes' ? 'Yes' : 'Probably not'}</strong></p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const CITY_EMOJI = {
   All: '🗺️', Mumbai: '🌊', Delhi: '🏛️', Bangalore: '💻',
@@ -302,6 +371,9 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* Intent poll */}
+      <IntentPoll />
 
       {/* Organiser CTA */}
       <section className="cta-band">

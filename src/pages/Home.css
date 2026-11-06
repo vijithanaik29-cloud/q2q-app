@@ -403,3 +403,87 @@
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Intent Poll ── */
+.poll-band {
+  background: linear-gradient(135deg, rgba(117,7,135,.08) 0%, rgba(66,133,244,.06) 100%);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 0;
+}
+.poll-band__inner {
+  max-width: 560px;
+  text-align: center;
+}
+.poll-band__eyebrow {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.poll-band__question {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 28px;
+  text-wrap: balance;
+}
+.poll-band__btns {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.poll-band__btn {
+  padding: 13px 28px;
+  border-radius: 50px;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform .12s, box-shadow .12s;
+}
+.poll-band__btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.14); }
+.poll-band__btn:disabled { opacity: .6; cursor: default; }
+.poll-band__btn--yes {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+}
+.poll-band__btn--no {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Results */
+.poll-band__results { text-align: left; }
+.poll-band__result-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 44px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.poll-band__result-label { font-size: .85rem; font-weight: 600; color: var(--text-muted); }
+.poll-band__result-pct { font-size: .85rem; font-weight: 700; color: var(--text); text-align: right; }
+.poll-band__bar-wrap {
+  height: 10px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.poll-band__bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .5s ease;
+}
+.poll-band__bar--yes { background: linear-gradient(90deg, #667eea, #764ba2); }
+.poll-band__bar--no  { background: var(--text-muted); }
+.poll-band__total {
+  margin-top: 12px;
+  font-size: .8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
