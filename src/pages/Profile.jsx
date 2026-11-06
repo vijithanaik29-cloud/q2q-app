@@ -190,7 +190,6 @@ export default function Profile() {
           {/* Links */}
           <div className="profile__links">
             <Link to="/stories" className="profile__link">📖 Coming out stories</Link>
-            <Link to="/mentors" className="profile__link">✦ Find a mentor</Link>
           </div>
         </div>
       </div>

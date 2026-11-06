@@ -82,13 +82,14 @@ export default function Stories() {
   const [filterOpen,   setFilterOpen]   = useState(false);
 
   // Likes: { storyId → { count, userLiked } }
-  const [likes,        setLikes]        = useState({});
+  const [likes,         setLikes]         = useState({});
   // Comments: { storyId → Comment[] | null (not loaded) }
-  const [comments,     setComments]     = useState({});
-  const [commentOpen,  setCommentOpen]  = useState({});
-  const [commentInput, setCommentInput] = useState({});
-  const [commentSaving,setCommentSaving]= useState({});
-  const [emojiOpen,    setEmojiOpen]    = useState({});
+  const [comments,      setComments]      = useState({});
+  const [commentCounts, setCommentCounts] = useState({});
+  const [commentOpen,   setCommentOpen]   = useState({});
+  const [commentInput,  setCommentInput]  = useState({});
+  const [commentSaving, setCommentSaving] = useState({});
+  const [emojiOpen,     setEmojiOpen]     = useState({});
 
   const [authModal,    setAuthModal]    = useState(false);
   const [thankYou,     setThankYou]     = useState(false);
@@ -103,9 +104,10 @@ export default function Stories() {
     const to   = pg * PAGE_SIZE - 1;
 
     let q = supabase
-      .from('stories')
-      .select('id, content, city, author_name, views, tags, created_at', { count: 'exact' })
+      .from('stories_with_likes')
+      .select('id, content, city, author_name, views, tags, created_at, user_id, like_count, comment_count', { count: 'exact' })
       .eq('status', 'approved')
+      .order('like_count', { ascending: false })
       .order('created_at', { ascending: false })
       .range(from, to);
 
@@ -116,8 +118,12 @@ export default function Stories() {
     setStories(newStories);
     setTotal(count || 0);
     setLoading(false);
-    setLikes({});
     setComments({});
+
+    // Init comment counts from view data
+    const cntMap = {};
+    newStories.forEach(s => { cntMap[s.id] = s.comment_count || 0; });
+    setCommentCounts(cntMap);
 
     // View counts
     try {
@@ -129,22 +135,19 @@ export default function Stories() {
       }
     } catch (_) {}
 
-    // Load like counts + user's likes for this page
-    if (newStories.length > 0) {
+    // Build likes map: counts come from view, only fetch user's own liked status
+    const likeMap = {};
+    newStories.forEach(s => { likeMap[s.id] = { count: s.like_count || 0, userLiked: false }; });
+    if (user && newStories.length > 0) {
       const ids = newStories.map(s => s.id);
-      const { data: likeRows } = await supabase
+      const { data: myLikes } = await supabase
         .from('story_likes')
-        .select('story_id, user_id')
+        .select('story_id')
+        .eq('user_id', user.id)
         .in('story_id', ids);
-
-      const map = {};
-      (likeRows || []).forEach(l => {
-        if (!map[l.story_id]) map[l.story_id] = { count: 0, userLiked: false };
-        map[l.story_id].count++;
-        if (user && l.user_id === user.id) map[l.story_id].userLiked = true;
-      });
-      setLikes(map);
+      (myLikes || []).forEach(l => { if (likeMap[l.story_id]) likeMap[l.story_id].userLiked = true; });
     }
+    setLikes(likeMap);
   }, [user]);
 
   useEffect(() => { loadStories(page, activeTag); }, [loadStories, page, activeTag]);
@@ -199,7 +202,9 @@ export default function Stories() {
         .select('id, display_name, content, created_at')
         .eq('story_id', storyId)
         .order('created_at', { ascending: true });
-      setComments(prev => ({ ...prev, [storyId]: data || [] }));
+      const loaded = data || [];
+      setComments(prev => ({ ...prev, [storyId]: loaded }));
+      setCommentCounts(prev => ({ ...prev, [storyId]: loaded.length }));
     }
   }
 
@@ -224,7 +229,14 @@ export default function Stories() {
     if (!err && data) {
       setComments(prev => ({ ...prev, [storyId]: [...(prev[storyId] || []), data] }));
       setCommentInput(prev => ({ ...prev, [storyId]: '' }));
+      setCommentCounts(prev => ({ ...prev, [storyId]: (prev[storyId] || 0) + 1 }));
     }
+  }
+
+  async function deleteComment(storyId, commentId) {
+    await supabase.from('story_comments').delete().eq('id', commentId);
+    setComments(prev => ({ ...prev, [storyId]: (prev[storyId] || []).filter(c => c.id !== commentId) }));
+    setCommentCounts(prev => ({ ...prev, [storyId]: Math.max(0, (prev[storyId] || 1) - 1) }));
   }
 
   // ── Story submit ───────────────────────────────────────────────────────────
@@ -455,9 +467,11 @@ export default function Stories() {
                 const isLong   = s.content.length > PREVIEW;
                 const isOpen   = expanded[s.id];
                 const text     = isLong && !isOpen ? s.content.slice(0, PREVIEW).trimEnd() + '…' : s.content;
-                const likeData = likes[s.id] || { count: 0, userLiked: false };
-                const cmsgs    = comments[s.id] || [];
-                const cOpen    = commentOpen[s.id];
+                const likeData     = likes[s.id] || { count: 0, userLiked: false };
+                const cmsgs        = comments[s.id] || [];
+                const cOpen        = commentOpen[s.id];
+                const commentCount = commentCounts[s.id] ?? 0;
+                const isStoryOwner = user?.id === s.user_id;
 
                 return (
                   <article key={s.id} className="stories__post">
@@ -504,7 +518,7 @@ export default function Stories() {
                           onClick={() => toggleComments(s.id)}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                          <span className="stories__react-count">{cOpen ? (cmsgs.length > 0 ? cmsgs.length : 'Hide') : 'Comment'}</span>
+                          <span className="stories__react-count">{commentCount > 0 ? commentCount : 'Comment'}</span>
                         </button>
                       </div>
 
@@ -518,6 +532,14 @@ export default function Stories() {
                             <div key={c.id} className="stories__comment">
                               <span className="stories__comment-author">{c.display_name}</span>
                               <span className="stories__comment-text">{c.content}</span>
+                              {isStoryOwner && (
+                                <button
+                                  className="stories__comment-delete"
+                                  onClick={() => deleteComment(s.id, c.id)}
+                                  aria-label="Delete comment"
+                                  title="Delete comment"
+                                >×</button>
+                              )}
                             </div>
                           ))}
 
