@@ -151,6 +151,10 @@
   margin-top: 12px;
   text-align: center;
 }
+.stories__disclaimer--warn {
+  color: rgba(255, 180, 60, 0.75);
+  margin-top: 6px;
+}
 
 /* ─── Thanks state ─── */
 .stories__thanks {
@@ -646,6 +650,13 @@
   gap: 12px;
 }
 
+.stories__comments-guidelines {
+  font-size: 11px;
+  color: rgba(255, 180, 60, 0.7);
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
 .stories__comments-empty {
   font-size: 13px;
   color: var(--text-muted);

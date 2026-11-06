@@ -417,6 +417,7 @@ export default function Stories() {
                     {saving ? 'Submitting…' : 'Submit anonymously'}
                   </button>
                   <p className="stories__disclaimer">No real name or email is stored. Stories are reviewed before publishing.</p>
+                  <p className="stories__disclaimer stories__disclaimer--warn">🛡️ This is a safe space. Hate speech or abuse will result in permanent account removal without warning.</p>
                 </form>
             </div>
           </div>
@@ -566,6 +567,9 @@ export default function Stories() {
                       {/* ── Comment section ── */}
                       {cOpen && (
                         <div className="stories__comments">
+                          <p className="stories__comments-guidelines">
+                            🛡️ Safe space only. Hateful, abusive, or discriminatory comments will result in permanent account removal — no warning given.
+                          </p>
                           {cmsgs.length === 0 && (
                             <p className="stories__comments-empty">Be the first to respond with kindness 🌈</p>
                           )}
