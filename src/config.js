@@ -1,2 +1,3 @@
-// Feature flags — flip PAYMENTS_ENABLED to true when a payment gateway is ready.
+// Feature flags
 export const PAYMENTS_ENABLED = false;
+export const APP_VERSION = '1.0.1';
