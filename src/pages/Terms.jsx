@@ -35,14 +35,10 @@ export default function Terms() {
             When you book a ticket through Q2Q, your contract for the event is with the event organiser, not with Q2Q. Q2Q processes the transaction as the payment facilitator and issues your ticket confirmation.
           </p>
 
-          <p><strong>Refunds</strong></p>
-          <ul>
-            <li>Refunds are only issued if the event is <strong>cancelled by the organiser</strong>.</li>
-            <li>If an event is postponed or relocated, the organiser will contact you with updated details. Tickets remain valid for the rescheduled event unless the organiser offers a refund.</li>
-            <li>Q2Q does not issue refunds for change of mind, inability to attend, or dissatisfaction with the event.</li>
-            <li>When a refund is issued, it is returned to your original payment method within 5–7 business days via Cashfree Payments.</li>
-          </ul>
-          <p>See our full <Link to="/refund">Refund &amp; Cancellation Policy</Link> for details on how to request a refund.</p>
+          <p><strong>Payments &amp; Refunds</strong></p>
+          <p>
+            Q2Q does not currently charge attendees for tickets. All RSVPs on the platform are free of charge. When paid ticketing is introduced, our <Link to="/refund">Refund &amp; Cancellation Policy</Link> will be updated with full details.
+          </p>
 
           <p><strong>Ticket transfers</strong></p>
           <p>
@@ -67,11 +63,9 @@ export default function Terms() {
           </p>
 
           <p><strong>Platform fee</strong></p>
-          <ul>
-            <li>Q2Q charges a <strong>10% platform fee</strong> on every paid ticket sold through the platform.</li>
-            <li>Free events carry no platform fee.</li>
-            <li>Earnings are paid out to your registered bank account <strong>within 30 minutes of the event's start time</strong>, once the event is confirmed as having started, subject to no active refund disputes.</li>
-          </ul>
+          <p>
+            Q2Q is currently free for organisers. When paid ticketing is introduced, a platform fee will apply to paid tickets. Organisers will be notified of the fee structure before paid ticketing goes live.
+          </p>
 
           <p><strong>Sponsored placement</strong></p>
           <ul>

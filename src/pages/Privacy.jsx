@@ -20,7 +20,7 @@ export default function Privacy() {
 
         <div className="legal__body">
           <div className="legal__highlight">
-            Q2Q is India's queer events discovery and ticketing platform. We collect the minimum information needed to process your booking and keep you updated about events you attend. We do not sell your data.
+            Q2Q is India's queer events discovery and ticketing platform. We collect the minimum information needed to confirm your RSVP and keep you updated about events you attend. We do not sell your data.
           </div>
 
           <h2>1. Who we are</h2>
@@ -33,7 +33,7 @@ export default function Privacy() {
           <ul>
             <li><strong>Full name</strong> — to identify you at check-in and print on your ticket</li>
             <li><strong>Email address</strong> — to send your booking confirmation and ticket</li>
-            <li><strong>Mobile number</strong> — required by our payment partner Cashfree to process paid tickets; also used if the event organiser needs to reach you urgently</li>
+            <li><strong>Mobile number</strong> — used if the event organiser needs to reach you urgently</li>
           </ul>
           <p><strong>When you apply to list events (organisers):</strong></p>
           <ul>
@@ -54,13 +54,13 @@ export default function Privacy() {
 
           <h2>3. Payment data</h2>
           <p>
-            All payments are processed by <strong>Cashfree Payments</strong> (Cashfree Payments India Private Limited). Q2Q never sees, stores, or handles your card number, UPI ID, or banking credentials. Cashfree's own privacy policy governs how they handle payment data. When you pay through Q2Q, you are also subject to <a href="https://www.cashfree.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Cashfree's Privacy Policy</a>.
+            Q2Q does not currently process payments. All events on the platform are free to attend and no payment details are collected from attendees. When paid ticketing is introduced, this section will be updated with details of the payment processor and how payment data is handled.
           </p>
 
           <h2>4. How we use your data</h2>
           <ul>
             <li>Sending your booking confirmation and ticket</li>
-            <li>Processing refunds if an event is cancelled</li>
+            <li>Notifying you if an event you have RSVP'd to is cancelled or changed</li>
             <li>Contacting you about significant changes to an event you have booked (e.g. venue change, cancellation)</li>
             <li>Verifying and onboarding event organisers</li>
             <li>Complying with applicable Indian law</li>
@@ -69,7 +69,7 @@ export default function Privacy() {
 
           <h2>5. Who we share data with</h2>
           <ul>
-            <li><strong>Cashfree Payments</strong> — your name, email, and phone are passed to Cashfree's checkout form to prefill your payment details. Cashfree processes the transaction and sends you a payment receipt.</li>
+            <li><strong>Payment processors</strong> — when paid ticketing is introduced, your name, email, and phone will be shared with our payment processor to complete the transaction. This section will be updated when that happens.</li>
             <li><strong>Supabase</strong> — our database provider. Booking records are stored on Supabase's secure servers under strict Row Level Security access controls.</li>
             <li><strong>Event organisers</strong> — organiser accounts can see the name, email, and phone of attendees who booked tickets for their events. They are not permitted to use this data for any purpose other than managing that event.</li>
           </ul>
@@ -99,7 +99,7 @@ export default function Privacy() {
 
           <h2>9. Data security</h2>
           <p>
-            Booking data is protected by Supabase Row Level Security (RLS), which means your booking information is not accessible to anyone without an authenticated organiser account. All data is transmitted over HTTPS. Our Cashfree secret keys are stored server-side and never exposed to the browser.
+            Booking data is protected by Supabase Row Level Security (RLS), which means your booking information is not accessible to anyone without an authenticated organiser account. All data is transmitted over HTTPS.
           </p>
 
           <h2>10. Children</h2>

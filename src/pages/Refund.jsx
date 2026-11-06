@@ -20,63 +20,27 @@ export default function Refund() {
 
         <div className="legal__body">
           <div className="legal__highlight">
-            Q2Q is a discovery and ticketing platform for queer events across India. This policy explains when refunds are issued, how to request one, and how long they take. Please read it before purchasing a ticket.
+            Q2Q is a discovery and ticketing platform for queer events across India. At present, Q2Q does not process any payments — all events listed on Q2Q are free to attend and no money is collected from attendees.
           </div>
 
-          <h2>1. Tickets are generally non-refundable</h2>
+          <h2>1. No payments are currently processed</h2>
           <p>
-            All ticket sales are final. Once a booking is confirmed and a booking ID is issued, tickets cannot be cancelled or refunded except in the circumstances described below. This policy exists because event organisers plan capacity, staffing, and logistics based on confirmed bookings.
+            Q2Q does not currently charge attendees for tickets. All RSVPs and bookings on the platform are free of charge. Because no payment is collected, there is nothing to refund.
           </p>
 
-          <h2>2. When you are entitled to a full refund</h2>
-          <p>You will receive a full refund in the following situations:</p>
-          <ul>
-            <li><strong>Event cancelled by the organiser</strong> — If the organiser cancels the event entirely, Q2Q will initiate a full refund of the ticket amount to your original payment method within 5–7 business days.</li>
-            <li><strong>Event postponed and you cannot attend</strong> — If the event is rescheduled to a new date and you are unable to attend the new date, write to us within 48 hours of the rescheduling announcement and we will process a full refund.</li>
-            <li><strong>Duplicate payment</strong> — If your account was charged more than once for the same booking due to a technical error, the extra charge will be refunded automatically within 5–7 business days.</li>
-            <li><strong>Payment deducted but booking failed</strong> — If your payment was deducted but you did not receive a booking confirmation or booking ID, write to us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a> with your payment reference number. We will investigate and refund within 5–7 business days.</li>
-          </ul>
-
-          <h2>3. Situations where refunds are not issued</h2>
-          <ul>
-            <li>Buyer-initiated cancellation after booking is confirmed</li>
-            <li>Inability to attend due to personal reasons (travel, illness, change of plans)</li>
-            <li>Dissatisfaction with the event after attending</li>
-            <li>Entry denied at the venue due to violation of the event's entry requirements or code of conduct</li>
-            <li>Requests made after the event date has passed</li>
-          </ul>
-
-          <h2>4. Free events</h2>
+          <h2>2. Future paid events</h2>
           <p>
-            Tickets for free events have no monetary value and do not qualify for refunds. If you registered for a free event and cannot attend, no action is needed.
+            When Q2Q introduces paid ticketing, this policy will be updated to cover refund eligibility, the process for requesting a refund, and timelines. We will notify organiser account holders by email before paid ticketing goes live.
           </p>
 
-          <h2>5. How to request a refund</h2>
+          <h2>3. Event cancellations</h2>
           <p>
-            For eligible refunds, email <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a> with:
-          </p>
-          <ul>
-            <li>Your Q2Q booking ID (format: Q2Q-XXXXX-XXXXX)</li>
-            <li>The reason for the refund request</li>
-            <li>Your Cashfree payment ID or UPI reference number (optional, speeds up processing)</li>
-          </ul>
-          <p>
-            We aim to respond within 2 business days. Our support hours are Monday to Friday, 10 AM–6 PM IST. Approved refunds are credited to your original payment method within 5–7 business days after approval, depending on your bank or card issuer.
+            If an event you have RSVP'd to is cancelled by the organiser, you will be notified by email. No financial action is needed as no payment was taken.
           </p>
 
-          <h2>6. Refund amounts</h2>
+          <h2>4. Contact</h2>
           <p>
-            Refunds are issued for the ticket amount paid. Platform convenience fees, if any, are non-refundable.
-          </p>
-
-          <h2>7. Cashfree payment processing</h2>
-          <p>
-            All payments on Q2Q are processed securely by Cashfree Payments. Refunds are processed through Cashfree back to your original payment method — credit/debit card, UPI, net banking, or wallet. Q2Q does not store your card or UPI details.
-          </p>
-
-          <h2>8. Contact</h2>
-          <p>
-            For any refund queries, write to us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>. We typically respond within 2 business days. Support hours: Monday to Friday, 10 AM–6 PM IST.
+            For any questions, write to us at <a href="mailto:hello@q2q.co.in">hello@q2q.co.in</a>. We typically respond within 2 business days. Support hours: Monday to Friday, 10 AM–6 PM IST.
           </p>
         </div>
 
