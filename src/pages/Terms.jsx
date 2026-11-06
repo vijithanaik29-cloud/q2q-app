@@ -37,7 +37,17 @@ export default function Terms() {
 
           <p><strong>Payments &amp; Refunds</strong></p>
           <p>
-            Q2Q does not currently charge attendees for tickets. All RSVPs on the platform are free of charge. When paid ticketing is introduced, our <Link to="/refund">Refund &amp; Cancellation Policy</Link> will be updated with full details.
+            Q2Q is introducing paid ticket booking. When you book a paid ticket, your payment is processed securely by Razorpay and you will receive a booking confirmation with a unique booking ID. See our <Link to="/refund">Refund &amp; Cancellation Policy</Link> for full details on refund eligibility and how to request one.
+          </p>
+
+          <p><strong>Cancellations</strong></p>
+          <p>
+            Buyer-initiated cancellations are not eligible for a refund on paid events. If the organiser cancels or reschedules the event, you are entitled to a full refund — see our <Link to="/refund">Refund &amp; Cancellation Policy</Link>.
+          </p>
+
+          <p><strong>No-shows</strong></p>
+          <p>
+            If you book a ticket (free or paid) and do not attend, your booking will be marked as a no-show. No-shows on paid events are not eligible for a refund. Repeated no-shows across free events may result in Q2Q limiting your ability to book future events.
           </p>
 
           <p><strong>Ticket transfers</strong></p>

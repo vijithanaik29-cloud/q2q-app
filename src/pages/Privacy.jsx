@@ -54,7 +54,7 @@ export default function Privacy() {
 
           <h2>3. Payment data</h2>
           <p>
-            Q2Q does not currently process payments. All events on the platform are free to attend and no payment details are collected from attendees. When paid ticketing is introduced, this section will be updated with details of the payment processor and how payment data is handled.
+            Q2Q is introducing paid ticket booking. All payments will be processed securely by <strong>Razorpay Software Private Limited</strong>. Q2Q never sees, stores, or handles your card number, UPI ID, or banking credentials. When you pay through Q2Q, you are also subject to <a href="https://razorpay.com/privacy/" target="_blank" rel="noopener noreferrer">Razorpay's Privacy Policy</a>.
           </p>
 
           <h2>4. How we use your data</h2>
@@ -69,7 +69,7 @@ export default function Privacy() {
 
           <h2>5. Who we share data with</h2>
           <ul>
-            <li><strong>Payment processors</strong> — when paid ticketing is introduced, your name, email, and phone will be shared with our payment processor to complete the transaction. This section will be updated when that happens.</li>
+            <li><strong>Razorpay</strong> — for paid ticket bookings, your name, email, and phone are passed to Razorpay's checkout to complete the transaction. Razorpay processes the payment and sends you a receipt.</li>
             <li><strong>Supabase</strong> — our database provider. Booking records are stored on Supabase's secure servers under strict Row Level Security access controls.</li>
             <li><strong>Event organisers</strong> — organiser accounts can see the name, email, and phone of attendees who booked tickets for their events. They are not permitted to use this data for any purpose other than managing that event.</li>
           </ul>
