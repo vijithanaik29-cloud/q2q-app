@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { PAYMENTS_ENABLED } from '../config';
 import './Fundraisers.css';
 
 const PRESET_AMOUNTS = [100, 500, 1000, 2000, 5000];
@@ -276,10 +277,12 @@ function FundraiserDetail({ id }) {
                 <p>Donation ID: <code>{donated.id}</code></p>
                 <p>A receipt has been sent to your email.</p>
               </div>
-            ) : (
+            ) : PAYMENTS_ENABLED ? (
               <button className="btn btn-primary fr-detail__donate-btn" onClick={() => setShowDonate(true)}>
                 Donate Now
               </button>
+            ) : (
+              <p className="fr-detail__donations-soon">Donations coming soon.</p>
             )}
           </div>
         </div>

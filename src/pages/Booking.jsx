@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, NavLink } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
 import { formatDate } from '../data/events';
+import { PAYMENTS_ENABLED } from '../config';
 import './Booking.css';
 
 export default function Booking() {
@@ -163,8 +164,8 @@ export default function Booking() {
     };
 
     try {
-      // Free tickets (or fully discounted) — save directly to Supabase
-      if (finalTotal === 0) {
+      // Free tickets, fully discounted, or payments disabled — save directly
+      if (finalTotal === 0 || !PAYMENTS_ENABLED) {
         const booking = await addBooking(bookingData);
         navigate('/confirmation', { state: { booking, event } });
         return;
@@ -258,8 +259,8 @@ export default function Booking() {
                     </div>
                   ))}
                 </div>
-                {/* Promo code — only for paid selections */}
-                {hasSelection && total > 0 && (
+                {/* Promo code — only for paid selections when payments enabled */}
+                {hasSelection && total > 0 && PAYMENTS_ENABLED && (
                   <div className="booking__coupon">
                     {couponResult?.valid ? (
                       <div className="booking__coupon-applied">
@@ -443,11 +444,11 @@ export default function Booking() {
                 >
                   {submitting ? (
                     <><div className="spinner" style={{ width: 16, height: 16 }} /> Processing…</>
-                  ) : finalTotal === 0 ? 'Confirm booking' : `Pay ₹${finalTotal.toLocaleString('en-IN')}`}
+                  ) : (finalTotal === 0 || !PAYMENTS_ENABLED) ? 'Confirm booking' : `Pay ₹${finalTotal.toLocaleString('en-IN')}`}
                 </button>
 
                 <p className="booking__privacy" style={{ marginTop: 12 }}>
-                  {finalTotal > 0 ? 'Secure payment via Cashfree.' : 'No payment required for free tickets.'}
+                  {finalTotal > 0 && PAYMENTS_ENABLED ? 'Secure payment via Cashfree.' : 'No payment required — RSVP is free.'}
                 </p>
               </div>
             )}
