@@ -37,6 +37,57 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const { token, action, email } = body;
+
+    // ── Passwordless mode: TOTP-only login (no prior session required) ─────────
+    // Frontend sends { action: 'passwordless', email, token }
+    if (action === 'passwordless') {
+      if (email !== SUPERADMIN) {
+        return new Response(JSON.stringify({ ok: false }), { status: 403, headers: CORS });
+      }
+      if (!token || !/^\d{6}$/.test(String(token))) {
+        return new Response(JSON.stringify({ ok: false, error: 'Enter a 6-digit code' }), { headers: CORS });
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+
+      const { data: secretRow } = await supabaseAdmin
+        .from('admin_config').select('value').eq('key', 'totp_secret').single();
+
+      if (!secretRow) {
+        return new Response(JSON.stringify({ ok: false, error: 'not_configured' }), { headers: CORS });
+      }
+
+      // Verify TOTP (±1 step for clock drift)
+      const step = BigInt(Math.floor(Date.now() / 1000 / 30));
+      let valid = false;
+      for (const d of [0n, -1n, 1n]) {
+        if ((await computeTOTP(secretRow.value, step + d)) === String(token)) { valid = true; break; }
+      }
+      if (!valid) {
+        return new Response(JSON.stringify({ ok: false }), { headers: CORS });
+      }
+
+      // TOTP correct — generate a sign-in token (no email sent)
+      const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: SUPERADMIN,
+        options: { redirectTo: Deno.env.get('SUPABASE_URL')! },
+      });
+      if (linkErr || !linkData?.properties?.email_otp) {
+        return new Response(JSON.stringify({ ok: false, error: 'Could not create session' }), { headers: CORS });
+      }
+
+      return new Response(JSON.stringify({ ok: true, otp: linkData.properties.email_otp }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── Session-based mode: used after magic link login (TOTP gate) ────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return new Response(JSON.stringify({ ok: false }), { status: 401, headers: CORS });
 
@@ -50,7 +101,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: false }), { status: 403, headers: CORS });
     }
 
-    const { token } = await req.json().catch(() => ({}));
     if (!token || !/^\d{6}$/.test(String(token))) {
       return new Response(JSON.stringify({ ok: false, error: 'Enter a 6-digit code' }), { headers: CORS });
     }
@@ -61,16 +111,12 @@ serve(async (req) => {
     );
 
     const { data } = await supabaseAdmin
-      .from('admin_config')
-      .select('value')
-      .eq('key', 'totp_secret')
-      .single();
+      .from('admin_config').select('value').eq('key', 'totp_secret').single();
 
     if (!data) {
       return new Response(JSON.stringify({ ok: false, error: 'TOTP not set up' }), { headers: CORS });
     }
 
-    // Accept current step ±1 (covers 30s clock drift)
     const step = BigInt(Math.floor(Date.now() / 1000 / 30));
     for (const d of [0n, -1n, 1n]) {
       const expected = await computeTOTP(data.value, step + d);

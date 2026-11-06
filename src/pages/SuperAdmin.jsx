@@ -39,11 +39,11 @@ export default function SuperAdmin() {
   const { allEvents, addEvent, user, signIn, signOut, authLoading } = useApp();
 
   // ── Login state ──────────────────────────────────────────────────────────────
-  const [email,          setEmail]          = useState('');
-  const [loginError,     setLoginError]     = useState('');
-  const [signingIn,      setSigningIn]      = useState(false);
-  const [linkSent,       setLinkSent]       = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const [email,             setEmail]             = useState('');
+  const [loginError,        setLoginError]        = useState('');
+  const [signingIn,         setSigningIn]         = useState(false);
+  const [linkSent,          setLinkSent]          = useState(false);
+  const [showEmailFallback, setShowEmailFallback] = useState(false);
 
   // ── TOTP 2FA gate ────────────────────────────────────────────────────────────
   const [totpVerified,   setTotpVerified]   = useState(false);
@@ -97,8 +97,10 @@ export default function SuperAdmin() {
   const [influencerSaved,    setInfluencerSaved]    = useState(false);
 
   // ── Stories ──────────────────────────────────────────────────────────────────
-  const [stories,       setStories]       = useState([]);
-  const [storiesLoading,setStoriesLoading]= useState(false);
+  const [stories,        setStories]        = useState([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const [storiesFilter,  setStoriesFilter]  = useState('all');
+  const [storyAnalytics, setStoryAnalytics] = useState(null);
 
   // ── Sponsor review ───────────────────────────────────────────────────────────
   const [allSponsorSubs, setAllSponsorSubs] = useState([]);
@@ -207,8 +209,15 @@ export default function SuperAdmin() {
 
   async function loadStories() {
     setStoriesLoading(true);
-    const { data } = await supabase.from('stories').select('*').order('created_at', { ascending: false });
-    setStories(data || []);
+    const [{ data: storyData }, { count: profileCount }] = await Promise.all([
+      supabase.from('stories').select('*').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    ]);
+    const stories = storyData || [];
+    setStories(stories);
+    const uniquePosters = new Set(stories.filter(s => s.user_id).map(s => s.user_id)).size;
+    const totalLikes = stories.reduce((sum, s) => sum + (s.like_count || 0), 0);
+    setStoryAnalytics({ uniquePosters, totalLikes, communityUsers: profileCount || 0 });
     setStoriesLoading(false);
   }
 
@@ -641,18 +650,43 @@ export default function SuperAdmin() {
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────────
+  async function handlePasswordlessLogin(e) {
+    e.preventDefault();
+    if (totpToken.length !== 6) { setTotpError('Enter the 6-digit code from your app'); return; }
+    setTotpChecking(true); setTotpError('');
+    const { data, error } = await supabase.functions.invoke('verify-totp', {
+      body: { action: 'passwordless', email: SUPERADMIN, token: totpToken },
+    });
+    if (error || !data?.ok) {
+      setTotpChecking(false);
+      if (data?.error === 'not_configured') {
+        setShowEmailFallback(true);
+      } else {
+        setTotpError('Incorrect code. Check your app and try again.');
+        setTotpToken('');
+      }
+      return;
+    }
+    // TOTP correct — mark verified before session so the gate never flashes
+    setTotpVerified(true);
+    const { error: otpErr } = await supabase.auth.verifyOtp({
+      email: SUPERADMIN, token: data.otp, type: 'email',
+    });
+    setTotpChecking(false);
+    if (otpErr) {
+      setTotpVerified(false);
+      setTotpError('Sign-in failed. Try again.');
+      setTotpToken('');
+    }
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     setSigningIn(true); setLoginError('');
     const { error } = await signIn(email, `${window.location.origin}/superadmin`);
     setSigningIn(false);
     if (error) setLoginError(error.message);
-    else { setLinkSent(true); startResendCooldown(); }
-  }
-
-  function startResendCooldown() {
-    setResendCooldown(30);
-    const iv = setInterval(() => setResendCooldown(c => { if (c <= 1) { clearInterval(iv); return 0; } return c - 1; }), 1000);
+    else setLinkSent(true);
   }
 
   async function resendLink() {
@@ -660,7 +694,6 @@ export default function SuperAdmin() {
     const { error } = await signIn(email, `${window.location.origin}/superadmin`);
     setSigningIn(false);
     if (error) setLoginError(error.message);
-    else startResendCooldown();
   }
 
   async function startTotpSetup() {
@@ -707,39 +740,63 @@ export default function SuperAdmin() {
             <div className="admin-login__header">
               <div className="admin-login__icon" style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/>
-                  <path d="M18 8l2 2 4-4" strokeWidth="2"/>
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
               </div>
               <h1>Q2Q Control</h1>
               <p>Platform administration</p>
             </div>
 
-            {linkSent ? (
-              <div className="admin-login__sent">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                </svg>
-                <p><strong>Check your email</strong></p>
-                <p className="admin-login__sent-sub">Sign-in link sent to <strong>{email}</strong>.</p>
-                <button className="btn btn-rainbow btn-sm" style={{ marginTop: 16 }} onClick={resendLink} disabled={signingIn || resendCooldown > 0}>
-                  {signingIn ? 'Sending…' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend link'}
-                </button>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: 8 }} onClick={() => { setLinkSent(false); setEmail(''); setResendCooldown(0); }}>
-                  Use a different email
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleLogin}>
-                <div className="form-group">
-                  <label htmlFor="sa-email">Email</label>
-                  <input id="sa-email" type="email" placeholder="your email" value={email}
-                    onChange={e => { setEmail(e.target.value); setLoginError(''); }} autoComplete="email" />
+            {showEmailFallback ? (
+              linkSent ? (
+                <div className="admin-login__sent">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  <p><strong>Check your email</strong></p>
+                  <p className="admin-login__sent-sub">Click the link sent to <strong>{email}</strong> to log in and set up 2FA.</p>
+                  <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={resendLink} disabled={signingIn}>
+                    {signingIn ? 'Sending…' : 'Resend link'}
+                  </button>
+                  <button className="btn-link" style={{ display: 'block', marginTop: 10, fontSize: 13 }} onClick={() => { setLinkSent(false); setEmail(''); }}>
+                    Use a different email
+                  </button>
                 </div>
-                {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
-                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email}>
-                  {signingIn ? 'Sending…' : 'Send sign-in link'}
+              ) : (
+                <div>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>2FA is not configured yet. Sign in with your email to set it up.</p>
+                  <form onSubmit={handleLogin}>
+                    <div className="form-group">
+                      <label htmlFor="sa-email">Email</label>
+                      <input id="sa-email" type="email" placeholder="your email" value={email}
+                        onChange={e => { setEmail(e.target.value); setLoginError(''); }} autoComplete="email" autoFocus />
+                    </div>
+                    {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
+                    <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email}>
+                      {signingIn ? 'Sending…' : 'Send sign-in link'}
+                    </button>
+                  </form>
+                  <p className="admin-login__note" style={{ marginTop: 12 }}>
+                    <button className="btn-link" onClick={() => setShowEmailFallback(false)}>← Back</button>
+                  </p>
+                </div>
+              )
+            ) : (
+              <form onSubmit={handlePasswordlessLogin}>
+                <div className="form-group">
+                  <label htmlFor="totp-login">Authenticator code</label>
+                  <input id="totp-login" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6}
+                    placeholder="000000" value={totpToken} autoFocus autoComplete="one-time-code"
+                    style={{ fontSize: 28, letterSpacing: '0.35em', textAlign: 'center', fontFamily: 'monospace' }}
+                    onChange={e => { setTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6)); setTotpError(''); }} />
+                  {totpError && <span className="admin__error">{totpError}</span>}
+                </div>
+                <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={totpChecking || totpToken.length !== 6}>
+                  {totpChecking ? 'Verifying…' : 'Sign in'}
                 </button>
+                <p className="admin-login__note" style={{ marginTop: 16 }}>
+                  <button type="button" className="btn-link" onClick={() => setShowEmailFallback(true)}>Sign in with email link instead</button>
+                </p>
               </form>
             )}
           </div>
@@ -2147,59 +2204,85 @@ export default function SuperAdmin() {
         )}
 
         {/* ── Stories ───────────────────────────────────────────────────────── */}
-        {activeTab === 'stories' && (
-          <div className="admin__form-section" style={{ maxWidth: 720 }}>
-            <h2>Stories Moderation</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
-              Review community stories before they go live. Approved stories appear on the public Stories page.
-            </p>
-            {!storiesLoading && (
-              <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-                {['pending', 'approved', 'rejected'].map(s => {
-                  const count = stories.filter(x => x.status === s).length;
-                  const colors = { pending: 'var(--accent)', approved: 'var(--success)', rejected: 'var(--error)' };
-                  return (
-                    <div key={s} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 18px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: colors[s] }}>{count}</div>
-                      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginTop: 2 }}>{s}</div>
+        {activeTab === 'stories' && (() => {
+          const statusColors = { pending: 'var(--accent)', approved: 'var(--success)', rejected: 'var(--error, #f87171)' };
+          const filtered = storiesFilter === 'all' ? stories : stories.filter(s => s.status === storiesFilter);
+          return (
+            <div className="admin__form-section" style={{ maxWidth: 720 }}>
+              <h2>Stories Moderation</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+                Review community stories before they go live. Approved stories appear on the public Stories page.
+              </p>
+
+              {/* Analytics row */}
+              {!storiesLoading && storyAnalytics && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
+                  {[
+                    { label: 'Community members', value: storyAnalytics.communityUsers, color: 'var(--accent)' },
+                    { label: 'Stories posted', value: stories.length, color: 'var(--accent)' },
+                    { label: 'Unique authors', value: storyAnalytics.uniquePosters, color: 'var(--accent)' },
+                    { label: 'Total likes', value: storyAnalytics.totalLikes, color: 'var(--accent)' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
+                      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 3 }}>{label}</div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-            {storiesLoading ? <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
-              : stories.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No stories yet.</div>
-              : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {stories.map(s => (
-                  <div key={s.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', opacity: s.status === 'rejected' ? 0.5 : 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 20,
-                        background: s.status === 'approved' ? 'rgba(52,211,153,0.12)' : s.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'rgba(139,92,246,0.1)',
-                        color:      s.status === 'approved' ? 'var(--success)'          : s.status === 'rejected' ? 'var(--error)'           : 'var(--accent)',
-                      }}>{s.status}</span>
-                      {s.city && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.city}</span>}
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{new Date(s.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  ))}
+                </div>
+              )}
+
+              {/* Status stat + filter cards */}
+              {!storiesLoading && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                  {[['all', 'All', stories.length], ['pending', 'Pending', stories.filter(x => x.status === 'pending').length], ['approved', 'Approved', stories.filter(x => x.status === 'approved').length], ['rejected', 'Rejected', stories.filter(x => x.status === 'rejected').length]].map(([val, label, count]) => (
+                    <button key={val} onClick={() => setStoriesFilter(val)} style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                      border: storiesFilter === val ? `1.5px solid ${val === 'all' ? 'var(--accent)' : statusColors[val]}` : '1px solid var(--border-2)',
+                      background: storiesFilter === val ? (val === 'all' ? 'rgba(139,92,246,0.1)' : val === 'approved' ? 'rgba(52,211,153,0.1)' : val === 'rejected' ? 'rgba(239,68,68,0.08)' : 'rgba(139,92,246,0.1)') : 'var(--surface)',
+                      color: storiesFilter === val ? (val === 'all' ? 'var(--accent)' : statusColors[val]) : 'var(--text-muted)',
+                    }}>
+                      {label}
+                      <span style={{ background: 'var(--surface-2)', borderRadius: 99, padding: '1px 7px', fontSize: 11 }}>{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {storiesLoading ? <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading…</div>
+                : filtered.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '20px 0' }}>No {storiesFilter === 'all' ? '' : storiesFilter} stories.</div>
+                : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {filtered.map(s => (
+                    <div key={s.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', opacity: s.status === 'rejected' ? 0.6 : 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 20,
+                          background: s.status === 'approved' ? 'rgba(52,211,153,0.12)' : s.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'rgba(139,92,246,0.1)',
+                          color:      s.status === 'approved' ? 'var(--success)'          : s.status === 'rejected' ? 'var(--error, #f87171)' : 'var(--accent)',
+                        }}>{s.status}</span>
+                        {s.city && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.city}</span>}
+                        {(s.like_count > 0) && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>♥ {s.like_count}</span>}
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{new Date(s.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 14, fontStyle: 'italic' }}>"{s.content}"</p>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {s.status !== 'approved' && (
+                          <button
+                            onClick={() => setConfirmDialog({ title: 'Approve Story', action: 'Publish this story on the public Stories page', confirmLabel: 'Approve & Publish', fn: () => moderateStory(s.id, 'approved') })}
+                            style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--success)', background: 'rgba(52,211,153,0.08)', color: 'var(--success)', cursor: 'pointer' }}>Approve</button>
+                        )}
+                        {s.status !== 'rejected' && (
+                          <button
+                            onClick={() => setConfirmDialog({ title: 'Reject Story', action: 'Reject and hide this story from the public page', confirmLabel: 'Yes, Reject', danger: true, fn: () => moderateStory(s.id, 'rejected') })}
+                            style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Reject</button>
+                        )}
+                      </div>
                     </div>
-                    <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 14, fontStyle: 'italic' }}>"{s.content}"</p>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {s.status !== 'approved' && (
-                        <button
-                          onClick={() => setConfirmDialog({ title: 'Approve Story', action: 'Publish this story on the public Stories page', confirmLabel: 'Approve & Publish', fn: () => moderateStory(s.id, 'approved') })}
-                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--success)', background: 'rgba(52,211,153,0.08)', color: 'var(--success)', cursor: 'pointer' }}>Approve</button>
-                      )}
-                      {s.status !== 'rejected' && (
-                        <button
-                          onClick={() => setConfirmDialog({ title: 'Reject Story', action: 'Reject and hide this story from the public page', confirmLabel: 'Yes, Reject', danger: true, fn: () => moderateStory(s.id, 'rejected') })}
-                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Reject</button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Scanner ───────────────────────────────────────────────────────── */}
         {activeTab === 'scanner' && (

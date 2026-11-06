@@ -646,7 +646,7 @@ export default function Admin() {
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                 </svg>
                 <p><strong>Check your email</strong></p>
-                <p className="admin-login__sent-sub">Sign-in link sent to <strong>{email}</strong>.</p>
+                <p className="admin-login__sent-sub">A sign-in link was sent to <strong>{email}</strong>. Click it to log in.</p>
                 <button className="btn btn-outline btn-sm" style={{ marginTop: 16 }} onClick={() => { setLinkSent(false); setEmail(''); }}>
                   Use a different email
                 </button>
@@ -660,7 +660,7 @@ export default function Admin() {
                 </div>
                 {loginError && <span className="admin__error" style={{ display: 'block', marginBottom: 12 }}>{loginError}</span>}
                 <button type="submit" className="btn btn-rainbow btn-full btn-lg" disabled={signingIn || !email}>
-                  {signingIn ? 'Sending…' : 'Send sign-in link'}
+                  {signingIn ? 'Sending…' : 'Continue'}
                 </button>
               </form>
             )}
