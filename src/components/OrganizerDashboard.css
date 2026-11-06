@@ -670,6 +670,25 @@
   padding: 8px 0 4px;
 }
 
+.qrv__ended-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.qrv__arrive-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .od__loyalty-badge {
   font-size: 12px;
   margin-left: 6px;

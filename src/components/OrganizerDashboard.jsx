@@ -8,9 +8,9 @@ import './OrganizerDashboard.css';
 
 const PLATFORM_FEE_RATE = 0.10;
 
-export default function OrganizerDashboard({ event, onBack }) {
+export default function OrganizerDashboard({ event, initialTab = 'attendees', onBack }) {
   const { bookings, checkedIn, checkIn, noShows, markNoShow } = useApp();
-  const [activeTab, setActiveTab] = useState('attendees');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [search, setSearch] = useState('');
 
   const eventBookings = useMemo(
@@ -263,6 +263,7 @@ export default function OrganizerDashboard({ event, onBack }) {
             onCheckIn={checkIn}
             onNoShow={markNoShow}
             getLoyalty={getLoyalty}
+            event={event}
           />
         </div>
       )}

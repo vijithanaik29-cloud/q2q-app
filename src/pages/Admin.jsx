@@ -446,6 +446,7 @@ export default function Admin() {
   const [errors,        setErrors]        = useState({});
   const [submitted,     setSubmitted]     = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [dashInitialTab, setDashInitialTab] = useState('attendees');
 
   const BLANK_SPONSOR = { plan: '', business_name: '', tagline: '', link: '', city: '' };
   const [mySponsorSub,  setMySponsorSub]  = useState(null);
@@ -769,7 +770,7 @@ export default function Admin() {
           </div>
         </div>
         <div className="container admin__body">
-          <OrganizerDashboard event={selectedEvent} onBack={() => setSelectedEvent(null)} />
+          <OrganizerDashboard event={selectedEvent} initialTab={dashInitialTab} onBack={() => { setSelectedEvent(null); setDashInitialTab('attendees'); }} />
         </div>
       </div>
     );
@@ -887,9 +888,16 @@ export default function Admin() {
                         <h3 className="admin__event-title">{event.title}</h3>
                         <p className="admin__event-meta">{formatDate(event.date)}</p>
                         <p className="admin__event-meta">{event.venue}</p>
-                        <button className="admin__dashboard-btn" style={{ marginTop: 12, width: '100%' }} onClick={() => setSelectedEvent(event)}>
-                          View Dashboard →
-                        </button>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <button className="admin__dashboard-btn" style={{ flex: 1 }} onClick={() => { setDashInitialTab('attendees'); setSelectedEvent(event); }}>
+                            Dashboard →
+                          </button>
+                          {!isPast && (
+                            <button className="admin__dashboard-btn" style={{ flex: 1, background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }} onClick={() => { setDashInitialTab('verify'); setSelectedEvent(event); }}>
+                              Scan →
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

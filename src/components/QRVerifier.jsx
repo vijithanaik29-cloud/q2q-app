@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { LOYALTY_META } from '../lib/loyalty';
 
-export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, onNoShow, getLoyalty }) {
+export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, onNoShow, getLoyalty, event }) {
   const [manualCode, setManualCode] = useState('');
   const [result, setResult] = useState(null);
   const [cameraState, setCameraState] = useState('idle'); // idle | requesting | active | error
@@ -65,6 +65,9 @@ export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, on
 
   useEffect(() => () => stopCamera(), []);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isEventEnded = event?.date && event.date < today;
+
   const isValid     = result?.booking != null;
   const isCheckedIn = result?.booking && checkedIn.has(result.booking.id);
   const isNoShow    = result?.booking && noShows?.has(result.booking.id);
@@ -72,6 +75,12 @@ export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, on
 
   return (
     <div className="qrv">
+      {isEventEnded && (
+        <div className="qrv__ended-banner">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          This event has ended — check-in is disabled
+        </div>
+      )}
       <p className="qrv__hint">
         Scan a guest's QR code with the camera, or type their booking reference below.
       </p>
@@ -168,6 +177,7 @@ export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, on
                 <div className="qrv__arrive-row">
                   <button
                     className="qrv__arrive-btn qrv__arrive-btn--yes"
+                    disabled={isEventEnded}
                     onClick={() => { onCheckIn(result.booking.id); setResult(r => ({ ...r })); }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -175,6 +185,7 @@ export default function QRVerifier({ bookings, checkedIn, noShows, onCheckIn, on
                   </button>
                   <button
                     className="qrv__arrive-btn qrv__arrive-btn--no"
+                    disabled={isEventEnded}
                     onClick={() => { onNoShow?.(result.booking.id); setResult(r => ({ ...r })); }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
