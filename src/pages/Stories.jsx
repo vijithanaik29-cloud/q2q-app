@@ -299,7 +299,7 @@ export default function Stories() {
               {showForm ? 'Close' : 'Share your story'}
             </button>
             {total > 0 && (
-              <span className="stories__total-count">{total} {total === 1 ? 'person' : 'people'} found the courage. You're next.</span>
+              <span className="stories__total-count">{total} {total === 1 ? 'person' : 'people'} shared — you could be next.</span>
             )}
           </div>
         </div>
