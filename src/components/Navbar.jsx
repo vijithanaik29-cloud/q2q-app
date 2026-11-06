@@ -9,7 +9,9 @@ export default function Navbar() {
   const location = useLocation();
   const { user, profile, allEvents } = useApp();
 
-  const isVerifiedOrganizer = user && allEvents.some(e => e.organizerId === user.id);
+  // Only email/password accounts are organisers — Google OAuth users are community members only
+  const isOrganiserLogin = user?.app_metadata?.provider === 'email';
+  const isVerifiedOrganizer = isOrganiserLogin && allEvents.some(e => e.organizerId === user.id);
   const hostLink = isVerifiedOrganizer ? '/admin' : '/apply';
   const hostLabel = isVerifiedOrganizer ? 'My Dashboard' : 'Host an Event';
 

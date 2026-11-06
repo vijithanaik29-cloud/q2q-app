@@ -23,7 +23,9 @@ import NotFound from './pages/NotFound';
 
 function AppShell({ children }) {
   const { user, profile, profileLoaded } = useApp();
-  const needsOnboarding = user && profileLoaded && !profile;
+  // Only community (Google OAuth) users need onboarding — email/password = organiser login
+  const isCommunityUser = user?.app_metadata?.provider !== 'email';
+  const needsOnboarding = isCommunityUser && user && profileLoaded && !profile;
   return (
     <>
       {needsOnboarding && (
@@ -49,6 +51,7 @@ export default function App() {
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/my-bookings" element={<MyBookings />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/organiser-login" element={<Admin />} />
             <Route path="/superadmin" element={<SuperAdmin />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/stories" element={<Stories />} />
