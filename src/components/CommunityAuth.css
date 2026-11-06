@@ -227,8 +227,32 @@
 }
 .cauth__switch-btn:hover { text-decoration: underline; }
 
+.cauth__google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 20px;
+  border: 1.5px solid rgba(255,255,255,.18);
+  border-radius: 100px;
+  background: rgba(255,255,255,.07);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+  margin-top: 4px;
+}
+.cauth__google-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,.13);
+  border-color: rgba(255,255,255,.32);
+  transform: translateY(-1px);
+}
+.cauth__google-btn:disabled { opacity: .55; cursor: default; }
+
 .cauth__privacy {
-  margin-top: 12px;
+  margin-top: 14px;
   font-size: 11px;
   color: var(--text-muted);
   text-align: center;
