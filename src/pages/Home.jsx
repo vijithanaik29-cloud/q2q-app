@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import EventCard from '../components/EventCard';
 import SponsorBanner from '../components/SponsorBanner';
@@ -222,6 +222,10 @@ export default function Home() {
             Parties, pride marches, film festivals, workshops, and more,
             across Mumbai, Delhi, Bangalore, and beyond.
           </p>
+          <div className="hero__story-cta">
+            <Link to="/stories" className="btn btn-rainbow btn-lg">Read &amp; share queer stories →</Link>
+            <span className="hero__story-cta-sub">Anonymous · Every identity · Every journey</span>
+          </div>
           <div className="hero__search-wrap">
             <svg className="hero__search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>

@@ -61,8 +61,21 @@
   font-size: clamp(14px, 2vw, 16px);
   color: var(--text-2);
   line-height: 1.7;
-  margin-bottom: 36px;
+  margin-bottom: 28px;
   max-width: 480px;
+}
+
+.hero__story-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+.hero__story-cta-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
 }
 
 /* Search */
