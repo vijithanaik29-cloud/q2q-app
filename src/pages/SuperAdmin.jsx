@@ -128,6 +128,8 @@ export default function SuperAdmin() {
   const [analyticsEvent,    setAnalyticsEvent]    = useState('all');
   const [analyticsDateFrom, setAnalyticsDateFrom] = useState('');
   const [analyticsDateTo,   setAnalyticsDateTo]   = useState('');
+  const [traffic,           setTraffic]           = useState(null);
+  const [trafficLoading,    setTrafficLoading]    = useState(false);
 
   // ── QR Scanner ───────────────────────────────────────────────────────────────
   const [scannerActive, setScannerActive]  = useState(false);
@@ -171,7 +173,7 @@ export default function SuperAdmin() {
     if (activeTab === 'sponsors')     loadAllSponsorSubs();
     if (activeTab === 'fundraisers')  loadAllFundraisers();
     if (activeTab === 'users')        loadUsers();
-    if (activeTab === 'analytics')    { loadApplications(); loadAnalytics(analyticsRange, analyticsDateFrom, analyticsDateTo); }
+    if (activeTab === 'analytics')    { loadApplications(); loadAnalytics(analyticsRange, analyticsDateFrom, analyticsDateTo); loadTraffic(); }
   }, [user, activeTab, totpVerified]);
 
   useEffect(() => {
@@ -264,6 +266,39 @@ export default function SuperAdmin() {
     });
     setUsers(list.sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt)));
     setUsersLoading(false);
+  }
+
+  async function loadTraffic() {
+    setTrafficLoading(true);
+    const now = new Date();
+    const dayAgo   = new Date(now - 1  * 86400000).toISOString();
+    const weekAgo  = new Date(now - 7  * 86400000).toISOString();
+    const monthAgo = new Date(now - 30 * 86400000).toISOString();
+
+    const [todayRes, weekRes, monthRes, pagesRes] = await Promise.all([
+      supabase.from('page_views').select('id', { count: 'exact', head: true }).gte('created_at', dayAgo),
+      supabase.from('page_views').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+      supabase.from('page_views').select('id', { count: 'exact', head: true }).gte('created_at', monthAgo),
+      supabase.from('page_views').select('path').gte('created_at', monthAgo).limit(500),
+    ]);
+
+    // Tally top pages from last 30 days
+    const pathCounts = {};
+    for (const row of (pagesRes.data || [])) {
+      pathCounts[row.path] = (pathCounts[row.path] || 0) + 1;
+    }
+    const topPages = Object.entries(pathCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([path, count]) => ({ path, count }));
+
+    setTraffic({
+      today:    todayRes.count ?? 0,
+      week:     weekRes.count  ?? 0,
+      month:    monthRes.count ?? 0,
+      topPages,
+    });
+    setTrafficLoading(false);
   }
 
   async function loadAnalytics(rangeDays, dateFrom, dateTo) {
@@ -1699,6 +1734,46 @@ export default function SuperAdmin() {
                     </div>
                   </div>
                 </>
+              )}
+
+              {/* ── Site Traffic ── */}
+              <h3 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                Site Traffic {trafficLoading && <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 10 }}>loading…</span>}
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
+                {[
+                  { label: 'Today',     value: traffic?.today ?? '—', color: 'var(--accent)',  sub: 'page views' },
+                  { label: 'Last 7d',   value: traffic?.week  ?? '—', color: '#10b981',         sub: 'page views' },
+                  { label: 'Last 30d',  value: traffic?.month ?? '—', color: '#8B5CF6',         sub: 'page views' },
+                ].map(tile => (
+                  <div key={tile.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: tile.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{tile.value}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{tile.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, opacity: 0.7 }}>{tile.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {traffic?.topPages?.length > 0 && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 28 }}>
+                  <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Top Pages (last 30 days)</span>
+                  </div>
+                  {traffic.topPages.map((p, i) => {
+                    const max = traffic.topPages[0].count;
+                    return (
+                      <div key={p.path} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px', borderTop: i > 0 ? '1px solid var(--border)' : undefined, background: i % 2 === 0 ? 'transparent' : 'var(--surface-2)' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.path}</div>
+                          <div style={{ background: 'var(--border)', borderRadius: 3, height: 4, marginTop: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 3, width: `${Math.round((p.count / max) * 100)}%`, opacity: 0.7 }} />
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted)', flexShrink: 0 }}>{p.count}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
 
               {!analyticsLoading && !analytics?.total && (

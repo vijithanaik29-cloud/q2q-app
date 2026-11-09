@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { useApp } from './context/AppContext';
+import { usePageTracking } from './hooks/usePageTracking';
 import Navbar from './components/Navbar';
 import CommunityAuth from './components/CommunityAuth';
 import Footer from './components/Footer';
@@ -22,6 +23,7 @@ import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
 function AppShell({ children }) {
+  usePageTracking();
   const { user, profile, profileLoaded } = useApp();
   // Only community (Google OAuth) users need onboarding — email/password = organiser login
   const isCommunityUser = user?.app_metadata?.provider !== 'email';
