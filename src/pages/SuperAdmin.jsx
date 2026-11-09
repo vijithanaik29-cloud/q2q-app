@@ -553,6 +553,11 @@ export default function SuperAdmin() {
     await loadStories();
   }
 
+  async function deleteStory(id) {
+    await supabase.from('stories').delete().eq('id', id);
+    await loadStories();
+  }
+
   async function blockUser(userId, block = true) {
     await supabase.rpc('block_user', { target_user_id: userId, block_state: block });
     await loadStories();
@@ -2282,6 +2287,9 @@ export default function SuperAdmin() {
                             onClick={() => setConfirmDialog({ title: 'Reject Story', action: 'Reject and hide this story from the public page', confirmLabel: 'Yes, Reject', danger: true, fn: () => moderateStory(s.id, 'rejected') })}
                             style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--text-muted)', cursor: 'pointer' }}>Reject</button>
                         )}
+                        <button
+                          onClick={() => setConfirmDialog({ title: 'Delete Story', action: 'Permanently delete this story. This cannot be undone.', confirmLabel: 'Delete permanently', danger: true, fn: () => deleteStory(s.id) })}
+                          style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, border: '1px solid rgba(239,68,68,0.5)', background: 'rgba(239,68,68,0.08)', color: 'var(--error, #f87171)', cursor: 'pointer' }}>🗑 Delete</button>
                         {s.user_id && (
                           s.author_blocked ? (
                             <button
